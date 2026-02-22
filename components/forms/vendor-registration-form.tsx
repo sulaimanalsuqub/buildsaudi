@@ -444,7 +444,7 @@ function Field({ label, children, className }: { label: string; children: React.
 
 function ErrorText({ text, isRtl }: { text?: string; isRtl: boolean }) {
   if (!text) return null;
-  return <p className="type-small text-red-600">{isRtl ? "يرجى التحقق من الحقل" : text}</p>;
+  return <p className="type-small text-red-600">{isRtl ? "يرجى التحقق من هذا الحقل" : text}</p>;
 }
 
 function OptionGrid({ children }: { children: React.ReactNode }) {
