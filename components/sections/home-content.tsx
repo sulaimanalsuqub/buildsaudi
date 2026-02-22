@@ -9,28 +9,49 @@ type HomeContentProps = {
   isRtl?: boolean;
 };
 
-const features = [
-  {
-    title: "Verified Vendor Profiles",
-    description: "Collect business licenses, VAT records, and compliance details in one secure workflow."
-  },
-  {
-    title: "Smart Qualification",
-    description: "Automated checks route qualified suppliers to the right procurement team without delays."
-  },
-  {
-    title: "Faster Procurement",
-    description: "Reduce onboarding cycle time with a streamlined, transparent, and trackable registration journey."
-  }
-];
-
-const steps = [
-  "Vendor submits complete company profile",
-  "Compliance and capability checks are reviewed",
-  "Qualified suppliers become ready for tenders"
-];
-
 export function HomeContent({ isRtl = false }: HomeContentProps) {
+  const features = isRtl
+    ? [
+        {
+          title: "ملف مورد موثّق",
+          description: "اجمع السجل التجاري وشهادة الضريبة وبيانات الامتثال في مسار واحد واضح."
+        },
+        {
+          title: "تأهيل ذكي",
+          description: "مراجعات منظمة توجه المورد المؤهل إلى فريق المشتريات المناسب دون تأخير."
+        },
+        {
+          title: "تسريع دورة الشراء",
+          description: "قلل زمن التأهيل عبر رحلة تسجيل سريعة وشفافة وقابلة للتتبع."
+        }
+      ]
+    : [
+        {
+          title: "Verified Vendor Profiles",
+          description: "Collect business licenses, VAT records, and compliance details in one secure workflow."
+        },
+        {
+          title: "Smart Qualification",
+          description: "Automated checks route qualified suppliers to the right procurement team without delays."
+        },
+        {
+          title: "Faster Procurement",
+          description: "Reduce onboarding cycle time with a streamlined, transparent, and trackable registration journey."
+        }
+      ];
+
+  const steps = isRtl
+    ? [
+        "يرفع المورد ملف الشركة والوثائق المطلوبة",
+        "تتم مراجعة الامتثال والقدرات التشغيلية",
+        "يُفعّل المورد المؤهل ويصبح جاهزًا للمنافسات"
+      ]
+    : [
+        "Vendor submits complete company profile",
+        "Compliance and capability checks are reviewed",
+        "Qualified suppliers become ready for tenders"
+      ];
+
   const t = {
     heroTitle: isRtl ? "منصة بيلد لتسجيل موردي قطاع البناء" : "Vendor Registration Infrastructure for Construction Teams",
     heroSub: isRtl
@@ -98,7 +119,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
           <ol className="mt-8 grid gap-4 md:grid-cols-3">
             {steps.map((step, idx) => (
               <li key={step} className="rounded-xl border border-brand-dark/10 bg-white p-6">
-                <p className="text-sm font-semibold text-brand-dark/55">0{idx + 1}</p>
+                <p className="text-sm font-semibold text-brand-dark/55">{`0${idx + 1}`}</p>
                 <p className="type-body mt-2 text-brand-dark/90">{step}</p>
               </li>
             ))}

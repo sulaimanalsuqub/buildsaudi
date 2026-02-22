@@ -17,7 +17,7 @@ export default function ArabicRegisterPage() {
             أكمل بيانات شركتك عبر نموذج متعدد الخطوات، وسيتم مراجعة طلبكم من فريق بيلد خلال وقت قصير.
           </p>
         </div>
-        <VendorRegistrationForm />
+        <VendorRegistrationForm isRtl />
       </Container>
     </main>
   );

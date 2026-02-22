@@ -8,6 +8,8 @@ type SiteFooterProps = {
 };
 
 export function SiteFooter({ isRtl = false }: SiteFooterProps) {
+  const legalBase = isRtl ? "/ar" : "";
+
   return (
     <footer className="mt-24 border-t border-brand-dark/10 bg-white">
       <Container className="space-y-7 py-10">
@@ -22,9 +24,9 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             />
           </div>
           <div className="flex flex-wrap items-center gap-5 text-sm text-brand-dark/70">
-            <Link href="/privacy-policy" className="hover:text-brand-dark">{isRtl ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
-            <Link href="/terms-conditions" className="hover:text-brand-dark">{isRtl ? "الشروط والأحكام" : "Terms & Conditions"}</Link>
-            <Link href="/cookies-policy" className="hover:text-brand-dark">{isRtl ? "سياسة ملفات الارتباط" : "Cookies Policy"}</Link>
+            <Link href={`${legalBase}/privacy-policy`} className="hover:text-brand-dark">{isRtl ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
+            <Link href={`${legalBase}/terms-conditions`} className="hover:text-brand-dark">{isRtl ? "الشروط والأحكام" : "Terms & Conditions"}</Link>
+            <Link href={`${legalBase}/cookies-policy`} className="hover:text-brand-dark">{isRtl ? "سياسة ملفات الارتباط" : "Cookies Policy"}</Link>
           </div>
         </div>
         <p className="text-sm text-brand-dark/55">
