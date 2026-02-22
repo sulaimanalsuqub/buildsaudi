@@ -1,32 +1,106 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-type YesNo = "yes" | "no" | "";
-
-type FormData = {
-  establishmentName: string;
-  managerName: string;
-  contactNumber: string;
-  email: string;
-  crNumber: string;
-  productCategories: string[];
-  vendorType: string;
-  representedBrands: string;
-  coverageRegions: string[];
-  hasWarehouseInKsa: YesNo;
-  offersCredit: YesNo;
-  paymentTerms: string[];
-  creditLimit: string;
-  workedOnGovProjects: YesNo;
-};
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 
 type VendorRegistrationFormProps = {
   isRtl?: boolean;
 };
 
-const initialState: FormData = {
+type Option = {
+  value: string;
+  en: string;
+  ar: string;
+};
+
+const vendorTypes: Option[] = [
+  { value: "direct_manufacturer", en: "Direct Manufacturer", ar: "مصنع مباشر" },
+  { value: "authorized_distributor", en: "Authorized Distributor", ar: "موزع معتمد" },
+  { value: "exclusive_agent", en: "Exclusive Agent", ar: "وكيل حصري" },
+  { value: "project_supplier", en: "Project Supplier", ar: "مورد مشاريع" },
+  { value: "importer", en: "Importer", ar: "مستورد" }
+];
+
+const productCategories: Option[] = [
+  { value: "building_materials", en: "Building Materials", ar: "مواد بناء وإنشاء" },
+  { value: "safety_tools", en: "Safety Tools", ar: "أدوات السلامة" },
+  { value: "paint_decor", en: "Paint & Decor", ar: "دهانات وديكور" },
+  { value: "electrical_lighting", en: "Electrical & Lighting", ar: "كهرباء وإنارة" },
+  { value: "plumbing", en: "Plumbing", ar: "سباكة" },
+  { value: "sanitary_ware", en: "Sanitary Ware", ar: "أدوات صحية" },
+  { value: "hvac", en: "HVAC", ar: "تكييف وتبريد" },
+  { value: "piping_systems", en: "Piping Systems", ar: "أنظمة الأنابيب" },
+  { value: "pumps_tanks", en: "Pumps & Tanks", ar: "مضخات وخزانات" },
+  { value: "flooring_ceramics", en: "Flooring & Ceramics", ar: "أرضيات وسيراميك" },
+  { value: "insulation", en: "Insulation", ar: "عوازل" },
+  { value: "adhesives", en: "Adhesives", ar: "مواد لاصقة" }
+];
+
+const regions: Option[] = [
+  { value: "riyadh", en: "Riyadh", ar: "الرياض" },
+  { value: "makkah", en: "Makkah", ar: "مكة" },
+  { value: "madinah", en: "Madinah", ar: "المدينة" },
+  { value: "eastern", en: "Eastern Province", ar: "الشرقية" },
+  { value: "qassim", en: "Qassim", ar: "القصيم" },
+  { value: "asir", en: "Asir", ar: "عسير" },
+  { value: "tabuk", en: "Tabuk", ar: "تبوك" },
+  { value: "hail", en: "Hail", ar: "حائل" },
+  { value: "northern_borders", en: "Northern Borders", ar: "الحدود الشمالية" },
+  { value: "jazan", en: "Jazan", ar: "جازان" },
+  { value: "najran", en: "Najran", ar: "نجران" },
+  { value: "al_baha", en: "Al Baha", ar: "الباحة" },
+  { value: "al_jouf", en: "Al Jouf", ar: "الجوف" },
+  { value: "all_ksa", en: "All Saudi Arabia", ar: "كل المملكة" }
+];
+
+const paymentTerms: Option[] = [
+  { value: "bank_transfer", en: "Bank Transfer", ar: "تحويل بنكي" },
+  { value: "cheque", en: "Cheque", ar: "شيك" },
+  { value: "30_days", en: "30 Days", ar: "30 يوم" },
+  { value: "60_days", en: "60 Days", ar: "60 يوم" }
+];
+
+const yesNoOptions: Option[] = [
+  { value: "yes", en: "Yes", ar: "نعم" },
+  { value: "no", en: "No", ar: "لا" }
+];
+
+const formSchema = z
+  .object({
+    establishmentName: z.string().min(2),
+    managerName: z.string().min(2),
+    contactNumber: z.string().min(7),
+    email: z.string().email(),
+    crNumber: z.string().min(4),
+    productCategories: z.array(z.string()).min(1),
+    vendorType: z.string().min(1),
+    representedBrands: z.string().optional(),
+    coverageRegions: z.array(z.string()).min(1),
+    hasWarehouseInKsa: z.enum(["yes", "no"]),
+    offersCredit: z.enum(["yes", "no"]),
+    paymentTerms: z.array(z.string()).min(1),
+    creditLimit: z.string().min(1),
+    workedOnGovProjects: z.enum(["yes", "no"])
+  })
+  .superRefine((value, ctx) => {
+    if (value.vendorType === "importer" && !value.representedBrands?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["representedBrands"], message: "Represented brands are required" });
+    }
+  });
+
+type FormValues = z.infer<typeof formSchema>;
+
+const defaultValues: FormValues = {
   establishmentName: "",
   managerName: "",
   contactNumber: "",
@@ -36,549 +110,398 @@ const initialState: FormData = {
   vendorType: "",
   representedBrands: "",
   coverageRegions: [],
-  hasWarehouseInKsa: "",
-  offersCredit: "",
+  hasWarehouseInKsa: "yes",
+  offersCredit: "yes",
   paymentTerms: [],
   creditLimit: "",
-  workedOnGovProjects: ""
+  workedOnGovProjects: "yes"
 };
+
+const stepFields: (keyof FormValues)[][] = [
+  ["establishmentName", "managerName", "contactNumber", "email", "crNumber"],
+  ["productCategories", "vendorType", "representedBrands"],
+  ["coverageRegions", "hasWarehouseInKsa", "offersCredit", "paymentTerms", "creditLimit", "workedOnGovProjects"],
+  []
+];
+
+function textByLang(isRtl: boolean, en: string, ar: string) {
+  return isRtl ? ar : en;
+}
+
+function optionLabel(isRtl: boolean, options: Option[], value: string) {
+  const item = options.find((option) => option.value === value);
+  if (!item) return value;
+  return isRtl ? item.ar : item.en;
+}
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
   const t = {
-    stepLabels: isRtl ? ["البيانات الأساسية", "فئات ونوع المورد", "التغطية والمالية", "المراجعة"] : ["Basic Info", "Categories & Type", "Coverage & Financial", "Review"],
-    stepText: isRtl ? "الخطوة" : "Step",
-    ofText: isRtl ? "من" : "of",
-    submittedTitle: isRtl ? "تم إرسال طلب التوريد" : "Supply Request Submitted",
-    submittedBody: isRtl
-      ? "شكرًا لك. طلبكم قيد المراجعة الآن وسيتواصل معكم فريق بيلد بخصوص فرص التوريد المناسبة."
-      : "Thank you. Your request is under review. The Build team will contact you about matching supply opportunities.",
+    stepLabels: isRtl
+      ? ["البيانات الأساسية", "فئات ونوع المورد", "التغطية والمالية", "المراجعة"]
+      : ["Basic Information", "Categories & Supplier Type", "Coverage & Finance", "Review"],
+    stepText: textByLang(isRtl, "Step", "الخطوة"),
+    ofText: textByLang(isRtl, "of", "من"),
+    submitStateTitle: textByLang(isRtl, "Supply Request Submitted", "تم إرسال طلب التوريد"),
+    submitStateBody: textByLang(
+      isRtl,
+      "Your request has been received. The Build team will contact you about matching supply opportunities.",
+      "تم استلام طلبكم بنجاح. سيتواصل فريق بيلد معكم بخصوص فرص التوريد المناسبة."
+    ),
+    searchRegions: textByLang(isRtl, "Search region...", "ابحث عن منطقة..."),
     labels: {
-      establishmentName: isRtl ? "اسم المنشأة" : "Establishment Name",
-      managerName: isRtl ? "المسؤول" : "Responsible Person",
-      contactNumber: isRtl ? "رقم التواصل" : "Contact Number",
-      email: isRtl ? "البريد الإلكتروني" : "Email",
-      crNumber: isRtl ? "رقم السجل" : "Commercial Registration Number",
-      productCategories: isRtl ? "فئة المنتجات" : "Product Categories",
-      vendorType: isRtl ? "هل أنتم" : "You Are",
-      representedBrands: isRtl ? "العلامات التجارية التي تمثلونها" : "Brands You Represent",
-      coverageRegions: isRtl ? "مناطق التغطية" : "Coverage Regions",
-      hasWarehouseInKsa: isRtl ? "هل لديكم مستودع داخل المملكة؟" : "Do you have a warehouse in KSA?",
-      offersCredit: isRtl ? "هل لديكم قدرة على منح آجل؟" : "Can you provide credit terms?",
-      paymentTerms: isRtl ? "شروط الدفع" : "Payment Terms",
-      creditLimit: isRtl ? "الحد الائتماني التقريبي" : "Estimated Credit Limit",
-      workedOnGovProjects: isRtl ? "هل سبق لكم العمل في مشاريع حكومية؟" : "Have you worked on government projects before?"
+      establishmentName: textByLang(isRtl, "Establishment Name", "اسم المنشأة"),
+      managerName: textByLang(isRtl, "Responsible Person", "المسؤول"),
+      contactNumber: textByLang(isRtl, "Contact Number", "رقم التواصل"),
+      email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
+      crNumber: textByLang(isRtl, "Commercial Registration Number", "رقم السجل"),
+      productCategories: textByLang(isRtl, "Product Categories", "فئة المنتجات"),
+      vendorType: textByLang(isRtl, "You Are", "هل أنتم"),
+      representedBrands: textByLang(isRtl, "Brands You Represent", "العلامات التجارية التي تمثلونها"),
+      coverageRegions: textByLang(isRtl, "Coverage Regions", "مناطق التغطية"),
+      hasWarehouseInKsa: textByLang(isRtl, "Do you have a warehouse in KSA?", "هل لديكم مستودع داخل المملكة؟"),
+      offersCredit: textByLang(isRtl, "Can you provide credit terms?", "هل لديكم قدرة على منح آجل؟"),
+      paymentTerms: textByLang(isRtl, "Payment Terms", "شروط الدفع"),
+      creditLimit: textByLang(isRtl, "Estimated Credit Limit", "الحد الائتماني التقريبي"),
+      workedOnGovProjects: textByLang(isRtl, "Worked on government projects before?", "هل سبق لكم العمل في مشاريع حكومية؟")
     },
-    validation: {
-      basic: isRtl ? "يرجى استكمال البيانات الأساسية بشكل صحيح." : "Please complete the basic information correctly.",
-      categories: isRtl ? "يرجى اختيار فئة منتجات واحدة على الأقل ونوع المورد." : "Please select at least one product category and vendor type.",
-      brands: isRtl ? "يرجى إدخال العلامات التجارية التي تمثلونها." : "Please enter the brands you represent.",
-      coverage: isRtl ? "يرجى استكمال بيانات التغطية والشروط المالية." : "Please complete coverage and financial details."
+    actions: {
+      back: textByLang(isRtl, "Back", "السابق"),
+      next: textByLang(isRtl, "Continue", "متابعة"),
+      submit: textByLang(isRtl, "Submit Supply Request", "إرسال طلب التوريد")
     },
-    searchRegions: isRtl ? "ابحث عن منطقة..." : "Search regions...",
-    yes: isRtl ? "نعم" : "Yes",
-    no: isRtl ? "لا" : "No",
-    back: isRtl ? "السابق" : "Back",
-    continue: isRtl ? "متابعة" : "Continue",
-    submit: isRtl ? "إرسال الطلب" : "Submit Registration",
-    reviewTitle: isRtl ? "مراجعة البيانات" : "Review Details",
-    none: isRtl ? "غير محدد" : "Not provided",
-    vendorTypeOptions: isRtl
-      ? ["مصنع مباشر", "موزع معتمد", "وكيل حصري", "مورد مشاريع", "مستورد"]
-      : ["Direct Manufacturer", "Authorized Distributor", "Exclusive Agent", "Project Supplier", "Importer"],
-    productCategoryOptions: isRtl
-      ? [
-          "مواد بناء وإنشاء",
-          "أدوات السلامة",
-          "دهانات وديكور",
-          "كهرباء وإنارة",
-          "سباكة",
-          "أدوات صحية",
-          "تكييف وتبريد",
-          "أنظمة الأنابيب",
-          "مضخات وخزانات",
-          "أرضيات وسيراميك",
-          "عوازل",
-          "مواد لاصقة"
-        ]
-      : [
-          "Building Materials",
-          "Safety Tools",
-          "Paint & Decor",
-          "Electrical & Lighting",
-          "Plumbing",
-          "Sanitary Ware",
-          "HVAC",
-          "Piping Systems",
-          "Pumps & Tanks",
-          "Flooring & Ceramics",
-          "Insulation",
-          "Adhesives"
-        ],
-    regionOptions: isRtl
-      ? [
-          "الرياض",
-          "مكة",
-          "المدينة",
-          "الشرقية",
-          "القصيم",
-          "عسير",
-          "تبوك",
-          "حائل",
-          "الحدود الشمالية",
-          "جازان",
-          "نجران",
-          "الباحة",
-          "الجوف",
-          "كل المملكة"
-        ]
-      : [
-          "Riyadh",
-          "Makkah",
-          "Madinah",
-          "Eastern Province",
-          "Qassim",
-          "Asir",
-          "Tabuk",
-          "Hail",
-          "Northern Borders",
-          "Jazan",
-          "Najran",
-          "Al Baha",
-          "Al Jouf",
-          "All Saudi Arabia"
-        ],
-    paymentTermOptions: isRtl ? ["تحويل بنكي", "شيك", "30 يوم", "60 يوم"] : ["Bank Transfer", "Cheque", "30 Days", "60 Days"]
+    review: textByLang(isRtl, "Review Details", "مراجعة البيانات"),
+    notProvided: textByLang(isRtl, "Not provided", "غير محدد")
   };
 
   const [step, setStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [data, setData] = useState<FormData>(initialState);
-  const [error, setError] = useState("");
   const [regionSearch, setRegionSearch] = useState("");
 
-  const progress = useMemo(() => ((step + 1) / t.stepLabels.length) * 100, [step, t.stepLabels.length]);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues,
+    mode: "onBlur"
+  });
 
-  const filteredRegions = useMemo(() => {
-    const normalized = regionSearch.trim().toLowerCase();
-    if (!normalized) return t.regionOptions;
-    return t.regionOptions.filter((region) => region.toLowerCase().includes(normalized));
-  }, [regionSearch, t.regionOptions]);
+  const progress = ((step + 1) / t.stepLabels.length) * 100;
+  const values = form.watch();
 
-  const updateField = <K extends keyof FormData>(name: K, value: FormData[K]) => {
-    setData((prev) => ({ ...prev, [name]: value }));
+  const visibleRegions = useMemo(() => {
+    const query = regionSearch.trim().toLowerCase();
+    if (!query) return regions;
+    return regions.filter((item) => item.en.toLowerCase().includes(query) || item.ar.toLowerCase().includes(query));
+  }, [regionSearch]);
+
+  const toggleMultiValue = (field: "productCategories" | "coverageRegions" | "paymentTerms", value: string) => {
+    const current = form.getValues(field);
+    const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+    form.setValue(field, next, { shouldValidate: true, shouldDirty: true });
   };
 
-  const toggleArrayValue = (field: "productCategories" | "coverageRegions" | "paymentTerms", value: string) => {
-    setData((prev) => {
-      const exists = prev[field].includes(value);
-      return {
-        ...prev,
-        [field]: exists ? prev[field].filter((item) => item !== value) : [...prev[field], value]
-      };
-    });
-  };
-
-  const validateStep = () => {
-    if (step === 0) {
-      const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
-      if (!data.establishmentName || !data.managerName || !data.contactNumber || !data.email || !data.crNumber || !isEmailValid) {
-        return t.validation.basic;
-      }
-    }
-
-    if (step === 1) {
-      if (data.productCategories.length === 0 || !data.vendorType) return t.validation.categories;
-      const importerValue = isRtl ? "مستورد" : "Importer";
-      if (data.vendorType === importerValue && !data.representedBrands.trim()) return t.validation.brands;
-    }
-
-    if (step === 2) {
-      if (
-        data.coverageRegions.length === 0 ||
-        !data.hasWarehouseInKsa ||
-        !data.offersCredit ||
-        data.paymentTerms.length === 0 ||
-        !data.creditLimit ||
-        !data.workedOnGovProjects
-      ) {
-        return t.validation.coverage;
-      }
-    }
-
-    return "";
-  };
-
-  const nextStep = () => {
-    const validationMessage = validateStep();
-    if (validationMessage) {
-      setError(validationMessage);
-      return;
-    }
-    setError("");
+  const handleNext = async () => {
+    const valid = await form.trigger(stepFields[step]);
+    if (!valid) return;
     setStep((prev) => Math.min(prev + 1, t.stepLabels.length - 1));
   };
 
-  const prevStep = () => {
-    setError("");
+  const handleBack = () => {
     setStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const validationMessage = validateStep();
-    if (validationMessage) {
-      setError(validationMessage);
-      return;
-    }
-    setError("");
+  const onSubmit = form.handleSubmit(() => {
     setIsSubmitted(true);
-  };
-
-  const importerValue = isRtl ? "مستورد" : "Importer";
+  });
 
   if (isSubmitted) {
     return (
-      <section className="mx-auto max-w-4xl rounded-xl border border-brand-dark/10 bg-white p-8 text-center">
-        <h2 className="type-section-title text-brand-dark">{t.submittedTitle}</h2>
-        <p className="type-body mt-4 text-brand-dark/75">{t.submittedBody}</p>
+      <section className="surface-card mx-auto max-w-5xl p-8 text-center md:p-10">
+        <h2 className="type-section-title mx-auto text-brand-dark">{t.submitStateTitle}</h2>
+        <p className="type-body mx-auto mt-4 text-brand-dark/80">{t.submitStateBody}</p>
       </section>
     );
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="mx-auto max-w-4xl rounded-xl border border-brand-dark/10 bg-white p-6 md:p-8"
-      aria-label={isRtl ? "نموذج طلب التوريد" : "Supply request form"}
-      dir={isRtl ? "rtl" : "ltr"}
-    >
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-medium text-brand-dark/70">
+    <form onSubmit={onSubmit} className="surface-card mx-auto max-w-5xl p-6 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="mb-8 content-stack">
+        <div className="flex items-center justify-between gap-4">
+          <p className="type-small font-semibold text-brand-dark/65">
             {t.stepText} {step + 1} {t.ofText} {t.stepLabels.length}
           </p>
-          <p className="text-sm font-semibold text-brand-dark">{t.stepLabels[step]}</p>
+          <p className="type-small font-semibold text-brand-dark">{t.stepLabels[step]}</p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-brand-light" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-1.5 w-full rounded-full bg-brand-dark/10" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
           <motion.div
-            className="h-full rounded-full bg-brand-primary"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.28 }}
+            className="h-full rounded-full bg-brand-primary"
           />
         </div>
       </div>
 
-      <div className="grid gap-5">
+      <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-6">
         {step === 0 && (
-          <>
-            <Input label={t.labels.establishmentName} id="establishmentName" value={data.establishmentName} onChange={(value) => updateField("establishmentName", value)} required />
-            <Input label={t.labels.managerName} id="managerName" value={data.managerName} onChange={(value) => updateField("managerName", value)} required />
-            <Input label={t.labels.contactNumber} id="contactNumber" value={data.contactNumber} onChange={(value) => updateField("contactNumber", value)} required />
-            <Input label={t.labels.email} id="email" value={data.email} onChange={(value) => updateField("email", value)} type="email" required />
-            <Input label={t.labels.crNumber} id="crNumber" value={data.crNumber} onChange={(value) => updateField("crNumber", value)} required />
-          </>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Field label={t.labels.establishmentName}>
+              <Input {...form.register("establishmentName")} className="h-11 text-base" />
+              <ErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
+            </Field>
+            <Field label={t.labels.managerName}>
+              <Input {...form.register("managerName")} className="h-11 text-base" />
+              <ErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
+            </Field>
+            <Field label={t.labels.contactNumber}>
+              <Input {...form.register("contactNumber")} className="h-11 text-base" />
+              <ErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
+            </Field>
+            <Field label={t.labels.email}>
+              <Input type="email" {...form.register("email")} className="h-11 text-base" />
+              <ErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
+            </Field>
+            <Field label={t.labels.crNumber} className="md:col-span-2">
+              <Input {...form.register("crNumber")} className="h-11 text-base" />
+              <ErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
+            </Field>
+          </div>
         )}
 
         {step === 1 && (
-          <>
-            <CheckboxMultiSelect
-              label={t.labels.productCategories}
-              options={t.productCategoryOptions}
-              selected={data.productCategories}
-              onToggle={(value) => toggleArrayValue("productCategories", value)}
-            />
+          <div className="content-stack">
+            <Field label={t.labels.productCategories}>
+              <OptionGrid>
+                {productCategories.map((option) => {
+                  const checked = values.productCategories.includes(option.value);
+                  return (
+                    <OptionCard key={option.value} checked={checked}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleMultiValue("productCategories", option.value)} />
+                      <span>{optionLabel(isRtl, productCategories, option.value)}</span>
+                    </OptionCard>
+                  );
+                })}
+              </OptionGrid>
+              <ErrorText text={form.formState.errors.productCategories?.message} isRtl={isRtl} />
+            </Field>
 
-            <RadioGroup
-              label={t.labels.vendorType}
-              name="vendorType"
-              options={t.vendorTypeOptions}
-              selectedValue={data.vendorType}
-              onChange={(value) => updateField("vendorType", value)}
-            />
+            <Field label={t.labels.vendorType}>
+              <RadioGroup value={values.vendorType} onValueChange={(value) => form.setValue("vendorType", value, { shouldValidate: true })} className="grid gap-3 md:grid-cols-2">
+                {vendorTypes.map((option) => (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition",
+                      values.vendorType === option.value ? "border-brand-primary bg-brand-primary/5" : "border-brand-dark/15 hover:border-brand-dark/30"
+                    )}
+                  >
+                    <RadioGroupItem value={option.value} />
+                    <span className="type-small text-brand-dark/90">{optionLabel(isRtl, vendorTypes, option.value)}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+              <ErrorText text={form.formState.errors.vendorType?.message} isRtl={isRtl} />
+            </Field>
 
-            {data.vendorType === importerValue && (
-              <Input
-                label={t.labels.representedBrands}
-                id="representedBrands"
-                value={data.representedBrands}
-                onChange={(value) => updateField("representedBrands", value)}
-                placeholder={isRtl ? "مثال: ABC, XYZ" : "Example: ABC, XYZ"}
-                required
-              />
+            {values.vendorType === "importer" && (
+              <Field label={t.labels.representedBrands}>
+                <Input
+                  {...form.register("representedBrands")}
+                  className="h-11 text-base"
+                  placeholder={textByLang(isRtl, "Example: Brand A, Brand B", "مثال: علامة أ، علامة ب")}
+                />
+                <ErrorText text={form.formState.errors.representedBrands?.message} isRtl={isRtl} />
+              </Field>
             )}
-          </>
+          </div>
         )}
 
         {step === 2 && (
-          <>
-            <CheckboxMultiSelect
-              label={t.labels.coverageRegions}
-              options={filteredRegions}
-              selected={data.coverageRegions}
-              onToggle={(value) => toggleArrayValue("coverageRegions", value)}
-              searchValue={regionSearch}
-              onSearchChange={setRegionSearch}
-              searchPlaceholder={t.searchRegions}
-              emptyMessage={isRtl ? "لا توجد نتائج مطابقة" : "No matching regions"}
-            />
+          <div className="content-stack">
+            <Field label={t.labels.coverageRegions}>
+              <Input value={regionSearch} onChange={(event) => setRegionSearch(event.target.value)} placeholder={t.searchRegions} className="h-11 text-base" />
+              <OptionGrid>
+                {visibleRegions.map((option) => {
+                  const checked = values.coverageRegions.includes(option.value);
+                  return (
+                    <OptionCard key={option.value} checked={checked}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleMultiValue("coverageRegions", option.value)} />
+                      <span>{optionLabel(isRtl, regions, option.value)}</span>
+                    </OptionCard>
+                  );
+                })}
+              </OptionGrid>
+              <ErrorText text={form.formState.errors.coverageRegions?.message} isRtl={isRtl} />
+            </Field>
 
-            <RadioGroup
+            <BinaryField
               label={t.labels.hasWarehouseInKsa}
-              name="hasWarehouseInKsa"
-              options={[t.yes, t.no]}
-              selectedValue={data.hasWarehouseInKsa === "yes" ? t.yes : data.hasWarehouseInKsa === "no" ? t.no : ""}
-              onChange={(value) => updateField("hasWarehouseInKsa", value === t.yes ? "yes" : "no")}
+              value={values.hasWarehouseInKsa}
+              onChange={(value) => form.setValue("hasWarehouseInKsa", value as "yes" | "no", { shouldValidate: true })}
+              options={yesNoOptions}
+              isRtl={isRtl}
             />
 
-            <RadioGroup
+            <BinaryField
               label={t.labels.offersCredit}
-              name="offersCredit"
-              options={[t.yes, t.no]}
-              selectedValue={data.offersCredit === "yes" ? t.yes : data.offersCredit === "no" ? t.no : ""}
-              onChange={(value) => updateField("offersCredit", value === t.yes ? "yes" : "no")}
+              value={values.offersCredit}
+              onChange={(value) => form.setValue("offersCredit", value as "yes" | "no", { shouldValidate: true })}
+              options={yesNoOptions}
+              isRtl={isRtl}
             />
 
-            <CheckboxMultiSelect
-              label={t.labels.paymentTerms}
-              options={t.paymentTermOptions}
-              selected={data.paymentTerms}
-              onToggle={(value) => toggleArrayValue("paymentTerms", value)}
-            />
+            <Field label={t.labels.paymentTerms}>
+              <OptionGrid>
+                {paymentTerms.map((option) => {
+                  const checked = values.paymentTerms.includes(option.value);
+                  return (
+                    <OptionCard key={option.value} checked={checked}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleMultiValue("paymentTerms", option.value)} />
+                      <span>{optionLabel(isRtl, paymentTerms, option.value)}</span>
+                    </OptionCard>
+                  );
+                })}
+              </OptionGrid>
+              <ErrorText text={form.formState.errors.paymentTerms?.message} isRtl={isRtl} />
+            </Field>
 
-            <Input
-              label={t.labels.creditLimit}
-              id="creditLimit"
-              value={data.creditLimit}
-              onChange={(value) => updateField("creditLimit", value)}
-              placeholder={isRtl ? "مثال: 250,000 ريال" : "Example: 250,000 SAR"}
-              required
-            />
+            <Field label={t.labels.creditLimit}>
+              <Input
+                {...form.register("creditLimit")}
+                className="h-11 text-base"
+                placeholder={textByLang(isRtl, "Example: 250,000 SAR", "مثال: 250,000 ريال")}
+              />
+              <ErrorText text={form.formState.errors.creditLimit?.message} isRtl={isRtl} />
+            </Field>
 
-            <RadioGroup
+            <BinaryField
               label={t.labels.workedOnGovProjects}
-              name="workedOnGovProjects"
-              options={[t.yes, t.no]}
-              selectedValue={data.workedOnGovProjects === "yes" ? t.yes : data.workedOnGovProjects === "no" ? t.no : ""}
-              onChange={(value) => updateField("workedOnGovProjects", value === t.yes ? "yes" : "no")}
+              value={values.workedOnGovProjects}
+              onChange={(value) => form.setValue("workedOnGovProjects", value as "yes" | "no", { shouldValidate: true })}
+              options={yesNoOptions}
+              isRtl={isRtl}
             />
-          </>
+          </div>
         )}
 
         {step === 3 && (
-          <div className="rounded-xl border border-brand-dark/10 bg-brand-light p-4">
-            <h3 className="text-lg font-semibold text-brand-dark">{t.reviewTitle}</h3>
-            <dl className="mt-3 space-y-2 text-sm text-brand-dark/85">
-              <Row label={t.labels.establishmentName} value={data.establishmentName} />
-              <Row label={t.labels.managerName} value={data.managerName} />
-              <Row label={t.labels.contactNumber} value={data.contactNumber} />
-              <Row label={t.labels.email} value={data.email} />
-              <Row label={t.labels.crNumber} value={data.crNumber} />
-              <Row label={t.labels.productCategories} value={data.productCategories.join("، ") || t.none} />
-              <Row label={t.labels.vendorType} value={data.vendorType || t.none} />
-              {data.vendorType === importerValue && <Row label={t.labels.representedBrands} value={data.representedBrands || t.none} />}
-              <Row label={t.labels.coverageRegions} value={data.coverageRegions.join("، ") || t.none} />
-              <Row label={t.labels.hasWarehouseInKsa} value={data.hasWarehouseInKsa ? (data.hasWarehouseInKsa === "yes" ? t.yes : t.no) : t.none} />
-              <Row label={t.labels.offersCredit} value={data.offersCredit ? (data.offersCredit === "yes" ? t.yes : t.no) : t.none} />
-              <Row label={t.labels.paymentTerms} value={data.paymentTerms.join("، ") || t.none} />
-              <Row label={t.labels.creditLimit} value={data.creditLimit || t.none} />
-              <Row label={t.labels.workedOnGovProjects} value={data.workedOnGovProjects ? (data.workedOnGovProjects === "yes" ? t.yes : t.no) : t.none} />
+          <section className="rounded-xl border border-brand-dark/12 bg-brand-light/45 p-5 md:p-6">
+            <h3 className="type-card-title text-brand-dark">{t.review}</h3>
+            <dl className="mt-5 grid gap-3 text-sm text-brand-dark/85 md:grid-cols-2">
+              <ReviewRow label={t.labels.establishmentName} value={values.establishmentName || t.notProvided} />
+              <ReviewRow label={t.labels.managerName} value={values.managerName || t.notProvided} />
+              <ReviewRow label={t.labels.contactNumber} value={values.contactNumber || t.notProvided} />
+              <ReviewRow label={t.labels.email} value={values.email || t.notProvided} />
+              <ReviewRow label={t.labels.crNumber} value={values.crNumber || t.notProvided} />
+              <ReviewRow
+                label={t.labels.productCategories}
+                value={values.productCategories.length ? values.productCategories.map((value) => optionLabel(isRtl, productCategories, value)).join("، ") : t.notProvided}
+              />
+              <ReviewRow label={t.labels.vendorType} value={values.vendorType ? optionLabel(isRtl, vendorTypes, values.vendorType) : t.notProvided} />
+              {values.vendorType === "importer" && <ReviewRow label={t.labels.representedBrands} value={values.representedBrands || t.notProvided} />}
+              <ReviewRow
+                label={t.labels.coverageRegions}
+                value={values.coverageRegions.length ? values.coverageRegions.map((value) => optionLabel(isRtl, regions, value)).join("، ") : t.notProvided}
+              />
+              <ReviewRow label={t.labels.hasWarehouseInKsa} value={optionLabel(isRtl, yesNoOptions, values.hasWarehouseInKsa)} />
+              <ReviewRow label={t.labels.offersCredit} value={optionLabel(isRtl, yesNoOptions, values.offersCredit)} />
+              <ReviewRow
+                label={t.labels.paymentTerms}
+                value={values.paymentTerms.length ? values.paymentTerms.map((value) => optionLabel(isRtl, paymentTerms, value)).join("، ") : t.notProvided}
+              />
+              <ReviewRow label={t.labels.creditLimit} value={values.creditLimit || t.notProvided} />
+              <ReviewRow label={t.labels.workedOnGovProjects} value={optionLabel(isRtl, yesNoOptions, values.workedOnGovProjects)} />
             </dl>
-          </div>
+          </section>
         )}
-      </div>
-
-      {error && <p className="mt-4 text-sm font-medium text-red-600" role="alert">{error}</p>}
+      </motion.div>
 
       <div className="mt-8 flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={prevStep}
-          disabled={step === 0}
-          className="rounded-lg border border-brand-dark/20 px-5 py-2.5 text-sm font-semibold text-brand-dark transition enabled:hover:border-brand-dark/40 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {t.back}
-        </button>
+        <Button type="button" variant="outline" size="lg" onClick={handleBack} disabled={step === 0} className="type-button rounded-full px-6">
+          {t.actions.back}
+        </Button>
 
         {step < t.stepLabels.length - 1 ? (
-          <button
-            type="button"
-            onClick={nextStep}
-            className="rounded-lg bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
-          >
-            {t.continue}
-          </button>
+          <Button type="button" size="lg" onClick={handleNext} className="type-button rounded-full px-7">
+            {t.actions.next}
+          </Button>
         ) : (
-          <button
-            type="submit"
-            className="rounded-lg bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
-          >
-            {isRtl ? "إرسال طلب التوريد" : "Submit Supply Request"}
-          </button>
+          <Button type="submit" size="lg" className="type-button rounded-full px-7">
+            {t.actions.submit}
+          </Button>
         )}
       </div>
     </form>
   );
 }
 
-type InputProps = {
-  label: string;
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  type?: "text" | "email";
-  placeholder?: string;
-};
-
-function Input({ label, id, value, onChange, required = false, type = "text", placeholder }: InputProps) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <label htmlFor={id} className="space-y-2">
-      <span className="text-sm font-semibold text-brand-dark">{label}</span>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        value={value}
-        required={required}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-base text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
-      />
+    <div className={cn("space-y-2", className)}>
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function ErrorText({ text, isRtl }: { text?: string; isRtl: boolean }) {
+  if (!text) return null;
+  return <p className="type-small text-red-600">{isRtl ? "يرجى التحقق من الحقل" : text}</p>;
+}
+
+function OptionGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-3 md:grid-cols-2">{children}</div>;
+}
+
+function OptionCard({ checked, children }: { checked: boolean; children: React.ReactNode }) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 type-small transition",
+        checked ? "border-brand-primary bg-brand-primary/5" : "border-brand-dark/15 bg-white hover:border-brand-dark/30"
+      )}
+    >
+      {children}
     </label>
   );
 }
 
-type CheckboxMultiSelectProps = {
-  label: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  searchPlaceholder?: string;
-  emptyMessage?: string;
-};
-
-function CheckboxMultiSelect({
+function BinaryField({
   label,
+  value,
+  onChange,
   options,
-  selected,
-  onToggle,
-  searchValue,
-  onSearchChange,
-  searchPlaceholder,
-  emptyMessage
-}: CheckboxMultiSelectProps) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-semibold text-brand-dark">{label}</legend>
-      {typeof searchValue === "string" && onSearchChange && (
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={searchPlaceholder}
-          className="mb-2 w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-sm text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
-        />
-      )}
-      {options.length === 0 && <p className="text-sm text-brand-dark/60">{emptyMessage}</p>}
-      <div className="grid gap-2 md:grid-cols-2">
-        {options.map((option) => {
-          const isChecked = selected.includes(option);
-          return (
-            <label
-              key={option}
-              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                isChecked
-                  ? "border-brand-primary bg-brand-primary/5 text-brand-dark"
-                  : "border-brand-dark/15 text-brand-dark/90 hover:border-brand-dark/35"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={isChecked}
-                onChange={() => onToggle(option)}
-                className="peer sr-only"
-              />
-              <span
-                aria-hidden="true"
-                className={`flex h-5 w-5 items-center justify-center rounded-md border transition ${
-                  isChecked
-                    ? "border-brand-primary bg-brand-primary text-white"
-                    : "border-brand-dark/25 bg-white"
-                }`}
-              >
-                <svg viewBox="0 0 20 20" className={`h-3.5 w-3.5 ${isChecked ? "opacity-100" : "opacity-0"}`}>
-                  <path
-                    d="M5 10.5L8.5 14L15 7.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span>{option}</span>
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-}
-
-type RadioGroupProps = {
+  isRtl
+}: {
   label: string;
-  name: string;
-  options: string[];
-  selectedValue: string;
+  value: string;
   onChange: (value: string) => void;
-};
-
-function RadioGroup({ label, name, options, selectedValue, onChange }: RadioGroupProps) {
+  options: Option[];
+  isRtl: boolean;
+}) {
   return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-semibold text-brand-dark">{label}</legend>
-      <div className="grid gap-2 md:grid-cols-2">
-        {options.map((option) => {
-          const isSelected = selectedValue === option;
-
-          return (
-            <label
-              key={option}
-              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                isSelected
-                  ? "border-brand-primary bg-brand-primary/5 text-brand-dark"
-                  : "border-brand-dark/15 text-brand-dark/90 hover:border-brand-dark/35"
-              }`}
-            >
-              <input type="radio" name={name} checked={isSelected} onChange={() => onChange(option)} className="peer sr-only" />
-              <span
-                aria-hidden="true"
-                className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
-                  isSelected
-                    ? "border-brand-primary bg-white"
-                    : "border-brand-dark/25 bg-white"
-                }`}
-              >
-                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? "bg-brand-primary" : "bg-transparent"}`} />
-              </span>
-              <span>{option}</span>
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
+    <Field label={label}>
+      <RadioGroup value={value} onValueChange={onChange} className="grid gap-3 md:grid-cols-2">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className={cn(
+              "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition",
+              value === option.value ? "border-brand-primary bg-brand-primary/5" : "border-brand-dark/15 hover:border-brand-dark/30"
+            )}
+          >
+            <RadioGroupItem value={option.value} />
+            <span className="type-small text-brand-dark/90">{isRtl ? option.ar : option.en}</span>
+          </label>
+        ))}
+      </RadioGroup>
+    </Field>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="font-semibold">{label}:</dt>
-      <dd>{value}</dd>
+    <div className="rounded-lg bg-white p-3">
+      <dt className="type-small font-semibold text-brand-dark/70">{label}</dt>
+      <dd className="type-small mt-1 text-brand-dark">{value}</dd>
     </div>
   );
 }

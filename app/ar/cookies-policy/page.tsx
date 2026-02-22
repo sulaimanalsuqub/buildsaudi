@@ -8,15 +8,19 @@ export const metadata: Metadata = {
 
 export default function ArabicCookiesPolicyPage() {
   return (
-    <main className="py-16" dir="rtl">
-      <Container className="max-w-4xl">
-        <h1 className="type-section-title text-brand-dark">سياسة ملفات الارتباط</h1>
-        <p className="type-body mt-5 text-brand-dark/80">
-          تستخدم بيلد ملفات ارتباط أساسية لضمان استمرارية الجلسة وحماية الحساب وتحسين الأداء. لا نستخدم أدوات تتبع غير أساسية دون إشعار واضح.
-        </p>
-        <p className="type-body mt-4 text-brand-dark/80">
-          يمكنك إدارة إعدادات ملفات الارتباط من المتصفح، لكن تعطيل الملفات الأساسية قد يؤثر على عمل نموذج التسجيل والوصول إلى المنصة.
-        </p>
+    <main className="section-pad" dir="rtl">
+      <Container>
+        <article className="surface-card mx-auto max-w-[920px] p-6 md:p-10">
+          <h1 className="type-section-title text-brand-dark">سياسة ملفات الارتباط</h1>
+          <div className="content-stack mt-8">
+            <p className="type-body text-brand-dark/80">
+              تستخدم بيلد ملفات ارتباط أساسية لضمان استمرارية الجلسة وحماية الحساب وتحسين الأداء. لا نستخدم أدوات تتبع غير أساسية دون إشعار واضح.
+            </p>
+            <p className="type-body text-brand-dark/80">
+              يمكنك إدارة إعدادات ملفات الارتباط من المتصفح، لكن تعطيل الملفات الأساسية قد يؤثر على عمل المنصة والوصول إلى الحساب.
+            </p>
+          </div>
+        </article>
       </Container>
     </main>
   );

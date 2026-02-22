@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="py-16">
-      <Container>
-        <div className="mx-auto mb-10 max-w-3xl text-center">
-          <h1 className="type-section-title text-brand-dark">Start Supplying Your Products</h1>
-          <p className="type-subheading mt-4 text-brand-dark/75">
+    <main className="section-pad">
+      <Container className="content-stack">
+        <div className="mx-auto max-w-[900px] text-center">
+          <h1 className="type-section-title mx-auto text-brand-dark">Start Supplying Your Products</h1>
+          <p className="type-subheading mx-auto mt-6 text-brand-dark/80">
             Share your company and product information to receive matching supply opportunities from active projects.
           </p>
         </div>
