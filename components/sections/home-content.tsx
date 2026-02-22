@@ -14,43 +14,43 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   const features = isRtl
     ? [
         {
-          title: "ملف مورد موثّق",
-          description: "اجمع السجل التجاري وشهادة الضريبة وبيانات الامتثال في مسار واحد واضح."
+          title: "وصول أسرع للمشاريع",
+          description: "اعرض منتجاتك مباشرة أمام الجهات المنفذة للمشاريع في وقت أقصر."
         },
         {
-          title: "تأهيل ذكي",
-          description: "مراجعات منظمة توجه المورد المؤهل إلى فريق المشتريات المناسب دون تأخير."
+          title: "طلبات واضحة",
+          description: "استقبل احتياج المشروع بشكل منظم لتقدّم عرضك بسرعة وبوضوح."
         },
         {
-          title: "تسريع دورة الشراء",
-          description: "قلل زمن التأهيل عبر رحلة تسجيل سريعة وشفافة وقابلة للتتبع."
+          title: "توريد أكثر كفاءة",
+          description: "اختصر دورة التوريد من أول تواصل حتى تسليم المواد للموقع."
         }
       ]
     : [
         {
-          title: "Verified Vendor Profiles",
-          description: "Collect business licenses, VAT records, and compliance details in one secure workflow."
+          title: "Faster Project Access",
+          description: "Show your products directly to active construction projects with less delay."
         },
         {
-          title: "Smart Qualification",
-          description: "Automated checks route qualified suppliers to the right procurement team without delays."
+          title: "Clear Demand Requests",
+          description: "Receive structured project requirements so you can respond quickly and accurately."
         },
         {
-          title: "Faster Procurement",
-          description: "Reduce onboarding cycle time with a streamlined, transparent, and trackable registration journey."
+          title: "Efficient Supply Cycle",
+          description: "Shorten the supply cycle from initial request to material delivery on site."
         }
       ];
 
   const steps = isRtl
     ? [
-        "يرفع المورد ملف الشركة والوثائق المطلوبة",
-        "تتم مراجعة الامتثال والقدرات التشغيلية",
-        "يُفعّل المورد المؤهل ويصبح جاهزًا للمنافسات"
+        "تسجّل بيانات شركتك ومنتجاتك الأساسية",
+        "تستقبل فرص توريد مناسبة لنطاقك ومناطقك",
+        "تبدأ التوريد للمشاريع بسرعة وسلاسة"
       ]
     : [
-        "Vendor submits complete company profile",
-        "Compliance and capability checks are reviewed",
-        "Qualified suppliers become ready for tenders"
+        "Create your supplier profile with core product data",
+        "Receive matching supply opportunities by region and category",
+        "Deliver to projects faster with a clear workflow"
       ];
 
   const t = {
@@ -58,15 +58,15 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     heroSub: isRtl
       ? "بيلد تربط موردي مواد البناء بالمشاريع مباشرة عبر مسار واضح وسريع يختصر وقت الوصول إلى فرص التوريد."
       : "Build connects building material suppliers directly with active projects through a faster, clearer supply workflow.",
-    primaryCta: isRtl ? "ابدأ تسجيل المورد" : "Start Vendor Registration",
+    primaryCta: isRtl ? "ابدأ التوريد الآن" : "Start Supplying Now",
     secondaryCta: isRtl ? "كيف تعمل" : "How it works",
-    featuresTitle: isRtl ? "مزايا مصممة لفرق المشتريات" : "Built for Modern Procurement Teams",
+    featuresTitle: isRtl ? "مزايا لموردي مواد البناء" : "Built for Building Material Suppliers",
     howTitle: isRtl ? "كيف تعمل بيلد" : "How Build Works",
-    trustTitle: isRtl ? "موثوقة لدى فرق المشاريع" : "Trusted by Construction Operations",
-    ctaTitle: isRtl ? "حوّل تسجيل الموردين إلى ميزة تنافسية" : "Turn Vendor Onboarding Into a Strategic Advantage",
+    trustTitle: isRtl ? "موثوقة لدى المشاريع والموردين" : "Trusted by Projects and Suppliers",
+    ctaTitle: isRtl ? "اجعل توريد منتجاتك أسرع وأسهل" : "Make Your Product Supply Faster and Easier",
     ctaSub: isRtl
-      ? "ابدأ اليوم وامنح فريقك تجربة تسجيل سريعة وواضحة وقابلة للتوسع."
-      : "Launch a best-in-class registration journey with compliance-first structure and premium UX."
+      ? "ابدأ اليوم ووسّع وصول منتجاتك لمشاريع أكثر عبر مسار توريد واضح."
+      : "Start today and expand your product reach to more projects with a clear supply workflow."
   };
 
   return (
@@ -149,8 +149,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             <h2 className="type-section-title text-brand-dark">{t.trustTitle}</h2>
             <p className="type-body mt-4 max-w-3xl text-brand-dark/75">
               {isRtl
-                ? "مصممة للسوق السعودي، وتلائم متطلبات الامتثال، وتمنح فرقك رؤية كاملة على حالة كل مورد من بداية التسجيل حتى التفعيل."
-                : "Purpose-built for Saudi market standards, with complete auditability, clean records, and transparent status across every vendor application."}
+                ? "مصممة للسوق السعودي وتساعد الموردين على الوصول للمشاريع المناسبة، مع متابعة واضحة لحالة الطلبات والتوريد."
+                : "Built for the Saudi market to help suppliers reach the right projects with clear visibility across supply requests and delivery status."}
             </p>
           </div>
         </Container>

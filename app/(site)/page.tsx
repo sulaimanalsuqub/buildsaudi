@@ -4,7 +4,7 @@ import { HomeContent } from "@/components/sections/home-content";
 
 export const metadata: Metadata = {
   title: "Home",
-  description: "Build helps Saudi construction teams register, verify, and onboard vendors faster."
+  description: "Build helps suppliers deliver building materials to Saudi projects faster and easier."
 };
 
 export default function HomePage() {

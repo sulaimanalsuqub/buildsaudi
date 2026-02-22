@@ -48,10 +48,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     stepLabels: isRtl ? ["البيانات الأساسية", "فئات ونوع المورد", "التغطية والمالية", "المراجعة"] : ["Basic Info", "Categories & Type", "Coverage & Financial", "Review"],
     stepText: isRtl ? "الخطوة" : "Step",
     ofText: isRtl ? "من" : "of",
-    submittedTitle: isRtl ? "تم إرسال الطلب" : "Registration Submitted",
+    submittedTitle: isRtl ? "تم إرسال طلب التوريد" : "Supply Request Submitted",
     submittedBody: isRtl
-      ? "شكرًا لك. طلبكم قيد المراجعة الآن وسيتواصل معكم فريق بيلد قريبًا."
-      : "Thank you. Your application is under review. The Build team will contact you shortly.",
+      ? "شكرًا لك. طلبكم قيد المراجعة الآن وسيتواصل معكم فريق بيلد بخصوص فرص التوريد المناسبة."
+      : "Thank you. Your request is under review. The Build team will contact you about matching supply opportunities.",
     labels: {
       establishmentName: isRtl ? "اسم المنشأة" : "Establishment Name",
       managerName: isRtl ? "المسؤول" : "Responsible Person",
@@ -249,7 +249,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     <form
       onSubmit={onSubmit}
       className="mx-auto max-w-4xl rounded-xl border border-brand-dark/10 bg-white p-6 md:p-8"
-      aria-label={isRtl ? "نموذج تسجيل المورد" : "Vendor registration form"}
+      aria-label={isRtl ? "نموذج طلب التوريد" : "Supply request form"}
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="mb-6">
@@ -413,7 +413,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             type="submit"
             className="rounded-lg bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
           >
-            {t.submit}
+            {isRtl ? "إرسال طلب التوريد" : "Submit Supply Request"}
           </button>
         )}
       </div>

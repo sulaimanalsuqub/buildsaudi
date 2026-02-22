@@ -13,10 +13,10 @@ export default function TermsPage() {
       <Container className="max-w-4xl">
         <h1 className="type-section-title text-brand-dark">Terms & Conditions</h1>
         <p className="type-body mt-5 text-brand-dark/80">
-          By submitting vendor information on Build, you confirm all provided records are accurate and authorized. Build may request additional documentation before final supplier activation.
+          By using Build, you confirm the provided company and product information is accurate and authorized. Build may request additional details to validate supply capability and project fit.
         </p>
         <p className="type-body mt-4 text-brand-dark/80">
-          Platform access may be suspended in case of false declarations, compliance violations, or misuse of procurement communications. These terms may be updated periodically.
+          Platform access may be suspended in case of false declarations, misuse, or violations of applicable regulations. These terms may be updated periodically.
         </p>
       </Container>
     </main>
