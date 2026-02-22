@@ -14,8 +14,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
     <footer className="mt-24 border-t border-brand-dark/10 bg-white">
       <Container className="space-y-7 py-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Image src="/brand/icon-mark.svg" alt="Build icon" width={30} height={30} />
+          <div className="flex items-center">
             <Image
               src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
               alt={isRtl ? "شعار بيلد" : "Build logo"}
