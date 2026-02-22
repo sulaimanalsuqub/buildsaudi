@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
@@ -89,21 +88,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 {t.secondaryCta}
               </Link>
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.15 }}
-              className="mx-auto mt-10 max-w-6xl"
-            >
-              <Image
-                src="/images/build-truck-hero.png"
-                alt={isRtl ? "شاحنة بيلد لتوريد مواد البناء" : "Build truck for construction material supply"}
-                width={2200}
-                height={1155}
-                priority
-                className="h-auto w-full object-contain"
-              />
-            </motion.div>
           </motion.div>
         </Container>
       </section>
