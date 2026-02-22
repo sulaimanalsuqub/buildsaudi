@@ -48,7 +48,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
                 <Link
-                  href={isRtl ? "/ar/register" : "/register"}
+                  href={isRtl ? "/ar/auth/sign-in" : "/auth/sign-in"}
                   className="rounded-full bg-brand-primary px-8 py-3 type-button text-white transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
                 >
                   {t.primaryCta}
