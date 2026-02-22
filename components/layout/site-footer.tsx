@@ -22,6 +22,12 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
               height={36}
             />
           </div>
+          <Link
+            href={isRtl ? "/ar/register" : "/register"}
+            className="inline-flex w-fit items-center rounded-full bg-brand-primary px-5 py-2.5 type-button text-white transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
+          >
+            {isRtl ? "سجل كمورد" : "Register as Vendor"}
+          </Link>
           <div className="flex flex-wrap items-center gap-6 type-small text-brand-dark/70">
             <Link href={`${legalBase}/privacy-policy`} className="transition-colors hover:text-brand-dark">{isRtl ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
             <Link href={`${legalBase}/terms-conditions`} className="transition-colors hover:text-brand-dark">{isRtl ? "الشروط والأحكام" : "Terms & Conditions"}</Link>
