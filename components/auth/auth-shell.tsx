@@ -16,7 +16,7 @@ export function AuthShell({ title, subtitle, children, isRtl = false, backLabel 
       <Container>
         <div className="mx-auto max-w-[1080px]">
           <div className="mb-8 flex items-center justify-between">
-            <Link href="/" className="type-small font-semibold text-brand-dark/70 transition-colors hover:text-brand-dark">
+            <Link href={isRtl ? "/ar" : "/"} className="type-small font-semibold text-brand-dark/70 transition-colors hover:text-brand-dark">
               {backLabel}
             </Link>
           </div>
@@ -24,7 +24,7 @@ export function AuthShell({ title, subtitle, children, isRtl = false, backLabel 
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <section className="space-y-6">
               <p className="type-small inline-flex rounded-full border border-brand-dark/15 bg-white/70 px-4 py-1.5 font-semibold text-brand-dark/75">
-                Build Auth
+                {isRtl ? "بيلد — الدخول" : "Build Auth"}
               </p>
               <h1 className="type-section-title text-brand-dark">{title}</h1>
               <p className="type-subheading text-brand-dark/80">{subtitle}</p>

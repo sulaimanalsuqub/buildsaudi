@@ -13,9 +13,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   const t = {
     heroTitle: isRtl ? "أسرع طريقة لتوريد مشاريعكم" : "The Fastest Way to Supply Your Projects",
     heroSub: isRtl
-      ? "رحلة مواد البناء أسرع ، أسهل ، أوضح"
+      ? "رحلة مواد البناء أسرع، أسهل، أوضح"
       : "A clearer and faster supply workflow for construction projects.",
-    primaryCta: isRtl ? "أطلب المنتجات" : "Start Supplying Now",
+    primaryCta: isRtl ? "ابدأ التوريد الآن" : "Start Supplying Now",
     secondaryCta: isRtl ? "تحدث مع خبير" : "Talk to an Expert",
     badge: isRtl ? "منصة بيلد لتوريد مواد البناء" : "Build Construction Supply Platform",
     stat1: isRtl ? "طلبات اليوم" : "Today Requests",
