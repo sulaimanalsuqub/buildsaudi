@@ -74,7 +74,7 @@ export function VendorRegistrationForm() {
 
   if (isSubmitted) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl bg-white p-8 text-center shadow-premium">
+      <section className="mx-auto max-w-3xl rounded-xl border border-brand-dark/10 bg-white p-8 text-center">
         <h2 className="type-section-title text-brand-dark">Registration Submitted</h2>
         <p className="type-body mt-4 text-brand-dark/75">
           Thank you. Your vendor profile is now under review. Our procurement team will contact you shortly.
@@ -84,13 +84,13 @@ export function VendorRegistrationForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-3xl rounded-xl bg-white p-6 shadow-premium md:p-8" aria-label="Vendor registration form">
+    <form onSubmit={onSubmit} className="mx-auto max-w-3xl rounded-xl border border-brand-dark/10 bg-white p-6 md:p-8" aria-label="Vendor registration form">
       <div className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-medium text-brand-dark/70">Step {step + 1} of {stepLabels.length}</p>
           <p className="text-sm font-semibold text-brand-dark">{stepLabels[step]}</p>
         </div>
-        <div className="h-2 w-full rounded-full bg-brand-light" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-1.5 w-full rounded-full bg-brand-light" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
           <motion.div
             className="h-full rounded-full bg-brand-primary"
             initial={{ width: 0 }}
@@ -169,7 +169,7 @@ export function VendorRegistrationForm() {
           type="button"
           onClick={prevStep}
           disabled={step === 0}
-          className="rounded-full border border-brand-dark/20 px-6 py-3 text-sm font-semibold text-brand-dark transition enabled:hover:border-brand-primary enabled:hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-lg border border-brand-dark/20 px-5 py-2.5 text-sm font-semibold text-brand-dark transition enabled:hover:border-brand-dark/40 disabled:cursor-not-allowed disabled:opacity-45"
         >
           Back
         </button>
@@ -178,14 +178,14 @@ export function VendorRegistrationForm() {
           <button
             type="button"
             onClick={nextStep}
-            className="rounded-full bg-brand-dark px-7 py-3 text-sm font-semibold text-white transition hover:bg-brand-primary"
+            className="rounded-lg bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
           >
             Continue
           </button>
         ) : (
           <button
             type="submit"
-            className="rounded-full bg-brand-primary px-8 py-3 text-sm font-semibold text-brand-dark transition hover:bg-brand-accent"
+            className="rounded-lg bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
           >
             Submit Registration
           </button>
@@ -215,7 +215,7 @@ function Input({ label, id, value, onChange, required = false, type = "text" }: 
         value={value}
         required={required}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-brand-dark/20 bg-white px-4 py-3 text-base text-brand-dark outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+        className="w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-base text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
       />
     </label>
   );
@@ -240,7 +240,7 @@ function Select({ label, id, value, onChange, options, required = false }: Selec
         value={value}
         required={required}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-brand-dark/20 bg-white px-4 py-3 text-base text-brand-dark outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+        className="w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-base text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
       >
         <option value="">Select an option</option>
         {options.map((option) => (

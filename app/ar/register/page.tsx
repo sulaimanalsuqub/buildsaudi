@@ -12,7 +12,7 @@ export default function ArabicRegisterPage() {
     <main className="py-16" dir="rtl">
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <h1 className="type-hero text-brand-dark">تسجيل الموردين</h1>
+          <h1 className="type-section-title text-brand-dark">تسجيل الموردين</h1>
           <p className="type-subheading mt-4 text-brand-dark/75">
             أكمل بيانات شركتك عبر نموذج متعدد الخطوات، وسيتم مراجعة طلبكم من فريق بيلد خلال وقت قصير.
           </p>

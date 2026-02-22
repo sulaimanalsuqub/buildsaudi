@@ -32,12 +32,12 @@ const steps = [
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
   const t = {
-    heroTitle: isRtl ? "منصة بيلد لتسجيل موردي قطاع البناء" : "Saudi Construction Vendor Registration, Reimagined",
+    heroTitle: isRtl ? "منصة بيلد لتسجيل موردي قطاع البناء" : "Vendor Registration Infrastructure for Construction Teams",
     heroSub: isRtl
       ? "بيلد تُمكن المقاولين والمطورين من تأهيل الموردين بسرعة وشفافية عبر تجربة احترافية متكاملة."
       : "Build gives contractors and developers a premium workflow to register, verify, and activate construction suppliers at scale.",
     primaryCta: isRtl ? "ابدأ تسجيل المورد" : "Start Vendor Registration",
-    secondaryCta: isRtl ? "استكشف المنصة" : "Explore Platform",
+    secondaryCta: isRtl ? "كيف تعمل" : "How it works",
     featuresTitle: isRtl ? "مزايا مصممة لفرق المشتريات" : "Built for Modern Procurement Teams",
     howTitle: isRtl ? "كيف تعمل بيلد" : "How Build Works",
     trustTitle: isRtl ? "موثوقة لدى فرق المشاريع" : "Trusted by Construction Operations",
@@ -49,21 +49,21 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
   return (
     <main>
-      <section className="bg-hero-gradient pb-16 pt-20">
+      <section className="border-b border-brand-dark/10 bg-white pb-16 pt-16 md:pt-20">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mx-auto max-w-4xl text-center"
+            className="mx-auto max-w-5xl text-center"
           >
             <h1 className="type-hero text-brand-dark">{t.heroTitle}</h1>
-            <p className="type-subheading mt-6 text-brand-dark/80">{t.heroSub}</p>
+            <p className="type-subheading mx-auto mt-6 max-w-3xl text-brand-dark/75">{t.heroSub}</p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link href={isRtl ? "/ar/register" : "/register"} className="rounded-full bg-brand-dark px-8 py-3 text-base font-semibold text-white shadow-soft transition hover:bg-brand-primary">
+              <Link href={isRtl ? "/ar/register" : "/register"} className="rounded-full bg-brand-dark px-8 py-3 text-base font-semibold text-white transition hover:bg-brand-dark/90">
                 {t.primaryCta}
               </Link>
-              <Link href="#features" className="rounded-full border border-brand-dark/20 bg-white px-8 py-3 text-base font-medium text-brand-dark transition hover:border-brand-primary hover:text-brand-primary">
+              <Link href="#how-it-works" className="rounded-full border border-brand-dark/20 bg-white px-8 py-3 text-base font-medium text-brand-dark transition hover:border-brand-dark/40">
                 {t.secondaryCta}
               </Link>
             </div>
@@ -71,10 +71,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      <section id="features" className="pt-16">
+      <section id="features" className="pt-16 md:pt-20">
         <Container>
           <h2 className="type-section-title text-brand-dark">{t.featuresTitle}</h2>
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             {features.map((feature, idx) => (
               <motion.article
                 key={feature.title}
@@ -82,9 +82,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.08 }}
-                className="rounded-xl border border-brand-dark/10 bg-white p-6 shadow-soft"
+                className="rounded-xl border border-brand-dark/10 bg-white p-6"
               >
-                <h3 className="text-xl font-semibold text-brand-dark">{feature.title}</h3>
+                <h3 className="text-xl font-semibold tracking-tight text-brand-dark">{feature.title}</h3>
                 <p className="type-body mt-3 text-brand-dark/75">{feature.description}</p>
               </motion.article>
             ))}
@@ -92,23 +92,23 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      <section id="how-it-works" className="pt-16">
+      <section id="how-it-works" className="pt-16 md:pt-20">
         <Container>
           <h2 className="type-section-title text-brand-dark">{t.howTitle}</h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-3">
             {steps.map((step, idx) => (
-              <li key={step} className="rounded-xl bg-brand-light p-6 shadow-soft">
-                <p className="text-sm font-semibold text-brand-primary">Step {idx + 1}</p>
-                <p className="type-body mt-2 text-brand-dark">{step}</p>
+              <li key={step} className="rounded-xl border border-brand-dark/10 bg-white p-6">
+                <p className="text-sm font-semibold text-brand-dark/55">0{idx + 1}</p>
+                <p className="type-body mt-2 text-brand-dark/90">{step}</p>
               </li>
             ))}
           </ol>
         </Container>
       </section>
 
-      <section id="trust" className="pt-16">
+      <section id="trust" className="pt-16 md:pt-20">
         <Container>
-          <div className="rounded-xl border border-brand-dark/10 bg-white p-8 shadow-soft md:p-10">
+          <div className="rounded-xl border border-brand-dark/10 bg-white p-8 md:p-10">
             <h2 className="type-section-title text-brand-dark">{t.trustTitle}</h2>
             <p className="type-body mt-4 max-w-3xl text-brand-dark/75">
               {isRtl
@@ -119,19 +119,19 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      <section className="pt-16">
+      <section className="pb-4 pt-16 md:pt-20">
         <Container>
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="rounded-xl bg-cta-gradient p-8 text-white shadow-premium md:p-12"
+            className="rounded-xl border border-brand-dark/10 bg-white p-8 md:p-12"
           >
-            <h2 className="type-section-title">{t.ctaTitle}</h2>
-            <p className="type-subheading mt-4 max-w-3xl text-white/90">{t.ctaSub}</p>
+            <h2 className="type-section-title text-brand-dark">{t.ctaTitle}</h2>
+            <p className="type-subheading mt-4 max-w-3xl text-brand-dark/75">{t.ctaSub}</p>
             <Link
               href={isRtl ? "/ar/register" : "/register"}
-              className="mt-8 inline-block rounded-full bg-white px-8 py-3 text-base font-semibold text-brand-dark transition hover:bg-brand-light"
+              className="mt-8 inline-block rounded-full bg-brand-dark px-8 py-3 text-base font-semibold text-white transition hover:bg-brand-dark/90"
             >
               {t.primaryCta}
             </Link>

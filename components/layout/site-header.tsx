@@ -19,8 +19,8 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const languageHref = isRtl ? "/" : "/ar";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-brand-dark/10 bg-white/85 backdrop-blur-xl">
-      <Container className="flex h-20 items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-brand-dark/10 bg-white/95">
+      <Container className="flex h-16 items-center justify-between md:h-[72px]">
         <Link href={homeHref} className="flex items-center gap-3" aria-label="Build homepage">
           <Image src="/brand/icon-mark.svg" alt="Build icon" width={34} height={34} priority />
           <Image
@@ -34,7 +34,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
 
         <nav aria-label="Main navigation" className="hidden items-center gap-8 lg:flex">
           {navItems.map((item) => (
-            <Link key={item.href + item.label} href={item.href} className="text-sm font-medium text-brand-dark transition-colors hover:text-brand-primary">
+            <Link key={item.href + item.label} href={item.href} className="text-[15px] font-medium text-brand-dark/85 transition-colors hover:text-brand-dark">
               {item.label}
             </Link>
           ))}
@@ -43,13 +43,13 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
         <div className="flex items-center gap-3">
           <Link
             href={languageHref}
-            className="rounded-full border border-brand-dark/20 px-4 py-2 text-sm font-medium text-brand-dark transition hover:border-brand-primary hover:text-brand-primary"
+            className="rounded-full border border-brand-dark/20 px-4 py-2 text-sm font-medium text-brand-dark transition hover:border-brand-dark/35"
           >
             {isRtl ? "EN" : "ع"}
           </Link>
           <Link
             href={registerHref}
-            className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-primary"
+            className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
           >
             {isRtl ? "سجل كمورد" : "Register Vendor"}
           </Link>
