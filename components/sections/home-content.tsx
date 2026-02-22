@@ -53,10 +53,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       ];
 
   const t = {
-    heroTitle: isRtl ? "منصة بيلد لتسجيل موردي قطاع البناء" : "Vendor Registration Infrastructure for Construction Teams",
+    heroTitle: isRtl ? "أسرع طريقة لتوريد منتجاتك لمشاريع البناء" : "The Fastest Way to Supply Your Products to Construction Projects",
     heroSub: isRtl
-      ? "بيلد تُمكن المقاولين والمطورين من تأهيل الموردين بسرعة وشفافية عبر تجربة احترافية متكاملة."
-      : "Build gives contractors and developers a premium workflow to register, verify, and activate construction suppliers at scale.",
+      ? "بيلد تربط موردي مواد البناء بالمشاريع مباشرة عبر مسار واضح وسريع يختصر وقت الوصول إلى فرص التوريد."
+      : "Build connects building material suppliers directly with active projects through a faster, clearer supply workflow.",
     primaryCta: isRtl ? "ابدأ تسجيل المورد" : "Start Vendor Registration",
     secondaryCta: isRtl ? "كيف تعمل" : "How it works",
     featuresTitle: isRtl ? "مزايا مصممة لفرق المشتريات" : "Built for Modern Procurement Teams",
