@@ -3,15 +3,23 @@
 import { FormEvent, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
+type YesNo = "yes" | "no" | "";
+
 type FormData = {
-  companyName: string;
-  crNumber: string;
-  contactName: string;
+  establishmentName: string;
+  managerName: string;
+  contactNumber: string;
   email: string;
-  phone: string;
-  category: string;
-  yearsInBusiness: string;
-  region: string;
+  crNumber: string;
+  productCategories: string[];
+  vendorType: string;
+  representedBrands: string;
+  coverageRegions: string[];
+  hasWarehouseInKsa: YesNo;
+  offersCredit: YesNo;
+  paymentTerms: string[];
+  creditLimit: string;
+  workedOnGovProjects: YesNo;
 };
 
 type VendorRegistrationFormProps = {
@@ -19,73 +27,184 @@ type VendorRegistrationFormProps = {
 };
 
 const initialState: FormData = {
-  companyName: "",
-  crNumber: "",
-  contactName: "",
+  establishmentName: "",
+  managerName: "",
+  contactNumber: "",
   email: "",
-  phone: "",
-  category: "",
-  yearsInBusiness: "",
-  region: ""
+  crNumber: "",
+  productCategories: [],
+  vendorType: "",
+  representedBrands: "",
+  coverageRegions: [],
+  hasWarehouseInKsa: "",
+  offersCredit: "",
+  paymentTerms: [],
+  creditLimit: "",
+  workedOnGovProjects: ""
 };
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
   const t = {
-    stepLabels: isRtl ? ["الشركة", "التواصل", "القدرات", "المراجعة"] : ["Company", "Contact", "Capabilities", "Review"],
+    stepLabels: isRtl ? ["البيانات الأساسية", "فئات ونوع المورد", "التغطية والمالية", "المراجعة"] : ["Basic Info", "Categories & Type", "Coverage & Financial", "Review"],
     stepText: isRtl ? "الخطوة" : "Step",
     ofText: isRtl ? "من" : "of",
-    completeCompany: isRtl ? "يرجى استكمال بيانات الشركة." : "Please complete company details.",
-    completeContact: isRtl ? "يرجى استكمال بيانات التواصل." : "Please complete contact information.",
-    completeCapabilities: isRtl ? "يرجى استكمال بيانات القدرات." : "Please complete capability details.",
     submittedTitle: isRtl ? "تم إرسال الطلب" : "Registration Submitted",
     submittedBody: isRtl
-      ? "شكرًا لك. طلب تسجيل المورد قيد المراجعة الآن، وسيتواصل معك فريق المشتريات قريبًا."
-      : "Thank you. Your vendor profile is now under review. Our procurement team will contact you shortly.",
+      ? "شكرًا لك. طلبكم قيد المراجعة الآن وسيتواصل معكم فريق بيلد قريبًا."
+      : "Thank you. Your application is under review. The Build team will contact you shortly.",
     labels: {
-      companyName: isRtl ? "الاسم النظامي للشركة" : "Company Legal Name",
-      crNumber: isRtl ? "رقم السجل التجاري" : "Commercial Registration Number",
-      contactName: isRtl ? "اسم المسؤول" : "Contact Person",
-      email: isRtl ? "البريد الإلكتروني الرسمي" : "Business Email",
-      phone: isRtl ? "رقم الجوال" : "Mobile Number",
-      category: isRtl ? "فئة المورد" : "Vendor Category",
-      region: isRtl ? "المنطقة الرئيسية" : "Primary Region",
-      yearsInBusiness: isRtl ? "سنوات الخبرة" : "Years in Business"
-    },
-    categoryOptions: isRtl ? ["مواد مدنية", "أعمال كهرباء وميكانيكا", "تشطيبات", "تأجير معدات"] : ["Civil Materials", "MEP Works", "Finishing", "Equipment Rental"],
-    regionOptions: isRtl ? ["الرياض", "جدة", "الدمام", "مكة"] : ["Riyadh", "Jeddah", "Dammam", "Makkah"],
-    yearsOptions: isRtl ? ["1-3 سنوات", "4-7 سنوات", "8-12 سنة", "12+ سنة"] : ["1-3 years", "4-7 years", "8-12 years", "12+ years"],
-    reviewTitle: isRtl ? "مراجعة البيانات" : "Review Details",
-    review: {
-      company: isRtl ? "الشركة" : "Company",
-      cr: isRtl ? "السجل التجاري" : "CR Number",
-      contact: isRtl ? "المسؤول" : "Contact",
+      establishmentName: isRtl ? "اسم المنشأة" : "Establishment Name",
+      managerName: isRtl ? "المسؤول" : "Responsible Person",
+      contactNumber: isRtl ? "رقم التواصل" : "Contact Number",
       email: isRtl ? "البريد الإلكتروني" : "Email",
-      phone: isRtl ? "الجوال" : "Phone",
-      category: isRtl ? "الفئة" : "Category",
-      region: isRtl ? "المنطقة" : "Region",
-      experience: isRtl ? "الخبرة" : "Experience"
+      crNumber: isRtl ? "رقم السجل" : "Commercial Registration Number",
+      productCategories: isRtl ? "فئة المنتجات" : "Product Categories",
+      vendorType: isRtl ? "هل أنتم" : "You Are",
+      representedBrands: isRtl ? "العلامات التجارية التي تمثلونها" : "Brands You Represent",
+      coverageRegions: isRtl ? "مناطق التغطية" : "Coverage Regions",
+      hasWarehouseInKsa: isRtl ? "هل لديكم مستودع داخل المملكة؟" : "Do you have a warehouse in KSA?",
+      offersCredit: isRtl ? "هل لديكم قدرة على منح آجل؟" : "Can you provide credit terms?",
+      paymentTerms: isRtl ? "شروط الدفع" : "Payment Terms",
+      creditLimit: isRtl ? "الحد الائتماني التقريبي" : "Estimated Credit Limit",
+      workedOnGovProjects: isRtl ? "هل سبق لكم العمل في مشاريع حكومية؟" : "Have you worked on government projects before?"
     },
+    validation: {
+      basic: isRtl ? "يرجى استكمال البيانات الأساسية بشكل صحيح." : "Please complete the basic information correctly.",
+      categories: isRtl ? "يرجى اختيار فئة منتجات واحدة على الأقل ونوع المورد." : "Please select at least one product category and vendor type.",
+      brands: isRtl ? "يرجى إدخال العلامات التجارية التي تمثلونها." : "Please enter the brands you represent.",
+      coverage: isRtl ? "يرجى استكمال بيانات التغطية والشروط المالية." : "Please complete coverage and financial details."
+    },
+    searchRegions: isRtl ? "ابحث عن منطقة..." : "Search regions...",
+    yes: isRtl ? "نعم" : "Yes",
+    no: isRtl ? "لا" : "No",
     back: isRtl ? "السابق" : "Back",
     continue: isRtl ? "متابعة" : "Continue",
     submit: isRtl ? "إرسال الطلب" : "Submit Registration",
-    selectOption: isRtl ? "اختر خيارًا" : "Select an option"
+    reviewTitle: isRtl ? "مراجعة البيانات" : "Review Details",
+    none: isRtl ? "غير محدد" : "Not provided",
+    vendorTypeOptions: isRtl
+      ? ["مصنع مباشر", "موزع معتمد", "وكيل حصري", "مورد مشاريع", "مستورد"]
+      : ["Direct Manufacturer", "Authorized Distributor", "Exclusive Agent", "Project Supplier", "Importer"],
+    productCategoryOptions: isRtl
+      ? [
+          "مواد بناء وإنشاء",
+          "أدوات السلامة",
+          "دهانات وديكور",
+          "كهرباء وإنارة",
+          "سباكة",
+          "أدوات صحية",
+          "تكييف وتبريد",
+          "أنظمة الأنابيب",
+          "مضخات وخزانات",
+          "أرضيات وسيراميك",
+          "عوازل",
+          "مواد لاصقة"
+        ]
+      : [
+          "Building Materials",
+          "Safety Tools",
+          "Paint & Decor",
+          "Electrical & Lighting",
+          "Plumbing",
+          "Sanitary Ware",
+          "HVAC",
+          "Piping Systems",
+          "Pumps & Tanks",
+          "Flooring & Ceramics",
+          "Insulation",
+          "Adhesives"
+        ],
+    regionOptions: isRtl
+      ? [
+          "الرياض",
+          "مكة",
+          "المدينة",
+          "الشرقية",
+          "القصيم",
+          "عسير",
+          "تبوك",
+          "حائل",
+          "الحدود الشمالية",
+          "جازان",
+          "نجران",
+          "الباحة",
+          "الجوف",
+          "كل المملكة"
+        ]
+      : [
+          "Riyadh",
+          "Makkah",
+          "Madinah",
+          "Eastern Province",
+          "Qassim",
+          "Asir",
+          "Tabuk",
+          "Hail",
+          "Northern Borders",
+          "Jazan",
+          "Najran",
+          "Al Baha",
+          "Al Jouf",
+          "All Saudi Arabia"
+        ],
+    paymentTermOptions: isRtl ? ["تحويل بنكي", "شيك", "30 يوم", "60 يوم"] : ["Bank Transfer", "Cheque", "30 Days", "60 Days"]
   };
 
   const [step, setStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [data, setData] = useState<FormData>(initialState);
   const [error, setError] = useState("");
+  const [regionSearch, setRegionSearch] = useState("");
 
   const progress = useMemo(() => ((step + 1) / t.stepLabels.length) * 100, [step, t.stepLabels.length]);
 
-  const updateField = (name: keyof FormData, value: string) => {
+  const filteredRegions = useMemo(() => {
+    const normalized = regionSearch.trim().toLowerCase();
+    if (!normalized) return t.regionOptions;
+    return t.regionOptions.filter((region) => region.toLowerCase().includes(normalized));
+  }, [regionSearch, t.regionOptions]);
+
+  const updateField = <K extends keyof FormData>(name: K, value: FormData[K]) => {
     setData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const toggleArrayValue = (field: "productCategories" | "coverageRegions" | "paymentTerms", value: string) => {
+    setData((prev) => {
+      const exists = prev[field].includes(value);
+      return {
+        ...prev,
+        [field]: exists ? prev[field].filter((item) => item !== value) : [...prev[field], value]
+      };
+    });
+  };
+
   const validateStep = () => {
-    if (step === 0 && (!data.companyName || !data.crNumber)) return t.completeCompany;
-    if (step === 1 && (!data.contactName || !data.email || !data.phone)) return t.completeContact;
-    if (step === 2 && (!data.category || !data.region || !data.yearsInBusiness)) return t.completeCapabilities;
+    if (step === 0) {
+      const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
+      if (!data.establishmentName || !data.managerName || !data.contactNumber || !data.email || !data.crNumber || !isEmailValid) {
+        return t.validation.basic;
+      }
+    }
+
+    if (step === 1) {
+      if (data.productCategories.length === 0 || !data.vendorType) return t.validation.categories;
+      const importerValue = isRtl ? "مستورد" : "Importer";
+      if (data.vendorType === importerValue && !data.representedBrands.trim()) return t.validation.brands;
+    }
+
+    if (step === 2) {
+      if (
+        data.coverageRegions.length === 0 ||
+        !data.hasWarehouseInKsa ||
+        !data.offersCredit ||
+        data.paymentTerms.length === 0 ||
+        !data.creditLimit ||
+        !data.workedOnGovProjects
+      ) {
+        return t.validation.coverage;
+      }
+    }
+
     return "";
   };
 
@@ -115,9 +234,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     setIsSubmitted(true);
   };
 
+  const importerValue = isRtl ? "مستورد" : "Importer";
+
   if (isSubmitted) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-brand-dark/10 bg-white p-8 text-center">
+      <section className="mx-auto max-w-4xl rounded-xl border border-brand-dark/10 bg-white p-8 text-center">
         <h2 className="type-section-title text-brand-dark">{t.submittedTitle}</h2>
         <p className="type-body mt-4 text-brand-dark/75">{t.submittedBody}</p>
       </section>
@@ -127,7 +248,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto max-w-3xl rounded-xl border border-brand-dark/10 bg-white p-6 md:p-8"
+      className="mx-auto max-w-4xl rounded-xl border border-brand-dark/10 bg-white p-6 md:p-8"
       aria-label={isRtl ? "نموذج تسجيل المورد" : "Vendor registration form"}
       dir={isRtl ? "rtl" : "ltr"}
     >
@@ -148,50 +269,98 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {step === 0 && (
           <>
-            <Input label={t.labels.companyName} id="companyName" value={data.companyName} onChange={(value) => updateField("companyName", value)} required />
+            <Input label={t.labels.establishmentName} id="establishmentName" value={data.establishmentName} onChange={(value) => updateField("establishmentName", value)} required />
+            <Input label={t.labels.managerName} id="managerName" value={data.managerName} onChange={(value) => updateField("managerName", value)} required />
+            <Input label={t.labels.contactNumber} id="contactNumber" value={data.contactNumber} onChange={(value) => updateField("contactNumber", value)} required />
+            <Input label={t.labels.email} id="email" value={data.email} onChange={(value) => updateField("email", value)} type="email" required />
             <Input label={t.labels.crNumber} id="crNumber" value={data.crNumber} onChange={(value) => updateField("crNumber", value)} required />
           </>
         )}
 
         {step === 1 && (
           <>
-            <Input label={t.labels.contactName} id="contactName" value={data.contactName} onChange={(value) => updateField("contactName", value)} required />
-            <Input label={t.labels.email} id="email" value={data.email} onChange={(value) => updateField("email", value)} type="email" required />
-            <Input label={t.labels.phone} id="phone" value={data.phone} onChange={(value) => updateField("phone", value)} required />
+            <CheckboxMultiSelect
+              label={t.labels.productCategories}
+              options={t.productCategoryOptions}
+              selected={data.productCategories}
+              onToggle={(value) => toggleArrayValue("productCategories", value)}
+            />
+
+            <RadioGroup
+              label={t.labels.vendorType}
+              name="vendorType"
+              options={t.vendorTypeOptions}
+              selectedValue={data.vendorType}
+              onChange={(value) => updateField("vendorType", value)}
+            />
+
+            {data.vendorType === importerValue && (
+              <Input
+                label={t.labels.representedBrands}
+                id="representedBrands"
+                value={data.representedBrands}
+                onChange={(value) => updateField("representedBrands", value)}
+                placeholder={isRtl ? "مثال: ABC, XYZ" : "Example: ABC, XYZ"}
+                required
+              />
+            )}
           </>
         )}
 
         {step === 2 && (
           <>
-            <Select
-              label={t.labels.category}
-              id="category"
-              value={data.category}
-              onChange={(value) => updateField("category", value)}
-              options={t.categoryOptions}
-              placeholder={t.selectOption}
+            <CheckboxMultiSelect
+              label={t.labels.coverageRegions}
+              options={filteredRegions}
+              selected={data.coverageRegions}
+              onToggle={(value) => toggleArrayValue("coverageRegions", value)}
+              searchValue={regionSearch}
+              onSearchChange={setRegionSearch}
+              searchPlaceholder={t.searchRegions}
+              emptyMessage={isRtl ? "لا توجد نتائج مطابقة" : "No matching regions"}
+            />
+
+            <RadioGroup
+              label={t.labels.hasWarehouseInKsa}
+              name="hasWarehouseInKsa"
+              options={[t.yes, t.no]}
+              selectedValue={data.hasWarehouseInKsa === "yes" ? t.yes : data.hasWarehouseInKsa === "no" ? t.no : ""}
+              onChange={(value) => updateField("hasWarehouseInKsa", value === t.yes ? "yes" : "no")}
+            />
+
+            <RadioGroup
+              label={t.labels.offersCredit}
+              name="offersCredit"
+              options={[t.yes, t.no]}
+              selectedValue={data.offersCredit === "yes" ? t.yes : data.offersCredit === "no" ? t.no : ""}
+              onChange={(value) => updateField("offersCredit", value === t.yes ? "yes" : "no")}
+            />
+
+            <CheckboxMultiSelect
+              label={t.labels.paymentTerms}
+              options={t.paymentTermOptions}
+              selected={data.paymentTerms}
+              onToggle={(value) => toggleArrayValue("paymentTerms", value)}
+            />
+
+            <Input
+              label={t.labels.creditLimit}
+              id="creditLimit"
+              value={data.creditLimit}
+              onChange={(value) => updateField("creditLimit", value)}
+              placeholder={isRtl ? "مثال: 250,000 ريال" : "Example: 250,000 SAR"}
               required
             />
-            <Select
-              label={t.labels.region}
-              id="region"
-              value={data.region}
-              onChange={(value) => updateField("region", value)}
-              options={t.regionOptions}
-              placeholder={t.selectOption}
-              required
-            />
-            <Select
-              label={t.labels.yearsInBusiness}
-              id="yearsInBusiness"
-              value={data.yearsInBusiness}
-              onChange={(value) => updateField("yearsInBusiness", value)}
-              options={t.yearsOptions}
-              placeholder={t.selectOption}
-              required
+
+            <RadioGroup
+              label={t.labels.workedOnGovProjects}
+              name="workedOnGovProjects"
+              options={[t.yes, t.no]}
+              selectedValue={data.workedOnGovProjects === "yes" ? t.yes : data.workedOnGovProjects === "no" ? t.no : ""}
+              onChange={(value) => updateField("workedOnGovProjects", value === t.yes ? "yes" : "no")}
             />
           </>
         )}
@@ -200,14 +369,20 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           <div className="rounded-xl border border-brand-dark/10 bg-brand-light p-4">
             <h3 className="text-lg font-semibold text-brand-dark">{t.reviewTitle}</h3>
             <dl className="mt-3 space-y-2 text-sm text-brand-dark/85">
-              <div><dt className="font-semibold">{t.review.company}:</dt><dd>{data.companyName}</dd></div>
-              <div><dt className="font-semibold">{t.review.cr}:</dt><dd>{data.crNumber}</dd></div>
-              <div><dt className="font-semibold">{t.review.contact}:</dt><dd>{data.contactName}</dd></div>
-              <div><dt className="font-semibold">{t.review.email}:</dt><dd>{data.email}</dd></div>
-              <div><dt className="font-semibold">{t.review.phone}:</dt><dd>{data.phone}</dd></div>
-              <div><dt className="font-semibold">{t.review.category}:</dt><dd>{data.category}</dd></div>
-              <div><dt className="font-semibold">{t.review.region}:</dt><dd>{data.region}</dd></div>
-              <div><dt className="font-semibold">{t.review.experience}:</dt><dd>{data.yearsInBusiness}</dd></div>
+              <Row label={t.labels.establishmentName} value={data.establishmentName} />
+              <Row label={t.labels.managerName} value={data.managerName} />
+              <Row label={t.labels.contactNumber} value={data.contactNumber} />
+              <Row label={t.labels.email} value={data.email} />
+              <Row label={t.labels.crNumber} value={data.crNumber} />
+              <Row label={t.labels.productCategories} value={data.productCategories.join("، ") || t.none} />
+              <Row label={t.labels.vendorType} value={data.vendorType || t.none} />
+              {data.vendorType === importerValue && <Row label={t.labels.representedBrands} value={data.representedBrands || t.none} />}
+              <Row label={t.labels.coverageRegions} value={data.coverageRegions.join("، ") || t.none} />
+              <Row label={t.labels.hasWarehouseInKsa} value={data.hasWarehouseInKsa ? (data.hasWarehouseInKsa === "yes" ? t.yes : t.no) : t.none} />
+              <Row label={t.labels.offersCredit} value={data.offersCredit ? (data.offersCredit === "yes" ? t.yes : t.no) : t.none} />
+              <Row label={t.labels.paymentTerms} value={data.paymentTerms.join("، ") || t.none} />
+              <Row label={t.labels.creditLimit} value={data.creditLimit || t.none} />
+              <Row label={t.labels.workedOnGovProjects} value={data.workedOnGovProjects ? (data.workedOnGovProjects === "yes" ? t.yes : t.no) : t.none} />
             </dl>
           </div>
         )}
@@ -253,9 +428,10 @@ type InputProps = {
   onChange: (value: string) => void;
   required?: boolean;
   type?: "text" | "email";
+  placeholder?: string;
 };
 
-function Input({ label, id, value, onChange, required = false, type = "text" }: InputProps) {
+function Input({ label, id, value, onChange, required = false, type = "text", placeholder }: InputProps) {
   return (
     <label htmlFor={id} className="space-y-2">
       <span className="text-sm font-semibold text-brand-dark">{label}</span>
@@ -265,6 +441,7 @@ function Input({ label, id, value, onChange, required = false, type = "text" }: 
         type={type}
         value={value}
         required={required}
+        placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-base text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
       />
@@ -272,33 +449,95 @@ function Input({ label, id, value, onChange, required = false, type = "text" }: 
   );
 }
 
-type SelectProps = {
+type CheckboxMultiSelectProps = {
   label: string;
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
   options: string[];
-  placeholder: string;
-  required?: boolean;
+  selected: string[];
+  onToggle: (value: string) => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
 };
 
-function Select({ label, id, value, onChange, options, placeholder, required = false }: SelectProps) {
+function CheckboxMultiSelect({
+  label,
+  options,
+  selected,
+  onToggle,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  emptyMessage
+}: CheckboxMultiSelectProps) {
   return (
-    <label htmlFor={id} className="space-y-2">
-      <span className="text-sm font-semibold text-brand-dark">{label}</span>
-      <select
-        id={id}
-        name={id}
-        value={value}
-        required={required}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-base text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
-      >
-        <option value="">{placeholder}</option>
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-semibold text-brand-dark">{label}</legend>
+      {typeof searchValue === "string" && onSearchChange && (
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          className="mb-2 w-full rounded-lg border border-brand-dark/20 bg-white px-4 py-2.5 text-sm text-brand-dark outline-none transition focus:border-brand-dark/40 focus:ring-2 focus:ring-brand-dark/10"
+        />
+      )}
+      {options.length === 0 && <p className="text-sm text-brand-dark/60">{emptyMessage}</p>}
+      <div className="grid gap-2 md:grid-cols-2">
+        {options.map((option) => {
+          const isChecked = selected.includes(option);
+          return (
+            <label key={option} className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-dark/15 px-3 py-2 text-sm text-brand-dark/90 hover:border-brand-dark/35">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => onToggle(option)}
+                className="h-4 w-4 rounded border-brand-dark/30 text-brand-primary focus:ring-brand-primary/40"
+              />
+              <span>{option}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+type RadioGroupProps = {
+  label: string;
+  name: string;
+  options: string[];
+  selectedValue: string;
+  onChange: (value: string) => void;
+};
+
+function RadioGroup({ label, name, options, selectedValue, onChange }: RadioGroupProps) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-semibold text-brand-dark">{label}</legend>
+      <div className="grid gap-2 md:grid-cols-2">
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <label key={option} className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-dark/15 px-3 py-2 text-sm text-brand-dark/90 hover:border-brand-dark/35">
+            <input
+              type="radio"
+              name={name}
+              checked={selectedValue === option}
+              onChange={() => onChange(option)}
+              className="h-4 w-4 border-brand-dark/30 text-brand-primary focus:ring-brand-primary/40"
+            />
+            <span>{option}</span>
+          </label>
         ))}
-      </select>
-    </label>
+      </div>
+    </fieldset>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="font-semibold">{label}:</dt>
+      <dd>{value}</dd>
+    </div>
   );
 }
