@@ -1086,6 +1086,362 @@ const FinancePage = ({ onToast }) => (
 );
 
 /* ══════════════════════════════════════════════════════════════════
+   PAGE: DOCS
+══════════════════════════════════════════════════════════════════ */
+const DOC_STATUS_META = {
+  valid: {
+    label: "ساري",
+    color: "#09B14B",
+    bg: "rgba(9,177,75,.12)",
+    border: "rgba(9,177,75,.25)",
+  },
+  expiring: {
+    label: "ينتهي قريباً",
+    color: "#8B7A00",
+    bg: "rgba(197,217,45,.22)",
+    border: "rgba(197,217,45,.4)",
+  },
+  missing: {
+    label: "مطلوب رفعه",
+    color: "#D93B3B",
+    bg: "rgba(217,59,59,.1)",
+    border: "rgba(217,59,59,.25)",
+  },
+};
+
+const DocsPage = ({ onToast }) => {
+  const [filter, setFilter] = useState("all");
+  const [q, setQ] = useState("");
+
+  const docs = [
+    { id: "#DOC-101", name: "السجل التجاري", category: "قانوني", issuer: "وزارة التجارة", expiry: "16 ديسمبر 2027", status: "valid" },
+    { id: "#DOC-102", name: "شهادة ضريبة القيمة المضافة", category: "مالي", issuer: "هيئة الزكاة والضريبة", expiry: "28 مارس 2026", status: "expiring" },
+    { id: "#DOC-103", name: "شهادة التأمينات", category: "تشغيلي", issuer: "التأمينات الاجتماعية", expiry: "05 نوفمبر 2026", status: "valid" },
+    { id: "#DOC-104", name: "خطاب تفويض المندوب", category: "تشغيلي", issuer: "الإدارة", expiry: "—", status: "missing" },
+    { id: "#DOC-105", name: "شهادة الآيبان البنكي", category: "مالي", issuer: "البنك", expiry: "—", status: "missing" },
+  ];
+
+  const filtered = docs.filter((doc) => {
+    const matchesFilter = filter === "all" || doc.status === filter;
+    const normalized = `${doc.id} ${doc.name} ${doc.category} ${doc.issuer}`.toLowerCase();
+    const matchesQ = normalized.includes(q.toLowerCase());
+    return matchesFilter && matchesQ;
+  });
+
+  const validCount = docs.filter((doc) => doc.status === "valid").length;
+  const expiringCount = docs.filter((doc) => doc.status === "expiring").length;
+  const missingCount = docs.filter((doc) => doc.status === "missing").length;
+
+  return (
+    <div className="page-in">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <CheckCircle2 size={15} color="#09B14B" />
+            <div style={{ fontSize: 11.5, color: "var(--t2)" }}>مستندات سارية</div>
+          </div>
+          <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: "var(--forest)" }}>{validCount}</div>
+        </div>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Clock size={15} color="#8B7A00" />
+            <div style={{ fontSize: 11.5, color: "var(--t2)" }}>تنتهي قريباً</div>
+          </div>
+          <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: "var(--forest)" }}>{expiringCount}</div>
+        </div>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Shield size={15} color="#D93B3B" />
+            <div style={{ fontSize: 11.5, color: "var(--t2)" }}>مستندات مطلوبة</div>
+          </div>
+          <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: "var(--forest)" }}>{missingCount}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head" style={{ gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { id: "all", label: "الكل" },
+              { id: "valid", label: "ساري" },
+              { id: "expiring", label: "ينتهي قريباً" },
+              { id: "missing", label: "مطلوب رفعه" },
+            ].map((tab) => (
+              <button key={tab.id} className={`chip${filter === tab.id ? " on" : ""}`} onClick={() => setFilter(tab.id)}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, background: "var(--bg2)", border: "1.5px solid var(--bdr2)", borderRadius: 8, padding: "6px 11px" }}>
+              <Search size={12} color="var(--t3)" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="بحث عن مستند..."
+                style={{
+                  background: "none",
+                  border: "none",
+                  outline: "none",
+                  color: "var(--t1)",
+                  fontFamily: "'IBM Plex Sans Arabic',sans-serif",
+                  fontSize: 12,
+                  width: 170,
+                }}
+              />
+            </div>
+            <Btn sm onClick={() => onToast({ icon: "📎", msg: "إضافة مستند", sub: "يمكنك الربط مع التخزين السحابي لاحقاً" })}>
+              <Upload size={12} /> رفع مستند
+            </Btn>
+          </div>
+        </div>
+
+        <table className="tbl">
+          <thead>
+            <tr><th>رقم المستند</th><th>المستند</th><th>التصنيف</th><th>الجهة</th><th>الانتهاء</th><th>الحالة</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.map((doc) => {
+              const s = DOC_STATUS_META[doc.status];
+              return (
+                <tr key={doc.id}>
+                  <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{doc.id}</span></td>
+                  <td style={{ fontWeight: 600, color: "var(--forest)" }}>{doc.name}</td>
+                  <td style={{ color: "var(--t2)" }}>{doc.category}</td>
+                  <td style={{ color: "var(--t2)" }}>{doc.issuer}</td>
+                  <td><span className="mono" style={{ color: "var(--t3)", fontSize: 10.5 }}>{doc.expiry}</span></td>
+                  <td>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: s.bg,
+                        color: s.color,
+                        border: `1px solid ${s.border}`,
+                        display: "inline-flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <Btn v="ghost" sm onClick={() => onToast({ icon: "👁️", msg: `معاينة ${doc.name}`, sub: "جاري فتح الملف" })}>
+                        <Eye size={11} />
+                      </Btn>
+                      <Btn
+                        sm
+                        disabled={doc.status === "missing"}
+                        onClick={() => onToast({ icon: "📥", msg: `تحميل ${doc.name}`, sub: "تم بدء تنزيل المستند" })}
+                      >
+                        <Download size={11} />
+                      </Btn>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <div className="empty">
+            <FileText size={36} style={{ opacity: 0.25, marginBottom: 10 }} />
+            <div style={{ fontSize: 13 }}>لا توجد مستندات بهذه المعايير</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   PAGE: SETTINGS
+══════════════════════════════════════════════════════════════════ */
+const SettingsPage = ({ onToast }) => {
+  const [form, setForm] = useState({
+    company: "شركة الركن الحديث للمقاولات",
+    contact: "م. محمد السعيد",
+    email: "procurement@moderncorner.sa",
+    phone: "0500000000",
+    city: "الرياض",
+  });
+
+  const [prefs, setPrefs] = useState({
+    quotes: true,
+    shipments: true,
+    finance: false,
+    weeklyReport: true,
+  });
+
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const togglePref = (key) => setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="page-in">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">بيانات الحساب</div>
+                <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>تحديث بيانات الشركة والمسؤول</div>
+              </div>
+            </div>
+            <div className="card-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>اسم المنشأة</label>
+                <input className="inp" value={form.company} onChange={(e) => setField("company", e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>المسؤول</label>
+                <input className="inp" value={form.contact} onChange={(e) => setField("contact", e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>البريد الإلكتروني</label>
+                <input className="inp" value={form.email} onChange={(e) => setField("email", e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>رقم التواصل</label>
+                <input className="inp" value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>المدينة الأساسية</label>
+                <select className="inp" value={form.city} onChange={(e) => setField("city", e.target.value)}>
+                  <option value="الرياض">الرياض</option>
+                  <option value="مكة">مكة</option>
+                  <option value="المدينة">المدينة</option>
+                  <option value="الشرقية">الشرقية</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 11, color: "var(--t2)" }}>لغة الواجهة</label>
+                <select className="inp" defaultValue="ar">
+                  <option value="ar">العربية</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">الإشعارات</div>
+                <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>تحكم بتنبيهات العروض والشحن والفواتير</div>
+              </div>
+            </div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { key: "quotes", label: "تنبيهات وصول عرض السعر", hint: "إشعار فوري عند تجهيز عرض جديد" },
+                { key: "shipments", label: "تنبيهات حالة الشحن", hint: "تحديثات أثناء التوصيل" },
+                { key: "finance", label: "تنبيهات الفواتير والمدفوعات", hint: "استحقاقات مالية وتنزيل فواتير" },
+                { key: "weeklyReport", label: "ملخص أسبوعي", hint: "ملخص الأداء على البريد الإلكتروني" },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    border: "1px solid var(--bdr)",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    background: "var(--bg2)",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--forest)" }}>{item.label}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>{item.hint}</div>
+                  </div>
+                  <button
+                    onClick={() => togglePref(item.key)}
+                    style={{
+                      width: 52,
+                      height: 28,
+                      borderRadius: 999,
+                      border: `1px solid ${prefs[item.key] ? "rgba(9,177,75,.6)" : "var(--bdr2)"}`,
+                      background: prefs[item.key] ? "var(--green-dim)" : "var(--bg1)",
+                      position: "relative",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                    aria-label={item.label}
+                    aria-pressed={prefs[item.key]}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 3,
+                        right: prefs[item.key] ? 26 : 4,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: prefs[item.key] ? "#09B14B" : "var(--t3)",
+                        transition: "all .2s ease",
+                      }}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={() => onToast({ icon: "✅", msg: "تم حفظ الإعدادات", sub: "تم تحديث بيانات الحساب والإشعارات" })}>
+              حفظ التعديلات
+            </Btn>
+            <Btn v="ghost" onClick={() => onToast({ icon: "↩️", msg: "تم تجاهل التغييرات", sub: "يمكنك التعديل لاحقاً" })}>
+              تجاهل
+            </Btn>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card">
+            <div className="card-head"><div className="card-title">أمان الحساب</div></div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ fontSize: 11.5, color: "var(--t2)", lineHeight: 1.8 }}>
+                يوصى بتحديث كلمة المرور بشكل دوري وتفعيل التحقق بخطوتين لحماية بيانات الطلبات والفواتير.
+              </div>
+              <Btn v="ghost" onClick={() => onToast({ icon: "🔐", msg: "تحديث كلمة المرور", sub: "تم إرسال رابط التحديث إلى بريدك" })}>
+                تحديث كلمة المرور
+              </Btn>
+              <Btn v="ghost" onClick={() => onToast({ icon: "🛡️", msg: "تفعيل التحقق بخطوتين", sub: "قيد التجهيز للحساب" })}>
+                تفعيل التحقق بخطوتين
+              </Btn>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head"><div className="card-title">جلسات الدخول</div></div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { device: "MacBook Pro", place: "الرياض", state: "نشطة الآن" },
+                { device: "iPhone", place: "الرياض", state: "آخر نشاط: أمس 9:20م" },
+              ].map((s, i) => (
+                <div key={i} style={{ border: "1px solid var(--bdr)", borderRadius: 10, padding: "10px 12px", background: "var(--bg2)" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--forest)" }}>{s.device}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 3 }}>{s.place} · {s.state}</div>
+                </div>
+              ))}
+              <Btn v="danger" onClick={() => onToast({ icon: "🚪", msg: "تم تسجيل الخروج من الأجهزة الأخرى", sub: "الجلسة الحالية مستمرة" })}>
+                تسجيل الخروج من كل الأجهزة
+              </Btn>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════
    MODALS
 ══════════════════════════════════════════════════════════════════ */
 const NewRequestModal = ({ open, onClose, onSubmit }) => (
@@ -1248,10 +1604,6 @@ export default function BuildApp() {
   };
 
   const navTo = id => {
-    if (id === "docs" || id === "settings") {
-      showToast({ icon: "🔧", msg: "قريباً", sub: "هذا القسم قيد التطوير" });
-      return;
-    }
     setPage(id);
   };
 
@@ -1264,6 +1616,8 @@ export default function BuildApp() {
       case "shipments": return <ShipmentsPage />;
       case "projects":  return <ProjectsPage />;
       case "finance":   return <FinancePage   {...p} />;
+      case "docs":      return <DocsPage      {...p} />;
+      case "settings":  return <SettingsPage  {...p} />;
       default:          return <HomePage      {...p} />;
     }
   };
@@ -1271,6 +1625,7 @@ export default function BuildApp() {
   const pageTitles = {
     home: "الرئيسية", requests: "طلباتي", quotes: "عروض الأسعار",
     shipments: "تتبع التوصيل", projects: "مشاريعي", finance: "المالية والفواتير",
+    docs: "المستندات", settings: "الإعدادات",
   };
 
   return (
