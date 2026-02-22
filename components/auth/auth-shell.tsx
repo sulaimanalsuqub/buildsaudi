@@ -6,16 +6,18 @@ type AuthShellProps = {
   title: string;
   subtitle: string;
   children: React.ReactNode;
+  isRtl?: boolean;
+  backLabel?: string;
 };
 
-export function AuthShell({ title, subtitle, children }: AuthShellProps) {
+export function AuthShell({ title, subtitle, children, isRtl = false, backLabel = "Back to Home" }: AuthShellProps) {
   return (
-    <main className="section-pad min-h-[calc(100vh-74px)]">
+    <main className="section-pad min-h-[calc(100vh-74px)]" dir={isRtl ? "rtl" : "ltr"}>
       <Container>
         <div className="mx-auto max-w-[1080px]">
           <div className="mb-8 flex items-center justify-between">
             <Link href="/" className="type-small font-semibold text-brand-dark/70 transition-colors hover:text-brand-dark">
-              Back to Home
+              {backLabel}
             </Link>
           </div>
 
