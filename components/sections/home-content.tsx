@@ -96,10 +96,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               className="mx-auto mt-10 max-w-6xl"
             >
               <Image
-                src="/images/build-truck.png"
+                src="/images/build-truck-hero.png"
                 alt={isRtl ? "شاحنة بيلد لتوريد مواد البناء" : "Build truck for construction material supply"}
                 width={2200}
-                height={1446}
+                height={1155}
                 priority
                 className="h-auto w-full object-contain"
               />
