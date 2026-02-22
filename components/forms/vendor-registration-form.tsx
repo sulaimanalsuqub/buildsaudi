@@ -487,13 +487,39 @@ function CheckboxMultiSelect({
         {options.map((option) => {
           const isChecked = selected.includes(option);
           return (
-            <label key={option} className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-dark/15 px-3 py-2 text-sm text-brand-dark/90 hover:border-brand-dark/35">
+            <label
+              key={option}
+              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
+                isChecked
+                  ? "border-brand-primary bg-brand-primary/5 text-brand-dark"
+                  : "border-brand-dark/15 text-brand-dark/90 hover:border-brand-dark/35"
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={isChecked}
                 onChange={() => onToggle(option)}
-                className="h-4 w-4 rounded border-brand-dark/30 text-brand-primary focus:ring-brand-primary/40"
+                className="peer sr-only"
               />
+              <span
+                aria-hidden="true"
+                className={`flex h-5 w-5 items-center justify-center rounded-md border transition ${
+                  isChecked
+                    ? "border-brand-primary bg-brand-primary text-white"
+                    : "border-brand-dark/25 bg-white"
+                }`}
+              >
+                <svg viewBox="0 0 20 20" className={`h-3.5 w-3.5 ${isChecked ? "opacity-100" : "opacity-0"}`}>
+                  <path
+                    d="M5 10.5L8.5 14L15 7.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
               <span>{option}</span>
             </label>
           );
@@ -516,18 +542,33 @@ function RadioGroup({ label, name, options, selectedValue, onChange }: RadioGrou
     <fieldset className="space-y-2">
       <legend className="text-sm font-semibold text-brand-dark">{label}</legend>
       <div className="grid gap-2 md:grid-cols-2">
-        {options.map((option) => (
-          <label key={option} className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-dark/15 px-3 py-2 text-sm text-brand-dark/90 hover:border-brand-dark/35">
-            <input
-              type="radio"
-              name={name}
-              checked={selectedValue === option}
-              onChange={() => onChange(option)}
-              className="h-4 w-4 border-brand-dark/30 text-brand-primary focus:ring-brand-primary/40"
-            />
-            <span>{option}</span>
-          </label>
-        ))}
+        {options.map((option) => {
+          const isSelected = selectedValue === option;
+
+          return (
+            <label
+              key={option}
+              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
+                isSelected
+                  ? "border-brand-primary bg-brand-primary/5 text-brand-dark"
+                  : "border-brand-dark/15 text-brand-dark/90 hover:border-brand-dark/35"
+              }`}
+            >
+              <input type="radio" name={name} checked={isSelected} onChange={() => onChange(option)} className="peer sr-only" />
+              <span
+                aria-hidden="true"
+                className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
+                  isSelected
+                    ? "border-brand-primary bg-white"
+                    : "border-brand-dark/25 bg-white"
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? "bg-brand-primary" : "bg-transparent"}`} />
+              </span>
+              <span>{option}</span>
+            </label>
+          );
+        })}
       </div>
     </fieldset>
   );
