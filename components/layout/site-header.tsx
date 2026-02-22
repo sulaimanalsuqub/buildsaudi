@@ -9,11 +9,6 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const homeHref = isRtl ? "/ar" : "/";
-  const navItems = [
-    { label: isRtl ? "المزايا" : "Features", href: `${homeHref}#features` },
-    { label: isRtl ? "كيف تعمل" : "How It Works", href: `${homeHref}#how-it-works` },
-    { label: isRtl ? "ثقة العملاء" : "Trust", href: `${homeHref}#trust` }
-  ];
 
   const registerHref = isRtl ? "/ar/register" : "/register";
   const languageHref = isRtl ? "/" : "/ar";
@@ -22,7 +17,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
     <header className="sticky top-0 z-40 border-b border-brand-dark/10 bg-white/95">
       <Container className="flex h-16 items-center justify-between md:h-[72px]">
         <Link href={homeHref} className="flex items-center gap-3" aria-label="Build homepage">
-          <Image src="/brand/icon-mark.svg" alt="Build icon" width={34} height={34} priority />
           <Image
             src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
             alt={isRtl ? "شعار بيلد" : "Build logo"}
@@ -31,14 +25,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             priority
           />
         </Link>
-
-        <nav aria-label="Main navigation" className="hidden items-center gap-8 lg:flex">
-          {navItems.map((item) => (
-            <Link key={item.href + item.label} href={item.href} className="text-[15px] font-medium text-brand-dark/85 transition-colors hover:text-brand-dark">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
 
         <div className="flex items-center gap-3">
           <Link
