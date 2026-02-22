@@ -21,7 +21,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
   return (
     <main>
-      <section className="section-pad border-b border-brand-dark/10 bg-white">
+      <section className="section-pad border-b border-brand-dark/10 bg-transparent">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 16 }}

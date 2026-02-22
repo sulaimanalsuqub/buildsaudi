@@ -11,7 +11,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   const legalBase = isRtl ? "/ar" : "";
 
   return (
-    <footer className="mt-24 border-t border-brand-dark/10 bg-white">
+    <footer className="mt-10 border-t border-brand-dark/10 bg-transparent md:mt-14">
       <Container className="content-stack py-10">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center">
