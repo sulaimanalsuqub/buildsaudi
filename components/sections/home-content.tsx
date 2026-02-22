@@ -127,38 +127,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      <section id="trust" className="pt-16 md:pt-20">
-        <Container>
-          <div className="rounded-xl border border-brand-dark/10 bg-white p-8 md:p-10">
-            <h2 className="type-section-title text-brand-dark">{t.trustTitle}</h2>
-            <p className="type-body mt-4 max-w-3xl text-brand-dark/75">
-              {isRtl
-                ? "مصممة للسوق السعودي وتساعد الموردين على الوصول للمشاريع المناسبة، مع متابعة واضحة لحالة الطلبات والتوريد."
-                : "Built for the Saudi market to help suppliers reach the right projects with clear visibility across supply requests and delivery status."}
-            </p>
-          </div>
-        </Container>
-      </section>
-
-      <section className="pb-4 pt-16 md:pt-20">
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="rounded-xl border border-brand-dark/10 bg-white p-8 md:p-12"
-          >
-            <h2 className="type-section-title text-brand-dark">{t.ctaTitle}</h2>
-            <p className="type-subheading mt-4 max-w-3xl text-brand-dark/75">{t.ctaSub}</p>
-            <Link
-              href={isRtl ? "/ar/register" : "/register"}
-              className="mt-8 inline-block rounded-full bg-brand-dark px-8 py-3 text-base font-semibold text-white transition hover:bg-brand-dark/90"
-            >
-              {t.primaryCta}
-            </Link>
-          </motion.div>
-        </Container>
-      </section>
     </main>
   );
 }
