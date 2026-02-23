@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   LayoutDashboard, ClipboardList, Clock, Truck, BarChart3,
   FileText, Settings, Bell, Search, Upload, X, Check,
@@ -392,6 +392,15 @@ const nextEngineStatus = (status) => {
   };
   return flow[status] || status;
 };
+const getNextStatusActionLabel = (status) => {
+  const labels = {
+    pending: "بدء المعالجة",
+    waiting_admin: "إرسال للموردين",
+    waiting_supplier_quotes: "استلام عروض الموردين",
+    calculating_final_price: "احتساب نهائي",
+  };
+  return labels[status] || "تحديث الحالة";
+};
 
 /* ─── MODAL ───────────────────────────────────────────────────── */
 const Modal = ({ open, onClose, title, sub, children, footer }) => {
@@ -603,6 +612,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
   const totalRequests = requests.length;
   const completedRequests = requests.filter((r) => r.status === "done").length;
   const inPricingRequests = requests.filter((r) => isPipelineStatus(r.status)).length;
+  const readyQuotesCount = requests.filter((r) => isQuoteReadyStatus(r.status)).length;
   const totalSpend = requests.reduce((sum, r) => {
     if (r.value === "—") return sum;
     const numeric = Number(String(r.value || "0").replace(/,/g, ""));
@@ -626,12 +636,12 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
       <div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>مرحباً، م. محمد 👋</div>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 5 }}>
-          لديك <strong style={{ color: "#C5D92D" }}>عرض سعر</strong> ينتظر موافقتك و <strong style={{ color: "#C5D92D" }}>طلبان</strong> قيد التسعير
+          لديك <strong style={{ color: "#C5D92D" }}>{readyQuotesCount}</strong> عرض جاهز للمراجعة و <strong style={{ color: "#C5D92D" }}>{inPricingRequests}</strong> طلب قيد المعالجة
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <Btn v="lime" onClick={() => onModal("newReq")}>
-          <Plus size={13} /> طلب عرض سعر جديد
+          <Plus size={13} /> إرسال طلب مشروع
         </Btn>
         <Btn v="ghost" style={{ background: "rgba(255,255,255,.1)", color: "#fff", border: "1px solid rgba(255,255,255,.2)" }}
           onClick={() => onModal("boq")}>
@@ -830,7 +840,7 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, onAdvanceStatus })
           <Search size={12} color="var(--t3)" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="بحث..." style={{ background: "none", border: "none", outline: "none", color: "var(--t1)", fontFamily: "'IBM Plex Sans Arabic',sans-serif", fontSize: 12, width: 160 }} />
         </div>
-        <Btn sm onClick={() => onModal("newReq")}><Plus size={12} /> طلب جديد</Btn>
+        <Btn sm onClick={() => onModal("newReq")}><Plus size={12} /> طلب مشروع</Btn>
       </div>
 
       {/* Pending waiting */}
@@ -878,7 +888,7 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, onAdvanceStatus })
                 <td onClick={e => e.stopPropagation()}>
                   {isQuoteReadyStatus(r.status) && <Btn sm onClick={() => onModal("reviewQuote")}><Eye size={11} /> راجع</Btn>}
                   {isPipelineStatus(r.status) && onAdvanceStatus && (
-                    <Btn v="ghost" sm onClick={() => onAdvanceStatus(r.id)}><ChevronDown size={11} /> تحديث الحالة</Btn>
+                    <Btn v="ghost" sm onClick={() => onAdvanceStatus(r.id)}><ChevronDown size={11} /> {getNextStatusActionLabel(r.status)}</Btn>
                   )}
                   {r.status === "done"   && <Btn v="ghost" sm onClick={() => onModal("orderDetail")}><Eye size={11} /></Btn>}
                 </td>
@@ -1496,32 +1506,22 @@ const SettingsPage = ({ onToast }) => {
 /* ══════════════════════════════════════════════════════════════════
    MODALS
 ══════════════════════════════════════════════════════════════════ */
-const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
+const NewRequestModal = ({ open, onClose, onSubmit, onToast, initialMode = "manual" }) => {
   const [mode, setMode] = useState("manual");
   const [project, setProject] = useState("فيلا الرياض – قطعة 14");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [boqFileName, setBoqFileName] = useState("");
-  const [tableInput, setTableInput] = useState("");
+  const [tableFileName, setTableFileName] = useState("");
+  const [sheetLink, setSheetLink] = useState("");
   const [manualItems, setManualItems] = useState([
     { name: "", quantity: "", brand: "", origin: "" },
   ]);
 
-  const parsedTableItems = tableInput
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const cols = line.split(/[,\t،]/).map((part) => part.trim()).filter(Boolean);
-      return {
-        name: cols[0] || "",
-        quantity: cols[1] || "",
-        brand: cols[2] || "",
-        origin: cols[3] || "",
-      };
-    })
-    .filter((item) => item.name && item.quantity);
+  useEffect(() => {
+    if (open) setMode(initialMode || "manual");
+  }, [open, initialMode]);
 
   const cleanedManualItems = manualItems
     .map((item) => ({
@@ -1547,9 +1547,13 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
     });
   };
 
-  const handleFileSelect = (e) => {
+  const handleBoqFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) setBoqFileName(file.name);
+  };
+  const handleTableFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setTableFileName(file.name);
   };
 
   const handleSubmit = () => {
@@ -1563,11 +1567,11 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
       return;
     }
 
-    if (mode === "table" && parsedTableItems.length === 0) {
+    if (mode === "table" && !tableFileName && !sheetLink.trim()) {
       onToast({
         icon: "⚠️",
         msg: "أضف جدول المنتجات",
-        sub: "اكتب كل سطر بالشكل: اسم الصنف، الكمية، العلامة التجارية، الصناعة",
+        sub: "ارفع ملف Excel/CSV أو أضف رابط Google Sheet",
       });
       return;
     }
@@ -1588,8 +1592,10 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
       deliveryDate,
       notes: notes.trim(),
       boqFileName,
-      items: mode === "manual" ? cleanedManualItems : parsedTableItems,
-      itemCount: mode === "boq" ? null : (mode === "manual" ? cleanedManualItems.length : parsedTableItems.length),
+      tableFileName,
+      sheetLink: sheetLink.trim(),
+      items: mode === "manual" ? cleanedManualItems : [],
+      itemCount: mode === "manual" ? cleanedManualItems.length : null,
     };
 
     onSubmit(payload);
@@ -1600,7 +1606,7 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
       open={open}
       onClose={onClose}
       title="طلب كامل للمشروع"
-      sub="أرسل الاحتياج كاملاً: BOQ أو جدول منتجات أو إدخال يدوي، وبيلد يتولى المعالجة والتسعير"
+      sub="أرسل الاحتياج كاملاً: BOQ أو ملف جدول منتجات (Excel/Google Sheet) أو إدخال يدوي"
       footer={(
         <>
           <Btn onClick={handleSubmit}><SendHorizonal size={13} /> إرسال الطلب الكامل لبيلد</Btn>
@@ -1611,7 +1617,7 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
         {[
           { id: "manual", label: "إدخال يدوي" },
-          { id: "table", label: "جدول منتجات" },
+          { id: "table", label: "Excel / Google Sheet" },
           { id: "boq", label: "رفع BOQ" },
         ].map((tab) => (
           <button
@@ -1676,18 +1682,33 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
 
       {mode === "table" && (
         <div style={{ marginBottom: 14 }}>
+          <div className="drop-zone" style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)", marginBottom: 6 }}>رفع جدول المنتجات</div>
+            <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12 }}>Excel / CSV (أسماء الأصناف والكميات)</div>
+            <label style={{ cursor: "pointer" }}>
+              <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleTableFileSelect} />
+              <Btn v="outline"><Upload size={13} /> اختيار ملف الجدول</Btn>
+            </label>
+            {tableFileName && (
+              <div style={{ fontSize: 11, color: "var(--forest)", marginTop: 10 }}>
+                الملف المحدد: <strong>{tableFileName}</strong>
+              </div>
+            )}
+          </div>
+
           <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500, marginBottom: 5, display: "block" }}>
-            جدول المنتجات (كل سطر: اسم الصنف، الكمية، العلامة التجارية، الصناعة)
+            أو رابط Google Sheet (اختياري)
           </label>
-          <textarea
+          <input
             className="inp"
-            rows={6}
-            value={tableInput}
-            onChange={(e) => setTableInput(e.target.value)}
-            placeholder={"حديد تسليح T16، 40 طن، SABIC، سعودي\nكيابل NYY، 500 متر، Elsewedy، مصري"}
+            type="url"
+            value={sheetLink}
+            onChange={(e) => setSheetLink(e.target.value)}
+            placeholder="https://docs.google.com/spreadsheets/..."
           />
           <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--t3)" }}>
-            تم التعرف على <strong style={{ color: "var(--forest)" }}>{parsedTableItems.length}</strong> صنف
+            يكفي رفع ملف أو إضافة رابط Sheet، والنظام يتولى القراءة في الخلفية.
           </div>
         </div>
       )}
@@ -1699,7 +1720,7 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)", marginBottom: 6 }}>ارفع ملف BOQ / Excel</div>
             <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12 }}>الحد الأقصى 50MB · يدعم .xlsx و .csv</div>
             <label style={{ cursor: "pointer" }}>
-              <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleFileSelect} />
+              <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleBoqFileSelect} />
               <Btn v="outline"><Upload size={13} /> اختيار ملف</Btn>
             </label>
             {boqFileName && (
@@ -1854,29 +1875,13 @@ const OrderDetailModal = ({ open, onClose, onToast }) => (
   </Modal>
 );
 
-const BOQModal = ({ open, onClose, onSubmit }) => (
-  <Modal open={open} onClose={onClose}
-    title="رفع جدول الكميات BOQ"
-    sub="ارفع ملفك وستحصل على عروض أسعار لجميع البنود شاملة التوصيل"
-    footer={<><Btn onClick={onSubmit}><SendHorizonal size={13} /> إرسال لبيلد</Btn><Btn v="ghost" onClick={onClose}>إلغاء</Btn></>}>
-    <div className="drop-zone" onClick={onSubmit}>
-      <div style={{ fontSize: 44, marginBottom: 14 }}>📊</div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--forest)", marginBottom: 6 }}>اسحب ملف BOQ هنا</div>
-      <div style={{ fontSize: 11.5, color: "var(--t3)", marginBottom: 18 }}>يدعم: Excel (.xlsx) · CSV · الحد الأقصى 50MB</div>
-      <Btn v="outline"><Upload size={13} /> اختر الملف</Btn>
-    </div>
-    <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--lime-dim)", border: "1px solid rgba(197,217,45,.4)", borderRadius: 9, fontSize: 11.5, color: "#5E6800", display: "flex", alignItems: "center", gap: 8 }}>
-      <Zap size={14} /> بيلد سيُسعّر كل بند تلقائياً ويرسل لك العروض شاملة التوصيل
-    </div>
-  </Modal>
-);
-
 /* ══════════════════════════════════════════════════════════════════
    ROOT APP
 ══════════════════════════════════════════════════════════════════ */
 export default function BuildApp() {
   const [page,  setPage]  = useState("home");
   const [modal, setModal] = useState(null);
+  const [newReqMode, setNewReqMode] = useState("manual");
   const [toast, setToast] = useState(null);
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
   const tRef = useRef(null);
@@ -1890,6 +1895,24 @@ export default function BuildApp() {
 
   const navTo = id => {
     setPage(id);
+  };
+  const openModal = (name) => {
+    if (name === "newReq") {
+      setNewReqMode("manual");
+      setModal("newReq");
+      return;
+    }
+    if (name === "boq") {
+      setNewReqMode("boq");
+      setModal("newReq");
+      return;
+    }
+    if (name === "table") {
+      setNewReqMode("table");
+      setModal("newReq");
+      return;
+    }
+    setModal(name);
   };
 
   const advanceRequestStatus = (id) => {
@@ -1917,7 +1940,7 @@ export default function BuildApp() {
   };
 
   const renderPage = () => {
-    const p = { onToast: showToast, onModal: setModal, requests, onAdvanceStatus: advanceRequestStatus };
+    const p = { onToast: showToast, onModal: openModal, requests, onAdvanceStatus: advanceRequestStatus };
     switch (page) {
       case "home":      return <HomePage      {...p} />;
       case "requests":  return <RequestsPage  {...p} />;
@@ -2026,8 +2049,8 @@ export default function BuildApp() {
             <div className="n-dot" />
           </div>
           <div className="icon-btn"><Search size={14} /></div>
-          <Btn v="ghost" sm onClick={() => setModal("boq")}><Upload size={12} /> رفع BOQ</Btn>
-          <Btn sm onClick={() => setModal("newReq")}><Plus size={12} /> طلب عرض سعر</Btn>
+          <Btn v="ghost" sm onClick={() => openModal("boq")}><Upload size={12} /> رفع BOQ / Excel</Btn>
+          <Btn sm onClick={() => openModal("newReq")}><Plus size={12} /> طلب مشروع</Btn>
         </div>
       </div>
 
@@ -2041,16 +2064,21 @@ export default function BuildApp() {
         open={modal === "newReq"}
         onClose={() => setModal(null)}
         onToast={showToast}
+        initialMode={newReqMode}
         onSubmit={(payload) => {
           const firstItem = payload.items?.[0];
           const itemCount = payload.itemCount || payload.items?.length || 0;
           const productSummary = payload.source === "boq"
             ? `طلب BOQ (${payload.boqFileName || "ملف كميات"})`
+            : payload.source === "table"
+              ? `جدول منتجات (${payload.tableFileName || "Google Sheet"})`
             : itemCount > 1
               ? `${firstItem?.name || "منتجات متعددة"} +${itemCount - 1} أصناف`
               : (firstItem?.name || "طلب جديد");
           const specs = payload.source === "boq"
             ? "ملف كميات مرفوع"
+            : payload.source === "table"
+              ? (payload.sheetLink ? "رابط Google Sheet مرفوع" : "ملف Excel/CSV مرفوع")
             : [firstItem?.brand, firstItem?.origin, firstItem?.quantity].filter(Boolean).join(" · ") || "تفاصيل مرفقة";
 
           const newRequest = {
@@ -2068,6 +2096,8 @@ export default function BuildApp() {
           setModal(null);
           const qtyText = payload.source === "boq"
             ? "تم استلام ملف BOQ"
+            : payload.source === "table"
+              ? "تم استلام جدول المنتجات"
             : `عدد الأصناف: ${payload.itemCount}`;
           showToast({
             icon: "📨",
@@ -2079,9 +2109,6 @@ export default function BuildApp() {
       <ReviewQuoteModal open={modal === "reviewQuote"} onClose={() => setModal(null)}
         onAccept={() => { setModal(null); showToast({ icon: "🎉", msg: "تم قبول العرض!", sub: "سيبدأ التوريد والشحن خلال 24 ساعة" }); }} />
       <OrderDetailModal open={modal === "orderDetail"} onClose={() => setModal(null)} onToast={showToast} />
-      <BOQModal open={modal === "boq"} onClose={() => setModal(null)}
-        onSubmit={() => { setModal(null); showToast({ icon: "📊", msg: "تم رفع جدول الكميات", sub: "بيلد يعمل على تسعير جميع البنود" }); }} />
-
       {/* ── TOAST ── */}
       {toast && <Toast t={toast} onDismiss={() => setToast(null)} />}
     </>
