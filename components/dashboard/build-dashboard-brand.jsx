@@ -1444,34 +1444,265 @@ const SettingsPage = ({ onToast }) => {
 /* ══════════════════════════════════════════════════════════════════
    MODALS
 ══════════════════════════════════════════════════════════════════ */
-const NewRequestModal = ({ open, onClose, onSubmit }) => (
-  <Modal open={open} onClose={onClose}
-    title="طلب عرض سعر جديد"
-    sub="أدخل التفاصيل وسيصلك عرض بيلد النهائي شامل التوصيل"
-    footer={<><Btn onClick={onSubmit}><SendHorizonal size={13} /> إرسال الطلب لبيلد</Btn><Btn v="ghost" onClick={onClose}>إلغاء</Btn></>}>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-      {[
-        { label: "المنتج / المادة *",      type: "text",   placeholder: "مثال: حديد تسليح T16",   full: false },
-        { label: "الكمية *",               type: "number", placeholder: "0",                        full: false },
-        { label: "الوحدة",                 type: "sel",    opts: ["طن","متر طولي","متر مربع","لتر","وحدة"], full: false },
-        { label: "المشروع *",              type: "sel",    opts: ["اختر المشروع","فيلا الرياض – قطعة 14","مجمع الخبر السكني","برج جدة التجاري"], full: false },
-        { label: "عنوان موقع التوصيل",    type: "text",   placeholder: "الحي، الشارع، رقم القطعة", full: true },
-        { label: "تاريخ التسليم المطلوب", type: "date",   placeholder: "",                         full: false },
-        { label: "ملاحظات ومواصفات",      type: "area",   placeholder: "أي تفاصيل تساعد بيلد على إيجاد أفضل عرض...", full: true },
-      ].map((f, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: f.full ? "1/-1" : "auto" }}>
-          <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500 }}>{f.label}</label>
-          {f.type === "sel"  && <select className="inp">{f.opts.map(o => <option key={o}>{o}</option>)}</select>}
-          {f.type === "area" && <textarea className="inp" rows={3} placeholder={f.placeholder} />}
-          {f.type !== "sel" && f.type !== "area" && <input className="inp" type={f.type} placeholder={f.placeholder} />}
+const NewRequestModal = ({ open, onClose, onSubmit, onToast }) => {
+  const [mode, setMode] = useState("manual");
+  const [project, setProject] = useState("فيلا الرياض – قطعة 14");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [boqFileName, setBoqFileName] = useState("");
+  const [tableInput, setTableInput] = useState("");
+  const [manualItems, setManualItems] = useState([
+    { name: "", quantity: "", brand: "", origin: "" },
+  ]);
+
+  const parsedTableItems = tableInput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const cols = line.split(/[,\t،]/).map((part) => part.trim()).filter(Boolean);
+      return {
+        name: cols[0] || "",
+        quantity: cols[1] || "",
+        brand: cols[2] || "",
+        origin: cols[3] || "",
+      };
+    })
+    .filter((item) => item.name && item.quantity);
+
+  const cleanedManualItems = manualItems
+    .map((item) => ({
+      name: item.name.trim(),
+      quantity: item.quantity.trim(),
+      brand: item.brand.trim(),
+      origin: item.origin.trim(),
+    }))
+    .filter((item) => item.name && item.quantity);
+
+  const addManualRow = () => {
+    setManualItems((prev) => [...prev, { name: "", quantity: "", brand: "", origin: "" }]);
+  };
+
+  const updateManualRow = (idx, key, value) => {
+    setManualItems((prev) => prev.map((row, i) => (i === idx ? { ...row, [key]: value } : row)));
+  };
+
+  const removeManualRow = (idx) => {
+    setManualItems((prev) => {
+      if (prev.length === 1) return prev;
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setBoqFileName(file.name);
+  };
+
+  const handleSubmit = () => {
+    if (!project) {
+      onToast({ icon: "⚠️", msg: "اختر المشروع", sub: "لا يمكن إرسال الطلب بدون ربطه بمشروع" });
+      return;
+    }
+
+    if (mode === "boq" && !boqFileName) {
+      onToast({ icon: "⚠️", msg: "أرفق ملف BOQ", sub: "يدعم Excel و CSV" });
+      return;
+    }
+
+    if (mode === "table" && parsedTableItems.length === 0) {
+      onToast({
+        icon: "⚠️",
+        msg: "أضف جدول المنتجات",
+        sub: "اكتب كل سطر بالشكل: اسم الصنف، الكمية، العلامة التجارية، الصناعة",
+      });
+      return;
+    }
+
+    if (mode === "manual" && cleanedManualItems.length === 0) {
+      onToast({
+        icon: "⚠️",
+        msg: "أدخل صنف واحد على الأقل",
+        sub: "الحد الأدنى: اسم الصنف + الكمية",
+      });
+      return;
+    }
+
+    const payload = {
+      source: mode,
+      project,
+      deliveryAddress: deliveryAddress.trim(),
+      deliveryDate,
+      notes: notes.trim(),
+      boqFileName,
+      items: mode === "manual" ? cleanedManualItems : parsedTableItems,
+      itemCount: mode === "boq" ? null : (mode === "manual" ? cleanedManualItems.length : parsedTableItems.length),
+    };
+
+    onSubmit(payload);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="طلب كامل للمشروع"
+      sub="أرسل الاحتياج كاملاً: BOQ أو جدول منتجات أو إدخال يدوي، وبيلد يتولى المعالجة والتسعير"
+      footer={(
+        <>
+          <Btn onClick={handleSubmit}><SendHorizonal size={13} /> إرسال الطلب الكامل لبيلد</Btn>
+          <Btn v="ghost" onClick={onClose}>إلغاء</Btn>
+        </>
+      )}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        {[
+          { id: "manual", label: "إدخال يدوي" },
+          { id: "table", label: "جدول منتجات" },
+          { id: "boq", label: "رفع BOQ" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`chip${mode === tab.id ? " on" : ""}`}
+            onClick={() => setMode(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "manual" && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 8 }}>
+            <div style={{ fontSize: 10.5, color: "var(--t3)" }}>اسم الصنف *</div>
+            <div style={{ fontSize: 10.5, color: "var(--t3)" }}>الكمية *</div>
+            <div style={{ fontSize: 10.5, color: "var(--t3)" }}>العلامة التجارية</div>
+            <div style={{ fontSize: 10.5, color: "var(--t3)" }}>الصناعة</div>
+            <div />
+          </div>
+          {manualItems.map((item, idx) => (
+            <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 8 }}>
+              <input
+                className="inp"
+                value={item.name}
+                placeholder="مثال: كيابل NYY"
+                onChange={(e) => updateManualRow(idx, "name", e.target.value)}
+              />
+              <input
+                className="inp"
+                value={item.quantity}
+                placeholder="مثال: 500 متر"
+                onChange={(e) => updateManualRow(idx, "quantity", e.target.value)}
+              />
+              <input
+                className="inp"
+                value={item.brand}
+                placeholder="Schneider"
+                onChange={(e) => updateManualRow(idx, "brand", e.target.value)}
+              />
+              <input
+                className="inp"
+                value={item.origin}
+                placeholder="سعودي / مستورد"
+                onChange={(e) => updateManualRow(idx, "origin", e.target.value)}
+              />
+              <Btn
+                v="ghost"
+                sm
+                disabled={manualItems.length === 1}
+                onClick={() => removeManualRow(idx)}
+                style={{ justifyContent: "center" }}
+              >
+                <X size={12} />
+              </Btn>
+            </div>
+          ))}
+          <Btn v="ghost" sm onClick={addManualRow}><Plus size={12} /> إضافة صنف</Btn>
         </div>
-      ))}
-    </div>
-    <div style={{ marginTop: 16, padding: "12px 14px", background: "var(--lime-dim)", border: "1px solid rgba(197,217,45,.4)", borderRadius: 9, fontSize: 11.5, color: "#5E6800", display: "flex", alignItems: "center", gap: 8 }}>
-      <Hourglass size={14} /> سيصلك عرض السعر النهائي من بيلد خلال <strong>ساعة إلى يوم عمل</strong> حسب المنتج والتوافر
-    </div>
-  </Modal>
-);
+      )}
+
+      {mode === "table" && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500, marginBottom: 5, display: "block" }}>
+            جدول المنتجات (كل سطر: اسم الصنف، الكمية، العلامة التجارية، الصناعة)
+          </label>
+          <textarea
+            className="inp"
+            rows={6}
+            value={tableInput}
+            onChange={(e) => setTableInput(e.target.value)}
+            placeholder={"حديد تسليح T16، 40 طن، SABIC، سعودي\nكيابل NYY، 500 متر، Elsewedy، مصري"}
+          />
+          <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--t3)" }}>
+            تم التعرف على <strong style={{ color: "var(--forest)" }}>{parsedTableItems.length}</strong> صنف
+          </div>
+        </div>
+      )}
+
+      {mode === "boq" && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="drop-zone">
+            <div style={{ fontSize: 34, marginBottom: 10 }}>📊</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)", marginBottom: 6 }}>ارفع ملف BOQ / Excel</div>
+            <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12 }}>الحد الأقصى 50MB · يدعم .xlsx و .csv</div>
+            <label style={{ cursor: "pointer" }}>
+              <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={handleFileSelect} />
+              <Btn v="outline"><Upload size={13} /> اختيار ملف</Btn>
+            </label>
+            {boqFileName && (
+              <div style={{ fontSize: 11, color: "var(--forest)", marginTop: 10 }}>
+                الملف المحدد: <strong>{boqFileName}</strong>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500 }}>المشروع *</label>
+          <select className="inp" value={project} onChange={(e) => setProject(e.target.value)}>
+            <option value="">اختر المشروع</option>
+            <option value="فيلا الرياض – قطعة 14">فيلا الرياض – قطعة 14</option>
+            <option value="مجمع الخبر السكني">مجمع الخبر السكني</option>
+            <option value="برج جدة التجاري">برج جدة التجاري</option>
+          </select>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500 }}>تاريخ التسليم المطلوب</label>
+          <input className="inp" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 5 }}>
+        <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500 }}>عنوان موقع التوصيل</label>
+        <input
+          className="inp"
+          type="text"
+          value={deliveryAddress}
+          placeholder="الحي، الشارع، رقم القطعة"
+          onChange={(e) => setDeliveryAddress(e.target.value)}
+        />
+      </div>
+
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 5 }}>
+        <label style={{ fontSize: 11, color: "var(--t2)", fontWeight: 500 }}>ملاحظات إضافية</label>
+        <textarea
+          className="inp"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="أي تفاصيل تساعد في التسعير والتوريد"
+        />
+      </div>
+
+      <div style={{ marginTop: 16, padding: "12px 14px", background: "var(--lime-dim)", border: "1px solid rgba(197,217,45,.4)", borderRadius: 9, fontSize: 11.5, color: "#5E6800", display: "flex", alignItems: "center", gap: 8 }}>
+        <Hourglass size={14} /> بعد الإرسال يتم تحويل الطلب مباشرة لفريق بيلد والمعالجة تبدأ تلقائياً حسب نوع المدخلات
+      </div>
+    </Modal>
+  );
+};
 
 const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
   <Modal open={open} onClose={onClose}
@@ -1728,8 +1959,22 @@ export default function BuildApp() {
       </main>
 
       {/* ── MODALS ── */}
-      <NewRequestModal open={modal === "newReq"} onClose={() => setModal(null)}
-        onSubmit={() => { setModal(null); showToast({ icon: "📨", msg: "تم إرسال طلبك لبيلد", sub: "ستُبلَّغ بإشعار فور وصول عرض السعر" }); }} />
+      <NewRequestModal
+        open={modal === "newReq"}
+        onClose={() => setModal(null)}
+        onToast={showToast}
+        onSubmit={(payload) => {
+          setModal(null);
+          const qtyText = payload.source === "boq"
+            ? "تم استلام ملف BOQ"
+            : `عدد الأصناف: ${payload.itemCount}`;
+          showToast({
+            icon: "📨",
+            msg: "تم استلام الطلب الكامل",
+            sub: `${qtyText} · تم تحويله مباشرة لفريق بيلد`,
+          });
+        }}
+      />
       <ReviewQuoteModal open={modal === "reviewQuote"} onClose={() => setModal(null)}
         onAccept={() => { setModal(null); showToast({ icon: "🎉", msg: "تم قبول العرض!", sub: "سيبدأ التوريد والشحن خلال 24 ساعة" }); }} />
       <OrderDetailModal open={modal === "orderDetail"} onClose={() => setModal(null)} onToast={showToast} />
