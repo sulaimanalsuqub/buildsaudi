@@ -364,6 +364,9 @@ const STATUSES = {
   waiting_supplier_quotes:  { label: "بانتظار عروض الموردين",          bg: "rgba(197,217,45,.2)",  c: "#746B00" },
   calculating_final_price:  { label: "جارٍ احتساب السعر النهائي",      bg: "rgba(9,177,75,.1)",    c: "#0B8E40" },
   ready_for_client:         { label: "عرض DDP جاهز للمراجعة",          bg: "rgba(9,177,75,.14)",   c: "#07823A" },
+  waiting_transfer:         { label: "بانتظار رفع الحوالة",             bg: "rgba(197,217,45,.2)",  c: "#746B00" },
+  finance_review:           { label: "قيد مراجعة المالية",              bg: "rgba(29,63,31,.12)",   c: "#1D3F1F" },
+  approved:                 { label: "معتمد ماليًا",                     bg: "rgba(9,177,75,.12)",   c: "#09B14B" },
   cancelled: { label: "ملغي",                bg: "rgba(217,59,59,.1)",   c: "#D93B3B" },
   early:     { label: "مرحلة مبكرة",         bg: "rgba(29,63,31,.1)",    c: "#4A6B4C" },
 };
@@ -585,12 +588,19 @@ const Timeline = ({ steps }) => (
 
 /* ─── DATA ────────────────────────────────────────────────────── */
 const INITIAL_REQUESTS = [
+  { id: "#BLD-2025", product: "طلب توريد مشروع كامل",   specs: "11 صنف · بانتظار تأكيد الحوالة", project: "مشروع مدارس الرياض",        value: "66,900", date: "اليوم",   status: "waiting_transfer" },
   { id: "#BLD-2024", product: "طلب توريد مشروع كامل",   specs: "9 أصناف · عرض شامل DDP",  project: "فيلا الرياض – قطعة 14",    value: "48,500", date: "15 فبراير", status: "done" },
   { id: "#BLD-2023", product: "طلب توريد مشروع كامل",   specs: "6 أصناف · تسليم مرحلي DDP", project: "مجمع الخبر السكني",         value: "12,200", date: "24 فبراير", status: "shipping" },
   { id: "#BLD-2022", product: "طلب توريد مشروع كامل",   specs: "12 صنف · عرض شامل DDP",    project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "ready_for_client" },
   { id: "#BLD-2021", product: "طلب توريد مشروع كامل",   specs: "5 أصناف · عرض شامل DDP",   project: "فيلا الرياض – قطعة 14",    value: "22,000", date: "10 فبراير", status: "done" },
   { id: "#BLD-2020", product: "طلب توريد مشروع كامل",   specs: "8 أصناف · قيد التسعير DDP", project: "مجمع الخبر السكني",         value: "—",      date: "—",         status: "pending", wait: "~ساعة أخرى" },
   { id: "#BLD-2019", product: "طلب توريد مشروع كامل",   specs: "10 أصناف · قيد التسعير DDP", project: "برج جدة – الدور 12",       value: "—",      date: "—",         status: "waiting_supplier_quotes", wait: "~بانتظار تسعير الموردين" },
+];
+
+const INITIAL_PAYMENT_CASES = [
+  { id: "#TRF-9002", requestId: "#BLD-2025", project: "مشروع مدارس الرياض", amount: "66,900", date: "اليوم", status: "waiting_transfer", proof: null },
+  { id: "#TRF-9001", requestId: "#BLD-2023", project: "مجمع الخبر السكني", amount: "12,200", date: "24 فبراير", status: "approved", proof: "transfer-9001.jpg" },
+  { id: "#TRF-9000", requestId: "#BLD-2024", project: "فيلا الرياض – قطعة 14", amount: "48,500", date: "15 فبراير", status: "approved", proof: "transfer-9000.jpg" },
 ];
 
 /* ─── NAV ─────────────────────────────────────────────────────── */
@@ -814,11 +824,12 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
 /* ══════════════════════════════════════════════════════════════════
    PAGE: REQUESTS
 ══════════════════════════════════════════════════════════════════ */
-const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, onAdvanceStatus }) => {
+const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INITIAL_PAYMENT_CASES, onAdvanceStatus }) => {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const tabs = [
     { id: "all",      label: "الكل" },
+    { id: "waiting_transfer", label: "بانتظار الحوالة" },
     { id: "waiting_admin", label: "بانتظار مراجعة بيلد" },
     { id: "waiting_supplier_quotes", label: "بانتظار عروض الموردين" },
     { id: "calculating_final_price", label: "جارٍ احتساب السعر" },
@@ -887,6 +898,19 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, onAdvanceStatus })
                 <td><Badge status={r.status} /></td>
                 <td onClick={e => e.stopPropagation()}>
                   {isQuoteReadyStatus(r.status) && <Btn sm onClick={() => onModal("reviewQuote")}><Eye size={11} /> راجع</Btn>}
+                  {r.status === "waiting_transfer" && (
+                    <Btn
+                      sm
+                      onClick={() => {
+                        const transfer = paymentCases.find((p) => p.requestId === r.id && p.status !== "approved");
+                        if (transfer) {
+                          onModal("transferProof", transfer.id);
+                        }
+                      }}
+                    >
+                      <Upload size={11} /> رفع الحوالة
+                    </Btn>
+                  )}
                   {isPipelineStatus(r.status) && onAdvanceStatus && (
                     <Btn v="ghost" sm onClick={() => onAdvanceStatus(r.id)}><ChevronDown size={11} /> {getNextStatusActionLabel(r.status)}</Btn>
                   )}
@@ -1094,58 +1118,98 @@ const ProjectsPage = () => (
 /* ══════════════════════════════════════════════════════════════════
    PAGE: FINANCE
 ══════════════════════════════════════════════════════════════════ */
-const FinancePage = ({ onToast }) => (
-  <div className="page-in">
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 13, marginBottom: 20 }}>
-      <Stat icon={<DollarSign   size={17} />} label="إجمالي قيمة DDP (ر.س)" value="284K" trend="↑ 8%"      up={true}  color="#09B14B" delay={.04} />
-      <Stat icon={<CheckCircle2 size={17} />} label="مبالغ مسددة (ر.س)"    value="231K" trend="مدفوع"       up="n"   color="#09B14B" delay={.08} />
-      <Stat icon={<Clock        size={17} />} label="مبالغ مستحقة (ر.س)"   value="53K"  trend="قريباً"       up={false} color="#1D3F1F" delay={.12} />
-      <Stat icon={<Zap          size={17} />} label="طلبات مشاريع هذا الشهر" value="3"   trend="نشط"          up="n"   color="#C5D92D" delay={.16} />
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      <div>
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-head">
-            <div className="card-title">إجمالي DDP الشهري</div>
-            <Btn v="ghost" sm onClick={() => onToast({ icon: "📄", msg: "جارٍ التصدير", sub: "سيُرسل PDF لبريدك" })}>
-              <Download size={12} /> تصدير
-            </Btn>
-          </div>
-          <div style={{ padding: "14px 18px 6px" }}><SpendChart /></div>
+const FinancePage = ({ onToast, onModal, paymentCases = INITIAL_PAYMENT_CASES }) => {
+  const totalValue = paymentCases.reduce((sum, p) => sum + Number(String(p.amount).replace(/,/g, "")), 0);
+  const approvedValue = paymentCases
+    .filter((p) => p.status === "approved")
+    .reduce((sum, p) => sum + Number(String(p.amount).replace(/,/g, "")), 0);
+  const pendingValue = Math.max(totalValue - approvedValue, 0);
+  const totalValueLabel = totalValue >= 1000 ? `${Math.round(totalValue / 1000)}K` : String(totalValue);
+  const approvedLabel = approvedValue >= 1000 ? `${Math.round(approvedValue / 1000)}K` : String(approvedValue);
+  const pendingLabel = pendingValue >= 1000 ? `${Math.round(pendingValue / 1000)}K` : String(pendingValue);
+
+  const flowSteps = [
+    { id: "transfer", title: "تحويل بنكي", sub: "العميل ينفذ التحويل" },
+    { id: "proof", title: "رفع صورة الحوالة", sub: "إرفاق إثبات التحويل" },
+    { id: "review", title: "مراجعة المالية", sub: "التحقق من صحة الحوالة" },
+    { id: "approved", title: "اعتماد التوريد", sub: "بعد الاعتماد يبدأ التوريد" },
+  ];
+
+  return (
+    <div className="page-in">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 13, marginBottom: 20 }}>
+        <Stat icon={<DollarSign   size={17} />} label="إجمالي قيمة DDP (ر.س)" value={totalValueLabel} trend="تراكمي" up="n"   color="#09B14B" delay={.04} />
+        <Stat icon={<CheckCircle2 size={17} />} label="مبالغ معتمدة (ر.س)"   value={approvedLabel}   trend="معتمد"  up={true} color="#09B14B" delay={.08} />
+        <Stat icon={<Clock        size={17} />} label="قيد التحقق (ر.س)"      value={pendingLabel}    trend="مالي"   up="n"   color="#1D3F1F" delay={.12} />
+        <Stat icon={<Zap          size={17} />} label="طلبات قيد المالية"      value={String(paymentCases.filter((p) => p.status !== "approved").length)} trend="نشط" up="n" color="#C5D92D" delay={.16} />
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-head"><div className="card-title">مسار الدفع والاعتماد قبل التوريد</div></div>
+        <div className="card-body" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          {flowSteps.map((step, idx) => (
+            <div key={step.id} style={{ background: "var(--bg2)", border: "1px solid var(--bdr)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, color: "var(--t3)", marginBottom: 4 }}>{String(idx + 1).padStart(2, "0")}</div>
+              <div style={{ fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>{step.title}</div>
+              <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 4, lineHeight: 1.7 }}>{step.sub}</div>
+            </div>
+          ))}
         </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div>
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card-head">
+              <div className="card-title">إجمالي DDP الشهري</div>
+              <Btn v="ghost" sm onClick={() => onToast({ icon: "📄", msg: "جارٍ التصدير", sub: "سيُرسل PDF لبريدك" })}>
+                <Download size={12} /> تصدير
+              </Btn>
+            </div>
+            <div style={{ padding: "14px 18px 6px" }}><SpendChart /></div>
+          </div>
+          <div className="card">
+            <div className="card-head"><div className="card-title">توزيع الإنفاق حسب المشروع</div></div>
+            <div className="card-body">
+              <PRow label="فيلا الرياض"  pct={52} color="#09B14B" />
+              <PRow label="مجمع الخبر"   pct={31} color="#C5D92D" />
+              <PRow label="برج جدة"      pct={17} color="#1D3F1F" />
+            </div>
+          </div>
+        </div>
+
         <div className="card">
-          <div className="card-head"><div className="card-title">توزيع الإنفاق حسب المشروع</div></div>
-          <div className="card-body">
-            <PRow label="فيلا الرياض"  pct={52} color="#09B14B" />
-            <PRow label="مجمع الخبر"   pct={31} color="#C5D92D" />
-            <PRow label="برج جدة"      pct={17} color="#1D3F1F" />
-          </div>
+          <div className="card-head"><div className="card-title">حوالات الدفع (DDP)</div></div>
+          <table className="tbl">
+            <thead><tr><th>رقم التحويل</th><th>مرجع الطلب</th><th>التاريخ</th><th>المبلغ</th><th>الحالة</th><th>الإجراء</th></tr></thead>
+            <tbody>
+              {paymentCases.map((p) => (
+                <tr key={p.id}>
+                  <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{p.id}</span></td>
+                  <td style={{ fontWeight: 600, color: "var(--forest)" }}>{p.requestId} · {p.project}</td>
+                  <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{p.date}</span></td>
+                  <td><span className="mono" style={{ fontWeight: 700 }}>{p.amount}</span> <span style={{ fontSize: 10, color: "var(--t3)" }}>ر.س</span></td>
+                  <td><Badge status={p.status} /></td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {p.status === "waiting_transfer" && (
+                      <Btn sm onClick={() => onModal("transferProof", p.id)}><Upload size={11} /> رفع صورة الحوالة</Btn>
+                    )}
+                    {p.status === "finance_review" && (
+                      <span style={{ fontSize: 10.5, color: "var(--t2)" }}>بانتظار الاعتماد</span>
+                    )}
+                    {p.status === "approved" && (
+                      <span style={{ fontSize: 10.5, color: "#07823A", fontWeight: 600 }}>تم الاعتماد وبدء التوريد</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-      <div className="card">
-        <div className="card-head"><div className="card-title">سجل الفواتير</div></div>
-        <table className="tbl">
-          <thead><tr><th>رقم الفاتورة</th><th>مرجع الطلب</th><th>التاريخ</th><th>المبلغ DDP</th><th>الحالة</th></tr></thead>
-          <tbody>
-            {[
-              { id: "#INV-088", product: "طلب #BLD-2024 (9 أصناف)",  date: "15 فبراير", amount: "48,500", status: "done" },
-              { id: "#INV-087", product: "طلب #BLD-2021 (5 أصناف)",  date: "10 فبراير", amount: "22,000", status: "done" },
-              { id: "#INV-086", product: "طلب #BLD-2023 (6 أصناف)",  date: "24 فبراير", amount: "12,200", status: "pending" },
-            ].map((inv, i) => (
-              <tr key={i}>
-                <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{inv.id}</span></td>
-                <td style={{ fontWeight: 600, color: "var(--forest)" }}>{inv.product}</td>
-                <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{inv.date}</span></td>
-                <td><span className="mono" style={{ fontWeight: 700 }}>{inv.amount}</span> <span style={{ fontSize: 10, color: "var(--t3)" }}>ر.س</span></td>
-                <td><Badge status={inv.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════════════════
    PAGE: DOCS
@@ -1777,6 +1841,63 @@ const NewRequestModal = ({ open, onClose, onSubmit, onToast, initialMode = "manu
   );
 };
 
+const TransferProofModal = ({ open, onClose, onSubmit, onToast, paymentCase }) => {
+  const [fileName, setFileName] = useState("");
+
+  useEffect(() => {
+    if (open) setFileName("");
+  }, [open, paymentCase?.id]);
+
+  const handleSubmit = () => {
+    if (!fileName) {
+      onToast({ icon: "⚠️", msg: "أرفق صورة الحوالة", sub: "يرجى رفع ملف صورة للتحويل البنكي" });
+      return;
+    }
+    onSubmit(fileName);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`رفع صورة الحوالة ${paymentCase?.id || ""}`}
+      sub={`مرجع الطلب: ${paymentCase?.requestId || "—"} · بعد الرفع تبدأ مراجعة المالية`}
+      footer={(
+        <>
+          <Btn onClick={handleSubmit}><Upload size={13} /> إرسال الإثبات للمالية</Btn>
+          <Btn v="ghost" onClick={onClose}>إلغاء</Btn>
+        </>
+      )}
+    >
+      <div className="drop-zone">
+        <div style={{ fontSize: 34, marginBottom: 10 }}>🧾</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)", marginBottom: 6 }}>رفع صورة الحوالة البنكية</div>
+        <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12 }}>يدعم PNG / JPG / PDF</div>
+        <label style={{ cursor: "pointer" }}>
+          <input
+            type="file"
+            accept=".png,.jpg,.jpeg,.pdf"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setFileName(file.name);
+            }}
+          />
+          <Btn v="outline"><Upload size={13} /> اختيار الملف</Btn>
+        </label>
+        {fileName && (
+          <div style={{ fontSize: 11, color: "var(--forest)", marginTop: 10 }}>
+            الملف المحدد: <strong>{fileName}</strong>
+          </div>
+        )}
+      </div>
+      <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--lime-dim)", border: "1px solid rgba(197,217,45,.4)", borderRadius: 9, fontSize: 11.5, color: "#5E6800", display: "flex", alignItems: "center", gap: 8 }}>
+        <Shield size={14} /> تتم مراجعة الحوالة من فريق المالية، وبعد الاعتماد يبدأ التوريد تلقائيًا.
+      </div>
+    </Modal>
+  );
+};
+
 const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
   <Modal open={open} onClose={onClose}
     title="عرض DDP النهائي #BLD-2022"
@@ -1882,10 +2003,13 @@ export default function BuildApp() {
   const [page,  setPage]  = useState("home");
   const [modal, setModal] = useState(null);
   const [newReqMode, setNewReqMode] = useState("manual");
+  const [activePaymentId, setActivePaymentId] = useState(null);
   const [toast, setToast] = useState(null);
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [paymentCases, setPaymentCases] = useState(INITIAL_PAYMENT_CASES);
   const tRef = useRef(null);
   const reqIdRef = useRef(2100);
+  const paymentIdRef = useRef(9010);
 
   const showToast = t => {
     setToast(t);
@@ -1896,7 +2020,7 @@ export default function BuildApp() {
   const navTo = id => {
     setPage(id);
   };
-  const openModal = (name) => {
+  const openModal = (name, payload) => {
     if (name === "newReq") {
       setNewReqMode("manual");
       setModal("newReq");
@@ -1912,7 +2036,42 @@ export default function BuildApp() {
       setModal("newReq");
       return;
     }
+    if (name === "transferProof") {
+      setActivePaymentId(payload || null);
+      setModal("transferProof");
+      return;
+    }
     setModal(name);
+  };
+
+  const submitTransferProof = (paymentId, proofFileName) => {
+    if (!paymentId) return;
+
+    setPaymentCases((prev) => prev.map((p) => (
+      p.id === paymentId
+        ? { ...p, status: "finance_review", proof: proofFileName, date: "اليوم" }
+        : p
+    )));
+    setModal(null);
+    showToast({ icon: "🧾", msg: "تم رفع صورة الحوالة", sub: "تم تحويلها إلى قسم المالية للمراجعة" });
+
+    setTimeout(() => {
+      let approvedCase = null;
+      setPaymentCases((prev) => prev.map((p) => {
+        if (p.id !== paymentId) return p;
+        approvedCase = p;
+        return { ...p, status: "approved", date: "اليوم" };
+      }));
+
+      if (approvedCase?.requestId) {
+        setRequests((prev) => prev.map((r) => (
+          r.id === approvedCase.requestId && r.status !== "done"
+            ? { ...r, status: "shipping", date: "اليوم", wait: undefined }
+            : r
+        )));
+      }
+      showToast({ icon: "✅", msg: "تم اعتماد الحوالة", sub: "اعتمدت المالية الدفع وبدأ التوريد" });
+    }, 2800);
   };
 
   const advanceRequestStatus = (id) => {
@@ -1940,7 +2099,7 @@ export default function BuildApp() {
   };
 
   const renderPage = () => {
-    const p = { onToast: showToast, onModal: openModal, requests, onAdvanceStatus: advanceRequestStatus };
+    const p = { onToast: showToast, onModal: openModal, requests, paymentCases, onAdvanceStatus: advanceRequestStatus };
     switch (page) {
       case "home":      return <HomePage      {...p} />;
       case "requests":  return <RequestsPage  {...p} />;
@@ -1959,6 +2118,7 @@ export default function BuildApp() {
     shipments: "تتبع التوصيل", projects: "مشاريعي", finance: "المالية والفواتير",
     docs: "المستندات", settings: "الإعدادات",
   };
+  const activePaymentCase = paymentCases.find((p) => p.id === activePaymentId) || null;
 
   return (
     <>
@@ -2103,8 +2263,43 @@ export default function BuildApp() {
           });
         }}
       />
+      <TransferProofModal
+        open={modal === "transferProof"}
+        onClose={() => setModal(null)}
+        onToast={showToast}
+        paymentCase={activePaymentCase}
+        onSubmit={(proofFileName) => submitTransferProof(activePaymentCase?.id, proofFileName)}
+      />
       <ReviewQuoteModal open={modal === "reviewQuote"} onClose={() => setModal(null)}
-        onAccept={() => { setModal(null); showToast({ icon: "🎉", msg: "تم قبول العرض!", sub: "سيبدأ التوريد والشحن خلال 24 ساعة" }); }} />
+        onAccept={() => {
+          const target = requests.find((r) => isQuoteReadyStatus(r.status));
+          if (!target) {
+            setModal(null);
+            showToast({ icon: "ℹ️", msg: "لا يوجد عرض جاهز حالياً", sub: "انتظر اكتمال التسعير" });
+            return;
+          }
+
+          const transferExists = paymentCases.some((p) => p.requestId === target.id && p.status !== "approved");
+          if (!transferExists) {
+            const newTransfer = {
+              id: `#TRF-${paymentIdRef.current++}`,
+              requestId: target.id,
+              project: target.project,
+              amount: target.value === "—" ? "—" : target.value,
+              date: "اليوم",
+              status: "waiting_transfer",
+              proof: null,
+            };
+            setPaymentCases((prev) => [newTransfer, ...prev]);
+          }
+
+          setRequests((prev) => prev.map((r) => (
+            r.id === target.id ? { ...r, status: "waiting_transfer", date: "اليوم" } : r
+          )));
+          setModal(null);
+          setPage("finance");
+          showToast({ icon: "💳", msg: "تم قبول عرض DDP", sub: "حوّل المبلغ وارفع صورة الحوالة لبدء التوريد" });
+        }} />
       <OrderDetailModal open={modal === "orderDetail"} onClose={() => setModal(null)} onToast={showToast} />
       {/* ── TOAST ── */}
       {toast && <Toast t={toast} onDismiss={() => setToast(null)} />}
