@@ -359,12 +359,12 @@ const STATUSES = {
   done:      { label: "مكتمل",               bg: "rgba(9,177,75,.12)",   c: "#09B14B" },
   shipping:  { label: "في الطريق",           bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
   pending:   { label: "قيد الاستلام",        bg: "rgba(197,217,45,.2)",  c: "#5E6800" },
-  quoted:    { label: "عرض DDP جاهز ← راجعه", bg: "rgba(9,177,75,.15)", c: "#07823A" },
+  quoted:    { label: "عرض جاهز ← راجعه",     bg: "rgba(9,177,75,.15)", c: "#07823A" },
   waiting_admin:            { label: "قيد المراجعة",                    bg: "rgba(197,217,45,.22)", c: "#5E6800" },
   waiting_supplier_quotes:  { label: "قيد التسعير",                     bg: "rgba(197,217,45,.2)",  c: "#746B00" },
   waiting_shipping_quote:   { label: "قيد استكمال التسعير",            bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
   calculating_final_price:  { label: "قيد إعداد العرض النهائي",         bg: "rgba(9,177,75,.1)",    c: "#0B8E40" },
-  ready_for_client:         { label: "عرض DDP جاهز للمراجعة",          bg: "rgba(9,177,75,.14)",   c: "#07823A" },
+  ready_for_client:         { label: "عرض جاهز للمراجعة",              bg: "rgba(9,177,75,.14)",   c: "#07823A" },
   waiting_transfer:         { label: "بانتظار رفع الحوالة",             bg: "rgba(197,217,45,.2)",  c: "#746B00" },
   finance_review:           { label: "قيد مراجعة المالية",              bg: "rgba(29,63,31,.12)",   c: "#1D3F1F" },
   approved:                 { label: "معتمد ماليًا",                     bg: "rgba(9,177,75,.12)",   c: "#09B14B" },
@@ -572,12 +572,12 @@ const Timeline = ({ steps }) => (
 /* ─── DATA ────────────────────────────────────────────────────── */
 const INITIAL_REQUESTS = [
   { id: "#BLD-2025", product: "طلب توريد مشروع كامل",   specs: "11 صنف · بانتظار تأكيد الحوالة", project: "مشروع مدارس الرياض",        value: "66,900", date: "اليوم",   status: "waiting_transfer" },
-  { id: "#BLD-2024", product: "طلب توريد مشروع كامل",   specs: "9 أصناف · عرض شامل DDP",  project: "فيلا الرياض – قطعة 14",    value: "48,500", date: "15 فبراير", status: "done" },
-  { id: "#BLD-2023", product: "طلب توريد مشروع كامل",   specs: "6 أصناف · تسليم مرحلي DDP", project: "مجمع الخبر السكني",         value: "12,200", date: "24 فبراير", status: "shipping" },
-  { id: "#BLD-2022", product: "طلب توريد مشروع كامل",   specs: "12 صنف · عرض شامل DDP",    project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "ready_for_client" },
-  { id: "#BLD-2021", product: "طلب توريد مشروع كامل",   specs: "5 أصناف · عرض شامل DDP",   project: "فيلا الرياض – قطعة 14",    value: "22,000", date: "10 فبراير", status: "done" },
-  { id: "#BLD-2020", product: "طلب توريد مشروع كامل",   specs: "8 أصناف · قيد التسعير DDP", project: "مجمع الخبر السكني",         value: "—",      date: "—",         status: "pending", wait: "~ساعة أخرى" },
-  { id: "#BLD-2019", product: "طلب توريد مشروع كامل",   specs: "10 أصناف · قيد استكمال التسعير DDP", project: "برج جدة – الدور 12", value: "—", date: "—", status: "waiting_shipping_quote", wait: "~قيد استكمال التسعير" },
+  { id: "#BLD-2024", product: "طلب توريد مشروع كامل",   specs: "9 أصناف · عرض شامل",  project: "فيلا الرياض – قطعة 14",    value: "48,500", date: "15 فبراير", status: "done" },
+  { id: "#BLD-2023", product: "طلب توريد مشروع كامل",   specs: "6 أصناف · تسليم مرحلي", project: "مجمع الخبر السكني",         value: "12,200", date: "24 فبراير", status: "shipping" },
+  { id: "#BLD-2022", product: "طلب توريد مشروع كامل",   specs: "12 صنف · عرض شامل",    project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "ready_for_client" },
+  { id: "#BLD-2021", product: "طلب توريد مشروع كامل",   specs: "5 أصناف · عرض شامل",   project: "فيلا الرياض – قطعة 14",    value: "22,000", date: "10 فبراير", status: "done" },
+  { id: "#BLD-2020", product: "طلب توريد مشروع كامل",   specs: "8 أصناف · قيد التسعير", project: "مجمع الخبر السكني",         value: "—",      date: "—",         status: "pending", wait: "~ساعة أخرى" },
+  { id: "#BLD-2019", product: "طلب توريد مشروع كامل",   specs: "10 أصناف · قيد استكمال التسعير", project: "برج جدة – الدور 12", value: "—", date: "—", status: "waiting_shipping_quote", wait: "~قيد استكمال التسعير" },
 ];
 
 const INITIAL_PAYMENT_CASES = [
@@ -589,9 +589,9 @@ const INITIAL_PAYMENT_CASES = [
 const QUOTE_SCENARIOS = {
   "#BLD-2022": {
     options: [
-      { id: "OPT-1", name: "الخيار الاقتصادي", path: "توريد اقتصادي", supply: "25,900", shipping: "2,100", fee: "3,750", ddp: "31,750", eta: "14 يوم", recommended: true },
-      { id: "OPT-2", name: "الخيار المتوازن",  path: "توريد متوازن",  supply: "26,400", shipping: "1,900", fee: "4,100", ddp: "32,400", eta: "10 أيام", recommended: false },
-      { id: "OPT-3", name: "الخيار السريع",    path: "توريد سريع",     supply: "30,100", shipping: "500",   fee: "2,900", ddp: "33,500", eta: "6 أيام", recommended: false },
+      { id: "OPT-1", name: "الخيار الاقتصادي", path: "توريد اقتصادي", supply: "25,900", shipping: "2,100", fee: "3,750", total: "31,750", eta: "14 يوم", recommended: true },
+      { id: "OPT-2", name: "الخيار المتوازن",  path: "توريد متوازن",  supply: "26,400", shipping: "1,900", fee: "4,100", total: "32,400", eta: "10 أيام", recommended: false },
+      { id: "OPT-3", name: "الخيار السريع",    path: "توريد سريع",     supply: "30,100", shipping: "500",   fee: "2,900", total: "33,500", eta: "6 أيام", recommended: false },
     ],
   },
 };
@@ -658,7 +658,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
       <Stat icon={<ClipboardList size={17} />} label="إجمالي طلباتي"         value={String(totalRequests)}     trend="مباشر"      up="n"   color="#09B14B" delay={.04} />
       <Stat icon={<CheckCircle2  size={17} />} label="طلبات مكتملة"          value={String(completedRequests)} trend="مكتمل"      up={true}  color="#09B14B" delay={.08} />
       <Stat icon={<Hourglass     size={17} />} label="قيد التسعير من بيلد"   value={String(inPricingRequests)} trend="قيد المعالجة" up="n"   color="#C5D92D" delay={.12} />
-      <Stat icon={<DollarSign    size={17} />} label="إجمالي قيمة التوريد DDP (ر.س)" value={totalSpendLabel} trend="تراكمي" up="n" color="#1D3F1F" delay={.16} />
+      <Stat icon={<DollarSign    size={17} />} label="إجمالي قيمة التوريد (ر.س)" value={totalSpendLabel} trend="تراكمي" up="n" color="#1D3F1F" delay={.16} />
     </div>
 
     <div style={{ display: "grid", gridTemplateColumns: "1fr 324px", gap: 16 }}>
@@ -700,7 +700,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
           </div>
           <table className="tbl">
             <thead>
-              <tr><th>الطلب</th><th>ملخص الطلب</th><th>المشروع</th><th>القيمة DDP</th><th>الحالة</th></tr>
+              <tr><th>الطلب</th><th>ملخص الطلب</th><th>المشروع</th><th>القيمة</th><th>الحالة</th></tr>
             </thead>
             <tbody>
               {recentRequests.map((r, i) => (
@@ -734,7 +734,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
             padding: "13px 16px", borderRadius: "12px 12px 0 0",
             display: "flex", justifyContent: "space-between", alignItems: "center"
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#C5D92D" }}>{readyQuote ? "🎉 وصلك عرض DDP شامل!" : "🔎 لا يوجد عرض DDP جاهز حالياً"}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#C5D92D" }}>{readyQuote ? "🎉 وصلك عرض شامل!" : "🔎 لا يوجد عرض جاهز حالياً"}</div>
             <span style={{ fontSize: 10, color: "rgba(255,255,255,.6)", display: "flex", alignItems: "center", gap: 4 }}>
               <Clock size={11} /> 18 ساعة
             </span>
@@ -749,7 +749,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
                 <span className="mono" style={{ fontSize: 24, fontWeight: 700, color: "#09B14B" }}>{readyQuote?.value !== "—" ? readyQuote.value : "—"}</span>
                 <span style={{ fontSize: 11, color: "var(--t3)", marginRight: 4 }}>ر.س</span>
               </div>
-              <span style={{ fontSize: 10.5, color: "var(--t2)" }}>شامل كل التكاليف (DDP)</span>
+              <span style={{ fontSize: 10.5, color: "var(--t2)" }}>شامل كل التكاليف</span>
             </div>
             <div style={{
               background: "var(--green-dim)", borderRadius: 8, padding: "8px 12px",
@@ -772,8 +772,8 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
           <div style={{ padding: "10px 16px" }}>
             {[
               { dot: "#09B14B", text: <>شحنة الطلب <b style={{ color: "var(--forest)" }}>#BLD-2023</b> في الطريق لموقع المشروع</>, time: "منذ ساعتين" },
-              { dot: "#C5D92D", text: <>وصلك عرض <b style={{ color: "var(--forest)" }}>DDP شامل</b> للطلب #BLD-2022</>,             time: "منذ 3 ساعات" },
-              { dot: "#A0B020", text: <>جارٍ إعداد عرض DDP للطلب <b style={{ color: "var(--forest)" }}>#BLD-2020</b></>,               time: "أمس 10:30 ص" },
+              { dot: "#C5D92D", text: <>وصلك عرض <b style={{ color: "var(--forest)" }}>شامل</b> للطلب #BLD-2022</>,             time: "منذ 3 ساعات" },
+              { dot: "#A0B020", text: <>جارٍ إعداد العرض للطلب <b style={{ color: "var(--forest)" }}>#BLD-2020</b></>,               time: "أمس 10:30 ص" },
               { dot: "var(--t3)", text: <>اكتمل توريد الطلب <b style={{ color: "var(--forest)" }}>#BLD-2024</b></>,                   time: "أمس 8:00 ص" },
             ].map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 11 }}>
@@ -805,7 +805,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
     {/* Spending Chart */}
     <div className="card" style={{ marginTop: 16 }}>
       <div className="card-head">
-        <div className="card-title">قيمة توريد مشاريعي (DDP) شهرياً</div>
+        <div className="card-title">قيمة توريد مشاريعي شهرياً</div>
         <Btn v="ghost" sm><Download size={12} /> تصدير</Btn>
       </div>
       <div style={{ padding: "14px 18px 6px" }}><SpendChart /></div>
@@ -827,7 +827,7 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INI
     { id: "waiting_supplier_quotes", label: "قيد التسعير" },
     { id: "waiting_shipping_quote", label: "قيد استكمال التسعير" },
     { id: "calculating_final_price", label: "جارٍ احتساب السعر" },
-    { id: "ready_for_client", label: "عرض DDP وصل ✦" },
+    { id: "ready_for_client", label: "عرض وصل ✦" },
     { id: "shipping", label: "في الطريق" },
     { id: "done",     label: "مكتمل" },
   ];
@@ -876,7 +876,7 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INI
       <div className="card">
         <table className="tbl">
           <thead>
-            <tr><th>رقم الطلب</th><th>ملخص الطلب</th><th>المشروع</th><th>القيمة DDP</th><th>التاريخ</th><th>الحالة</th><th></th></tr>
+            <tr><th>رقم الطلب</th><th>ملخص الطلب</th><th>المشروع</th><th>القيمة</th><th>التاريخ</th><th>الحالة</th><th></th></tr>
           </thead>
           <tbody>
             {shown.map((r, i) => (
@@ -935,7 +935,7 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
   <div className="page-in">
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
       {[
-        { n: String(readyQuotes.length), l: "عرض DDP شامل جاهز", c: "#09B14B", bg: "var(--green-dim)" },
+        { n: String(readyQuotes.length), l: "عرض شامل جاهز", c: "#09B14B", bg: "var(--green-dim)" },
         { n: String(pricingPipeline.length), l: "قيد التسعير من بيلد", c: "#5E6800", bg: "var(--lime-dim)" },
         { n: String(acceptedQuotes), l: "طلبات مكتملة ومقبولة", c: "var(--t2)", bg: "var(--forest-dim)" },
       ].map((k, i) => (
@@ -949,7 +949,7 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
     {/* Arrived quote */}
     <div style={{ marginBottom: 20 }}>
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--forest)", display: "flex", alignItems: "center", gap: 8 }}>
-        {firstReady ? "🎉 عرض DDP شامل وصلك" : "🔎 لا يوجد عرض DDP جاهز حالياً"}
+        {firstReady ? "🎉 عرض شامل وصلك" : "🔎 لا يوجد عرض جاهز حالياً"}
         <span style={{ fontSize: 10, background: "var(--red-dim)", color: "var(--red)", padding: "2px 9px", borderRadius: 20, fontWeight: 600 }}>ينتهي خلال 18 ساعة</span>
       </div>
       <div className="quote-card" onClick={() => onModal("reviewQuote")}
@@ -966,7 +966,7 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
         </div>
         <div style={{ background: "var(--bg0)", borderRadius: 10, padding: "14px 16px", marginBottom: 14 }}>
           <div style={{ fontSize: 10.5, color: "var(--t3)", marginBottom: 10, fontWeight: 600, letterSpacing: .5 }}>
-            {recommended ? `الخيار الموصى به: ${recommended.name}` : "تفاصيل عرض DDP النهائي من بيلد"}
+            {recommended ? `الخيار الموصى به: ${recommended.name}` : "تفاصيل العرض النهائي من بيلد"}
           </div>
           {[
             { k: "تكلفة التوريد",   v: `${recommended?.supply || "—"} ر.س` },
@@ -979,8 +979,8 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
             </div>
           ))}
           <div className="sum-row">
-            <span style={{ fontWeight: 700, color: "var(--forest)" }}>إجمالي DDP شامل حتى موقع المشروع</span>
-            <span className="mono" style={{ color: "#09B14B", fontSize: 22 }}>{recommended ? `${recommended.ddp} ر.س` : firstReady?.value !== "—" ? `${firstReady.value} ر.س` : "—"}</span>
+            <span style={{ fontWeight: 700, color: "var(--forest)" }}>إجمالي شامل حتى موقع المشروع</span>
+            <span className="mono" style={{ color: "#09B14B", fontSize: 22 }}>{recommended ? `${recommended.total} ر.س` : firstReady?.value !== "—" ? `${firstReady.value} ر.س` : "—"}</span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1013,7 +1013,7 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
                 <span>رسوم بيلد: <span className="mono">{opt.fee} ر.س</span></span>
               </div>
               <div style={{ marginTop: 7, fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>
-                DDP: <span className="mono" style={{ color: "#09B14B" }}>{opt.ddp} ر.س</span>
+                الإجمالي: <span className="mono" style={{ color: "#09B14B" }}>{opt.total} ر.س</span>
               </div>
             </div>
           ))}
@@ -1165,7 +1165,7 @@ const FinancePage = ({ onToast, onModal, paymentCases = INITIAL_PAYMENT_CASES })
   return (
     <div className="page-in">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 13, marginBottom: 20 }}>
-        <Stat icon={<DollarSign   size={17} />} label="إجمالي قيمة DDP (ر.س)" value={totalValueLabel} trend="تراكمي" up="n"   color="#09B14B" delay={.04} />
+        <Stat icon={<DollarSign   size={17} />} label="إجمالي القيمة (ر.س)" value={totalValueLabel} trend="تراكمي" up="n"   color="#09B14B" delay={.04} />
         <Stat icon={<CheckCircle2 size={17} />} label="مبالغ معتمدة (ر.س)"   value={approvedLabel}   trend="معتمد"  up={true} color="#09B14B" delay={.08} />
         <Stat icon={<Clock        size={17} />} label="قيد التحقق (ر.س)"      value={pendingLabel}    trend="مالي"   up="n"   color="#1D3F1F" delay={.12} />
         <Stat icon={<Zap          size={17} />} label="طلبات قيد المالية"      value={String(paymentCases.filter((p) => p.status !== "approved").length)} trend="نشط" up="n" color="#C5D92D" delay={.16} />
@@ -1188,7 +1188,7 @@ const FinancePage = ({ onToast, onModal, paymentCases = INITIAL_PAYMENT_CASES })
         <div>
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-head">
-              <div className="card-title">إجمالي DDP الشهري</div>
+              <div className="card-title">الإجمالي الشهري</div>
               <Btn v="ghost" sm onClick={() => onToast({ icon: "📄", msg: "جارٍ التصدير", sub: "سيُرسل PDF لبريدك" })}>
                 <Download size={12} /> تصدير
               </Btn>
@@ -1206,7 +1206,7 @@ const FinancePage = ({ onToast, onModal, paymentCases = INITIAL_PAYMENT_CASES })
         </div>
 
         <div className="card">
-          <div className="card-head"><div className="card-title">حوالات الدفع (DDP)</div></div>
+          <div className="card-head"><div className="card-title">حوالات الدفع</div></div>
           <table className="tbl">
             <thead><tr><th>رقم التحويل</th><th>مرجع الطلب</th><th>التاريخ</th><th>المبلغ</th><th>الحالة</th><th>الإجراء</th></tr></thead>
             <tbody>
@@ -1927,7 +1927,7 @@ const TransferProofModal = ({ open, onClose, onSubmit, onToast, paymentCase }) =
 
 const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
   <Modal open={open} onClose={onClose}
-    title="عرض DDP النهائي #BLD-2022"
+    title="العرض النهائي #BLD-2022"
     sub="طلب توريد مشروع كامل · برج جدة – الدور 12"
     footer={<>
       <Btn onClick={onAccept}><Check size={13} /> قبول وتأكيد التوريد</Btn>
@@ -1945,9 +1945,9 @@ const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
         {[
           { l: "المشروع",               v: "برج جدة – الدور 12" },
           { l: "نوع الطلب",             v: "طلب مشروع كامل (12 صنف)" },
-          { l: "خيارات التسعير",         v: "3 خيارات DDP" },
+          { l: "خيارات التسعير",         v: "3 خيارات" },
           { l: "موعد التسليم المتوقع",  v: "27 فبراير 2026" },
-          { l: "نطاق التسليم",          v: "DDP حتى موقع المشروع" },
+          { l: "نطاق التسليم",          v: "شامل حتى موقع المشروع" },
         ].map((d, i) => (
           <div key={i}>
             <div style={{ fontSize: 10, color: "var(--t3)" }}>{d.l}</div>
@@ -1957,7 +1957,7 @@ const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
       </div>
     </div>
     <div style={{ background: "var(--bg2)", borderRadius: 11, padding: 16, border: "1px solid var(--bdr)" }}>
-      <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12, fontWeight: 600 }}>تفاصيل DDP — شامل جميع التكاليف حتى التسليم</div>
+      <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12, fontWeight: 600 }}>تفاصيل العرض — شامل جميع التكاليف حتى التسليم</div>
       {[
         { k: "قيمة المواد",                   v: "28,200 ر.س" },
         { k: "الشحن والجمارك",                 v: "1,850 ر.س" },
@@ -1969,7 +1969,7 @@ const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
         </div>
       ))}
       <div className="sum-row">
-        <span style={{ color: "var(--forest)" }}>إجمالي DDP شامل</span>
+        <span style={{ color: "var(--forest)" }}>إجمالي شامل</span>
         <span className="mono" style={{ color: "#09B14B", fontSize: 24 }}>31,750 ر.س</span>
       </div>
     </div>
@@ -1996,7 +1996,7 @@ const OrderDetailModal = ({ open, onClose, onToast }) => (
           { l: "المشروع",         v: "فيلا الرياض – قطعة 14" },
           { l: "حجم الطلب",       v: "9 أصناف" },
           { l: "تاريخ التسليم",   v: "15 فبراير 2026" },
-          { l: "طريقة التسليم",   v: "✅ DDP حتى موقع المشروع" },
+          { l: "طريقة التسليم",   v: "✅ شامل حتى موقع المشروع" },
         ].map((d, i) => (
           <div key={i}>
             <div style={{ fontSize: 10, color: "var(--t3)" }}>{d.l}</div>
@@ -2017,7 +2017,7 @@ const OrderDetailModal = ({ open, onClose, onToast }) => (
         </div>
       ))}
       <div className="sum-row">
-        <span style={{ color: "var(--forest)" }}>إجمالي DDP المدفوع</span>
+        <span style={{ color: "var(--forest)" }}>إجمالي المدفوع</span>
         <span className="mono" style={{ color: "#09B14B", fontSize: 24 }}>48,500 ر.س</span>
       </div>
     </div>
@@ -2133,7 +2133,7 @@ export default function BuildApp() {
         {/* Logo */}
         <div style={{ padding: "22px 18px 18px", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
           <div className="logo-mark">BUILD</div>
-          <div className="logo-sub">محرك توريد المشاريع (DDP)</div>
+          <div className="logo-sub">محرك توريد المشاريع</div>
         </div>
 
         {/* Nav */}
@@ -2208,7 +2208,7 @@ export default function BuildApp() {
           <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 1 }}>الأحد، 22 فبراير 2026</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div className="icon-btn" onClick={() => showToast({ icon: "🔔", msg: "إشعارات جديدة", sub: "عرض DDP جاهز للمراجعة" })} style={{ position: "relative" }}>
+          <div className="icon-btn" onClick={() => showToast({ icon: "🔔", msg: "إشعارات جديدة", sub: "عرض جاهز للمراجعة" })} style={{ position: "relative" }}>
             <Bell size={14} />
             <div className="n-dot" />
           </div>
@@ -2237,10 +2237,10 @@ export default function BuildApp() {
               ? `طلب مشروع عبر جدول منتجات (${payload.tableFileName || "Google Sheet"})`
               : "طلب مشروع عبر إدخال يدوي";
           const specs = payload.source === "boq"
-            ? "قيد التسعير كطلب شامل DDP"
+            ? "قيد التسعير كطلب شامل"
             : payload.source === "table"
-              ? (payload.sheetLink ? "رابط Google Sheet مرفوع · قيد التسعير DDP" : "ملف Excel/CSV مرفوع · قيد التسعير DDP")
-              : `${itemCount || 1} أصناف · قيد التسعير كطلب DDP شامل`;
+              ? (payload.sheetLink ? "رابط Google Sheet مرفوع · قيد التسعير" : "ملف Excel/CSV مرفوع · قيد التسعير")
+              : `${itemCount || 1} أصناف · قيد التسعير كطلب شامل`;
 
           const newRequest = {
             id: `#BLD-${reqIdRef.current++}`,
@@ -2302,7 +2302,7 @@ export default function BuildApp() {
           )));
           setModal(null);
           setPage("finance");
-          showToast({ icon: "💳", msg: "تم قبول عرض DDP", sub: "حوّل المبلغ وارفع صورة الحوالة لبدء التوريد" });
+          showToast({ icon: "💳", msg: "تم قبول العرض", sub: "حوّل المبلغ وارفع صورة الحوالة لبدء التوريد" });
         }} />
       <OrderDetailModal open={modal === "orderDetail"} onClose={() => setModal(null)} onToast={showToast} />
       {/* ── TOAST ── */}
