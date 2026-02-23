@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, CheckCircle2,
   MoreHorizontal, Eye, Download, Plus, Zap, Shield,
   Globe, Package, Building2, Timer, SendHorizonal, Hourglass,
-  ChevronDown, LogOut, HelpCircle
+  ChevronDown, HelpCircle
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -360,12 +360,37 @@ const STATUSES = {
   shipping:  { label: "في الطريق",           bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
   pending:   { label: "بانتظار عرض السعر",   bg: "rgba(197,217,45,.2)",  c: "#5E6800" },
   quoted:    { label: "عرض وصلك ← راجعه",   bg: "rgba(9,177,75,.15)",   c: "#07823A" },
+  waiting_admin:            { label: "بانتظار مراجعة بيلد",            bg: "rgba(197,217,45,.22)", c: "#5E6800" },
+  waiting_supplier_quotes:  { label: "بانتظار عروض الموردين",          bg: "rgba(197,217,45,.2)",  c: "#746B00" },
+  calculating_final_price:  { label: "جارٍ احتساب السعر النهائي",      bg: "rgba(9,177,75,.1)",    c: "#0B8E40" },
+  ready_for_client:         { label: "عرض جاهز للمراجعة",              bg: "rgba(9,177,75,.14)",   c: "#07823A" },
   cancelled: { label: "ملغي",                bg: "rgba(217,59,59,.1)",   c: "#D93B3B" },
   early:     { label: "مرحلة مبكرة",         bg: "rgba(29,63,31,.1)",    c: "#4A6B4C" },
 };
 const Badge = ({ status }) => {
   const s = STATUSES[status] || { label: status, bg: "var(--forest-dim)", c: "var(--t2)" };
   return <span className="badge" style={{ background: s.bg, color: s.c }}>{s.label}</span>;
+};
+
+const PIPELINE_STATUSES = ["pending", "waiting_admin", "waiting_supplier_quotes", "calculating_final_price"];
+const QUOTE_READY_STATUSES = ["quoted", "ready_for_client"];
+const WAIT_LABEL_BY_STATUS = {
+  pending: "~ساعة أخرى",
+  waiting_admin: "~مراجعة أولية",
+  waiting_supplier_quotes: "~بانتظار تسعير الموردين",
+  calculating_final_price: "~يتم احتساب السعر النهائي",
+};
+const isPipelineStatus = (status) => PIPELINE_STATUSES.includes(status);
+const isQuoteReadyStatus = (status) => QUOTE_READY_STATUSES.includes(status);
+const getWaitLabel = (status) => WAIT_LABEL_BY_STATUS[status] || "~قيد المعالجة";
+const nextEngineStatus = (status) => {
+  const flow = {
+    pending: "waiting_supplier_quotes",
+    waiting_admin: "waiting_supplier_quotes",
+    waiting_supplier_quotes: "calculating_final_price",
+    calculating_final_price: "ready_for_client",
+  };
+  return flow[status] || status;
 };
 
 /* ─── MODAL ───────────────────────────────────────────────────── */
@@ -550,13 +575,13 @@ const Timeline = ({ steps }) => (
 );
 
 /* ─── DATA ────────────────────────────────────────────────────── */
-const REQUESTS = [
+const INITIAL_REQUESTS = [
   { id: "#BLD-2024", product: "حديد تسليح T16",       specs: "SABIC · 40 طن",   project: "فيلا الرياض – قطعة 14",    value: "48,500", date: "15 فبراير", status: "done" },
   { id: "#BLD-2023", product: "دهانات خارجية",         specs: "500 لتر",          project: "مجمع الخبر السكني",         value: "12,200", date: "24 فبراير", status: "shipping" },
-  { id: "#BLD-2022", product: "أنابيب PPR كلاس C",     specs: "Wavin · 200 م",   project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "quoted" },
+  { id: "#BLD-2022", product: "أنابيب PPR كلاس C",     specs: "Wavin · 200 م",   project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "ready_for_client" },
   { id: "#BLD-2021", product: "بلاط بورسلان 60×60",    specs: "RAK Ceramics",    project: "فيلا الرياض – قطعة 14",    value: "22,000", date: "10 فبراير", status: "done" },
   { id: "#BLD-2020", product: "كابلات كهربائية NYY",   specs: "4×10 مم",          project: "مجمع الخبر السكني",         value: "—",      date: "—",         status: "pending", wait: "~ساعة أخرى" },
-  { id: "#BLD-2019", product: "مضخات مياه 2HP",        specs: "Grundfos",         project: "برج جدة – الدور 12",        value: "—",      date: "—",         status: "pending", wait: "~30 دقيقة" },
+  { id: "#BLD-2019", product: "مضخات مياه 2HP",        specs: "Grundfos",         project: "برج جدة – الدور 12",        value: "—",      date: "—",         status: "waiting_supplier_quotes", wait: "~بانتظار تسعير الموردين" },
 ];
 
 /* ─── NAV ─────────────────────────────────────────────────────── */
@@ -574,7 +599,21 @@ const PAGES = [
 /* ══════════════════════════════════════════════════════════════════
    PAGE: HOME
 ══════════════════════════════════════════════════════════════════ */
-const HomePage = ({ onToast, onModal }) => (
+const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
+  const totalRequests = requests.length;
+  const completedRequests = requests.filter((r) => r.status === "done").length;
+  const inPricingRequests = requests.filter((r) => isPipelineStatus(r.status)).length;
+  const totalSpend = requests.reduce((sum, r) => {
+    if (r.value === "—") return sum;
+    const numeric = Number(String(r.value || "0").replace(/,/g, ""));
+    return Number.isFinite(numeric) ? sum + numeric : sum;
+  }, 0);
+  const totalSpendLabel = totalSpend >= 1000 ? `${Math.round(totalSpend / 1000)}K` : String(totalSpend);
+  const pendingForPricing = requests.filter((r) => isPipelineStatus(r.status));
+  const recentRequests = requests.slice(0, 5);
+  const readyQuote = requests.find((r) => isQuoteReadyStatus(r.status));
+
+  return (
   <div className="page-in">
 
     {/* ── Greeting banner ── */}
@@ -603,10 +642,10 @@ const HomePage = ({ onToast, onModal }) => (
 
     {/* ── Stats ── */}
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 13, marginBottom: 20 }}>
-      <Stat icon={<ClipboardList size={17} />} label="إجمالي طلباتي"         value="12"   trend="+3 هذا الشهر" up="n"   color="#09B14B" delay={.04} />
-      <Stat icon={<CheckCircle2  size={17} />} label="طلبات مكتملة"          value="8"    trend="↑ 25%"        up={true}  color="#09B14B" delay={.08} />
-      <Stat icon={<Hourglass     size={17} />} label="قيد التسعير من بيلد"   value="2"    trend="انتظر العرض"  up="n"   color="#C5D92D" delay={.12} />
-      <Stat icon={<DollarSign    size={17} />} label="إجمالي مشترياتي (ر.س)" value="284K" trend="↓ 12%"        up={false} color="#1D3F1F" delay={.16} />
+      <Stat icon={<ClipboardList size={17} />} label="إجمالي طلباتي"         value={String(totalRequests)}     trend="مباشر"      up="n"   color="#09B14B" delay={.04} />
+      <Stat icon={<CheckCircle2  size={17} />} label="طلبات مكتملة"          value={String(completedRequests)} trend="مكتمل"      up={true}  color="#09B14B" delay={.08} />
+      <Stat icon={<Hourglass     size={17} />} label="قيد التسعير من بيلد"   value={String(inPricingRequests)} trend="قيد المعالجة" up="n"   color="#C5D92D" delay={.12} />
+      <Stat icon={<DollarSign    size={17} />} label="إجمالي مشترياتي (ر.س)" value={totalSpendLabel}           trend="تراكمي"     up="n" color="#1D3F1F" delay={.16} />
     </div>
 
     <div style={{ display: "grid", gridTemplateColumns: "1fr 324px", gap: 16 }}>
@@ -624,7 +663,7 @@ const HomePage = ({ onToast, onModal }) => (
             </div>
           </div>
           <div className="card-body" style={{ padding: "12px 16px" }}>
-            {REQUESTS.filter(r => r.status === "pending").map((r, i) => (
+            {pendingForPricing.map((r, i) => (
               <div key={i} className="waiting-card">
                 <div className="spinner" />
                 <div style={{ flex: 1 }}>
@@ -632,7 +671,7 @@ const HomePage = ({ onToast, onModal }) => (
                   <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>{r.id} · {r.project}</div>
                 </div>
                 <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 11, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait}</div>
+                  <div style={{ fontSize: 11, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait || getWaitLabel(r.status)}</div>
                   <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>سيصلك إشعار</div>
                 </div>
               </div>
@@ -651,8 +690,8 @@ const HomePage = ({ onToast, onModal }) => (
               <tr><th>الطلب</th><th>المنتج</th><th>المشروع</th><th>القيمة</th><th>الحالة</th></tr>
             </thead>
             <tbody>
-              {REQUESTS.slice(0, 5).map((r, i) => (
-                <tr key={i} onClick={() => r.status === "quoted" ? onModal("reviewQuote") : r.status === "done" ? onModal("orderDetail") : null}>
+              {recentRequests.map((r, i) => (
+                <tr key={i} onClick={() => isQuoteReadyStatus(r.status) ? onModal("reviewQuote") : r.status === "done" ? onModal("orderDetail") : null}>
                   <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{r.id}</span></td>
                   <td>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--forest)" }}>{r.product}</div>
@@ -682,19 +721,19 @@ const HomePage = ({ onToast, onModal }) => (
             padding: "13px 16px", borderRadius: "12px 12px 0 0",
             display: "flex", justifyContent: "space-between", alignItems: "center"
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#C5D92D" }}>🎉 وصلك عرض سعر!</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#C5D92D" }}>{readyQuote ? "🎉 وصلك عرض سعر!" : "🔎 لا يوجد عرض جاهز حالياً"}</div>
             <span style={{ fontSize: 10, color: "rgba(255,255,255,.6)", display: "flex", alignItems: "center", gap: 4 }}>
               <Clock size={11} /> 18 ساعة
             </span>
           </div>
           <div style={{ padding: 14 }}>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)" }}>أنابيب PPR كلاس C</div>
-              <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>#BLD-2022 · Wavin · 200 متر · برج جدة</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--forest)" }}>{readyQuote?.product || "طلباتك في مسار التسعير"}</div>
+              <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 2 }}>{readyQuote ? `${readyQuote.id} · ${readyQuote.specs} · ${readyQuote.project}` : "بمجرد اكتمال احتساب السعر النهائي سيظهر العرض هنا"}</div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div>
-                <span className="mono" style={{ fontSize: 24, fontWeight: 700, color: "#09B14B" }}>31,750</span>
+                <span className="mono" style={{ fontSize: 24, fontWeight: 700, color: "#09B14B" }}>{readyQuote?.value !== "—" ? readyQuote.value : "—"}</span>
                 <span style={{ fontSize: 11, color: "var(--t3)", marginRight: 4 }}>ر.س</span>
               </div>
               <span style={{ fontSize: 10.5, color: "var(--t2)" }}>شامل التوصيل</span>
@@ -706,7 +745,7 @@ const HomePage = ({ onToast, onModal }) => (
               ✅ سعر نهائي شامل — لا رسوم إضافية
             </div>
             <div style={{ display: "flex", gap: 7 }}>
-              <Btn onClick={() => onModal("reviewQuote")} style={{ flex: 1, justifyContent: "center" }}>
+              <Btn onClick={() => onModal("reviewQuote")} style={{ flex: 1, justifyContent: "center" }} disabled={!readyQuote}>
                 <Eye size={13} /> مراجعة وقبول
               </Btn>
               <Btn v="ghost" sm>رفض</Btn>
@@ -759,22 +798,25 @@ const HomePage = ({ onToast, onModal }) => (
       <div style={{ padding: "14px 18px 6px" }}><SpendChart /></div>
     </div>
   </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════════════════
    PAGE: REQUESTS
 ══════════════════════════════════════════════════════════════════ */
-const RequestsPage = ({ onModal, onToast }) => {
+const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, onAdvanceStatus }) => {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const tabs = [
     { id: "all",      label: "الكل" },
-    { id: "pending",  label: "بانتظار العرض" },
-    { id: "quoted",   label: "عرض وصل ✦" },
+    { id: "waiting_admin", label: "بانتظار مراجعة بيلد" },
+    { id: "waiting_supplier_quotes", label: "بانتظار عروض الموردين" },
+    { id: "calculating_final_price", label: "جارٍ احتساب السعر" },
+    { id: "ready_for_client", label: "عرض وصل ✦" },
     { id: "shipping", label: "في الطريق" },
     { id: "done",     label: "مكتمل" },
   ];
-  const shown = REQUESTS.filter(r =>
+  const shown = requests.filter(r =>
     (filter === "all" || r.status === filter) &&
     (r.product.includes(q) || r.id.includes(q) || r.project.includes(q))
   );
@@ -792,14 +834,14 @@ const RequestsPage = ({ onModal, onToast }) => {
       </div>
 
       {/* Pending waiting */}
-      {(filter === "all" || filter === "pending") && (
+      {(filter === "all" || isPipelineStatus(filter)) && (
         <div className="card" style={{ marginBottom: 14, borderColor: "rgba(197,217,45,.3)" }}>
           <div className="card-head">
-            <div className="card-title">⏳ بيلد يسعّر طلباتك الآن</div>
+            <div className="card-title">⏳ بيلد يعالج طلباتك الآن</div>
             <span style={{ fontSize: 11, color: "var(--t3)" }}>ستُبلَّغ فور الانتهاء</span>
           </div>
           <div style={{ padding: "10px 16px 14px" }}>
-            {REQUESTS.filter(r => r.status === "pending").map((r, i) => (
+            {requests.filter((r) => isPipelineStatus(r.status)).map((r, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", background: "var(--bg2)", borderRadius: 11, border: "1px solid var(--bdr)", marginBottom: 7 }}>
                 <div className="spinner" />
                 <div style={{ flex: 1 }}>
@@ -807,7 +849,7 @@ const RequestsPage = ({ onModal, onToast }) => {
                   <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 1 }}>{r.id} · {r.project}</div>
                 </div>
                 <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 11, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait}</div>
+                  <div style={{ fontSize: 11, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait || getWaitLabel(r.status)}</div>
                   <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 1 }}>إشعار تلقائي</div>
                 </div>
               </div>
@@ -823,7 +865,7 @@ const RequestsPage = ({ onModal, onToast }) => {
           </thead>
           <tbody>
             {shown.map((r, i) => (
-              <tr key={i} onClick={() => r.status === "quoted" ? onModal("reviewQuote") : r.status === "done" ? onModal("orderDetail") : null}>
+              <tr key={i} onClick={() => isQuoteReadyStatus(r.status) ? onModal("reviewQuote") : r.status === "done" ? onModal("orderDetail") : null}>
                 <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{r.id}</span></td>
                 <td>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--forest)" }}>{r.product}</div>
@@ -834,7 +876,10 @@ const RequestsPage = ({ onModal, onToast }) => {
                 <td><span className="mono" style={{ fontSize: 10.5, color: "var(--t3)" }}>{r.date}</span></td>
                 <td><Badge status={r.status} /></td>
                 <td onClick={e => e.stopPropagation()}>
-                  {r.status === "quoted" && <Btn sm onClick={() => onModal("reviewQuote")}><Eye size={11} /> راجع</Btn>}
+                  {isQuoteReadyStatus(r.status) && <Btn sm onClick={() => onModal("reviewQuote")}><Eye size={11} /> راجع</Btn>}
+                  {isPipelineStatus(r.status) && onAdvanceStatus && (
+                    <Btn v="ghost" sm onClick={() => onAdvanceStatus(r.id)}><ChevronDown size={11} /> تحديث الحالة</Btn>
+                  )}
                   {r.status === "done"   && <Btn v="ghost" sm onClick={() => onModal("orderDetail")}><Eye size={11} /></Btn>}
                 </td>
               </tr>
@@ -850,13 +895,19 @@ const RequestsPage = ({ onModal, onToast }) => {
 /* ══════════════════════════════════════════════════════════════════
    PAGE: QUOTES
 ══════════════════════════════════════════════════════════════════ */
-const QuotesPage = ({ onModal, onToast }) => (
+const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
+  const readyQuotes = requests.filter((r) => isQuoteReadyStatus(r.status));
+  const pricingPipeline = requests.filter((r) => isPipelineStatus(r.status));
+  const acceptedQuotes = requests.filter((r) => r.status === "done").length;
+  const firstReady = readyQuotes[0];
+
+  return (
   <div className="page-in">
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
       {[
-        { n: "1", l: "عرض وصلك — راجعه الآن", c: "#09B14B", bg: "var(--green-dim)" },
-        { n: "2", l: "قيد التسعير من بيلد",    c: "#5E6800", bg: "var(--lime-dim)" },
-        { n: "8", l: "عروض مكتملة ومقبولة",   c: "var(--t2)", bg: "var(--forest-dim)" },
+        { n: String(readyQuotes.length), l: "عرض وصل — راجعه الآن", c: "#09B14B", bg: "var(--green-dim)" },
+        { n: String(pricingPipeline.length), l: "قيد التسعير من بيلد", c: "#5E6800", bg: "var(--lime-dim)" },
+        { n: String(acceptedQuotes), l: "عروض مكتملة ومقبولة", c: "var(--t2)", bg: "var(--forest-dim)" },
       ].map((k, i) => (
         <div key={i} style={{ background: k.bg, border: "1px solid var(--bdr)", borderRadius: 12, padding: 18, textAlign: "center" }}>
           <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: k.c }}>{k.n}</div>
@@ -868,15 +919,15 @@ const QuotesPage = ({ onModal, onToast }) => (
     {/* Arrived quote */}
     <div style={{ marginBottom: 20 }}>
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--forest)", display: "flex", alignItems: "center", gap: 8 }}>
-        🎉 عرض وصلك
+        {firstReady ? "🎉 عرض وصلك" : "🔎 لا يوجد عرض جاهز حالياً"}
         <span style={{ fontSize: 10, background: "var(--red-dim)", color: "var(--red)", padding: "2px 9px", borderRadius: 20, fontWeight: 600 }}>ينتهي خلال 18 ساعة</span>
       </div>
       <div className="quote-card" onClick={() => onModal("reviewQuote")}
         style={{ background: "#fff", border: "1.5px solid rgba(9,177,75,.35)", boxShadow: "0 4px 20px rgba(9,177,75,.1)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--forest)" }}>أنابيب PPR كلاس C</div>
-            <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 3 }}>#BLD-2022 · 200 متر · برج جدة – الدور 12</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--forest)" }}>{firstReady?.product || "طلباتك في مسار التسعير"}</div>
+            <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 3 }}>{firstReady ? `${firstReady.id} · ${firstReady.specs} · ${firstReady.project}` : "سيظهر أول عرض فور اكتمال التسعير"}</div>
           </div>
           <span style={{ fontSize: 11, color: "var(--t3)", display: "flex", alignItems: "center", gap: 4 }}>
             <Clock size={11} /> 18 ساعة
@@ -896,11 +947,11 @@ const QuotesPage = ({ onModal, onToast }) => (
           ))}
           <div className="sum-row">
             <span style={{ fontWeight: 700, color: "var(--forest)" }}>إجمالي ما ستدفعه</span>
-            <span className="mono" style={{ color: "#09B14B", fontSize: 22 }}>31,750 ر.س</span>
+            <span className="mono" style={{ color: "#09B14B", fontSize: 22 }}>{firstReady?.value !== "—" ? `${firstReady.value} ر.س` : "—"}</span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn onClick={e => { e.stopPropagation(); onModal("reviewQuote"); }} style={{ flex: 1, justifyContent: "center" }}>
+          <Btn onClick={e => { e.stopPropagation(); onModal("reviewQuote"); }} style={{ flex: 1, justifyContent: "center" }} disabled={!firstReady}>
             <Check size={13} /> قبول العرض والمضي في التوريد
           </Btn>
           <Btn v="ghost" onClick={e => e.stopPropagation()}>طلب تعديل</Btn>
@@ -913,7 +964,7 @@ const QuotesPage = ({ onModal, onToast }) => (
     <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--forest)" }}>⏳ طلبات قيد التسعير</div>
     <div className="card">
       <div className="card-body">
-        {REQUESTS.filter(r => r.status === "pending").map((r, i) => (
+        {pricingPipeline.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: 13, background: "var(--bg2)", borderRadius: 11, border: "1px solid var(--bdr)", marginBottom: 8 }}>
             <div className="spinner" />
             <div style={{ flex: 1 }}>
@@ -921,7 +972,7 @@ const QuotesPage = ({ onModal, onToast }) => (
               <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 1 }}>{r.id} · {r.project}</div>
             </div>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 12, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait}</div>
+              <div style={{ fontSize: 12, color: "#5E6800", fontWeight: 700 }}>متوقع {r.wait || getWaitLabel(r.status)}</div>
               <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>ستُبلَّغ فور الانتهاء</div>
             </div>
           </div>
@@ -929,7 +980,8 @@ const QuotesPage = ({ onModal, onToast }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════════════════
    PAGE: SHIPMENTS
@@ -1826,7 +1878,9 @@ export default function BuildApp() {
   const [page,  setPage]  = useState("home");
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const [requests, setRequests] = useState(INITIAL_REQUESTS);
   const tRef = useRef(null);
+  const reqIdRef = useRef(2100);
 
   const showToast = t => {
     setToast(t);
@@ -1838,8 +1892,32 @@ export default function BuildApp() {
     setPage(id);
   };
 
+  const advanceRequestStatus = (id) => {
+    let movedTo = null;
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== id) return r;
+      const next = nextEngineStatus(r.status);
+      movedTo = next;
+      if (next === "ready_for_client") {
+        const fallback = Math.round(9000 + Math.random() * 42000).toLocaleString("en-US");
+        return { ...r, status: next, value: r.value === "—" ? fallback : r.value, date: "اليوم" };
+      }
+      if (next !== r.status) {
+        return { ...r, status: next, wait: getWaitLabel(next) };
+      }
+      return r;
+    }));
+
+    if (movedTo && movedTo !== "ready_for_client") {
+      showToast({ icon: "🔄", msg: "تم تحديث حالة الطلب", sub: `الحالة الجديدة: ${STATUSES[movedTo]?.label || movedTo}` });
+    }
+    if (movedTo === "ready_for_client") {
+      showToast({ icon: "✅", msg: "العرض جاهز للعميل", sub: "تم احتساب السعر النهائي ويمكن مراجعته الآن" });
+    }
+  };
+
   const renderPage = () => {
-    const p = { onToast: showToast, onModal: setModal };
+    const p = { onToast: showToast, onModal: setModal, requests, onAdvanceStatus: advanceRequestStatus };
     switch (page) {
       case "home":      return <HomePage      {...p} />;
       case "requests":  return <RequestsPage  {...p} />;
@@ -1964,6 +2042,29 @@ export default function BuildApp() {
         onClose={() => setModal(null)}
         onToast={showToast}
         onSubmit={(payload) => {
+          const firstItem = payload.items?.[0];
+          const itemCount = payload.itemCount || payload.items?.length || 0;
+          const productSummary = payload.source === "boq"
+            ? `طلب BOQ (${payload.boqFileName || "ملف كميات"})`
+            : itemCount > 1
+              ? `${firstItem?.name || "منتجات متعددة"} +${itemCount - 1} أصناف`
+              : (firstItem?.name || "طلب جديد");
+          const specs = payload.source === "boq"
+            ? "ملف كميات مرفوع"
+            : [firstItem?.brand, firstItem?.origin, firstItem?.quantity].filter(Boolean).join(" · ") || "تفاصيل مرفقة";
+
+          const newRequest = {
+            id: `#BLD-${reqIdRef.current++}`,
+            product: productSummary,
+            specs,
+            project: payload.project || "—",
+            value: "—",
+            date: "اليوم",
+            status: "waiting_admin",
+            wait: getWaitLabel("waiting_admin"),
+          };
+          setRequests((prev) => [newRequest, ...prev]);
+          setPage("requests");
           setModal(null);
           const qtyText = payload.source === "boq"
             ? "تم استلام ملف BOQ"
@@ -1971,7 +2072,7 @@ export default function BuildApp() {
           showToast({
             icon: "📨",
             msg: "تم استلام الطلب الكامل",
-            sub: `${qtyText} · تم تحويله مباشرة لفريق بيلد`,
+            sub: `${qtyText} · الحالة: ${STATUSES.waiting_admin.label}`,
           });
         }}
       />
