@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, CheckCircle2,
   MoreHorizontal, Eye, Download, Plus, Zap, Shield,
   Globe, Package, Building2, Timer, SendHorizonal, Hourglass,
-  ChevronDown, HelpCircle
+  HelpCircle
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -358,12 +358,12 @@ const Btn = ({ children, v = "primary", sm, onClick, disabled, style = {} }) => 
 const STATUSES = {
   done:      { label: "مكتمل",               bg: "rgba(9,177,75,.12)",   c: "#09B14B" },
   shipping:  { label: "في الطريق",           bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
-  pending:   { label: "بانتظار عرض السعر",   bg: "rgba(197,217,45,.2)",  c: "#5E6800" },
+  pending:   { label: "قيد الاستلام",        bg: "rgba(197,217,45,.2)",  c: "#5E6800" },
   quoted:    { label: "عرض DDP جاهز ← راجعه", bg: "rgba(9,177,75,.15)", c: "#07823A" },
-  waiting_admin:            { label: "بانتظار مراجعة بيلد",            bg: "rgba(197,217,45,.22)", c: "#5E6800" },
-  waiting_supplier_quotes:  { label: "بانتظار عروض الموردين",          bg: "rgba(197,217,45,.2)",  c: "#746B00" },
-  waiting_shipping_quote:   { label: "بانتظار تسعير وكيل الشحن",       bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
-  calculating_final_price:  { label: "جارٍ احتساب السعر النهائي",      bg: "rgba(9,177,75,.1)",    c: "#0B8E40" },
+  waiting_admin:            { label: "قيد المراجعة",                    bg: "rgba(197,217,45,.22)", c: "#5E6800" },
+  waiting_supplier_quotes:  { label: "قيد التسعير",                     bg: "rgba(197,217,45,.2)",  c: "#746B00" },
+  waiting_shipping_quote:   { label: "قيد استكمال التسعير",            bg: "rgba(42,110,191,.12)", c: "#2A6EBF" },
+  calculating_final_price:  { label: "قيد إعداد العرض النهائي",         bg: "rgba(9,177,75,.1)",    c: "#0B8E40" },
   ready_for_client:         { label: "عرض DDP جاهز للمراجعة",          bg: "rgba(9,177,75,.14)",   c: "#07823A" },
   waiting_transfer:         { label: "بانتظار رفع الحوالة",             bg: "rgba(197,217,45,.2)",  c: "#746B00" },
   finance_review:           { label: "قيد مراجعة المالية",              bg: "rgba(29,63,31,.12)",   c: "#1D3F1F" },
@@ -379,36 +379,15 @@ const Badge = ({ status }) => {
 const PIPELINE_STATUSES = ["pending", "waiting_admin", "waiting_supplier_quotes", "waiting_shipping_quote", "calculating_final_price"];
 const QUOTE_READY_STATUSES = ["quoted", "ready_for_client"];
 const WAIT_LABEL_BY_STATUS = {
-  pending: "~ساعة أخرى",
-  waiting_admin: "~مراجعة أولية",
-  waiting_supplier_quotes: "~بانتظار تسعير الموردين",
-  waiting_shipping_quote: "~بانتظار عرض وكيل الشحن",
+  pending: "~قيد بدء المعالجة",
+  waiting_admin: "~قيد المراجعة",
+  waiting_supplier_quotes: "~قيد التسعير",
+  waiting_shipping_quote: "~قيد استكمال التسعير",
   calculating_final_price: "~يتم احتساب السعر النهائي",
 };
 const isPipelineStatus = (status) => PIPELINE_STATUSES.includes(status);
 const isQuoteReadyStatus = (status) => QUOTE_READY_STATUSES.includes(status);
 const getWaitLabel = (status) => WAIT_LABEL_BY_STATUS[status] || "~قيد المعالجة";
-const nextEngineStatus = (status) => {
-  const flow = {
-    pending: "waiting_supplier_quotes",
-    waiting_admin: "waiting_supplier_quotes",
-    waiting_supplier_quotes: "waiting_shipping_quote",
-    waiting_shipping_quote: "calculating_final_price",
-    calculating_final_price: "ready_for_client",
-  };
-  return flow[status] || status;
-};
-const getNextStatusActionLabel = (status) => {
-  const labels = {
-    pending: "بدء المعالجة",
-    waiting_admin: "إرسال للموردين",
-    waiting_supplier_quotes: "تجميع عروض الموردين",
-    waiting_shipping_quote: "إضافة عرض الشحن",
-    calculating_final_price: "احتساب نهائي",
-  };
-  return labels[status] || "تحديث الحالة";
-};
-
 /* ─── MODAL ───────────────────────────────────────────────────── */
 const Modal = ({ open, onClose, title, sub, children, footer }) => {
   if (!open) return null;
@@ -598,7 +577,7 @@ const INITIAL_REQUESTS = [
   { id: "#BLD-2022", product: "طلب توريد مشروع كامل",   specs: "12 صنف · عرض شامل DDP",    project: "برج جدة – الدور 12",        value: "31,750", date: "—",         status: "ready_for_client" },
   { id: "#BLD-2021", product: "طلب توريد مشروع كامل",   specs: "5 أصناف · عرض شامل DDP",   project: "فيلا الرياض – قطعة 14",    value: "22,000", date: "10 فبراير", status: "done" },
   { id: "#BLD-2020", product: "طلب توريد مشروع كامل",   specs: "8 أصناف · قيد التسعير DDP", project: "مجمع الخبر السكني",         value: "—",      date: "—",         status: "pending", wait: "~ساعة أخرى" },
-  { id: "#BLD-2019", product: "طلب توريد مشروع كامل",   specs: "10 أصناف · مورد بدون شحن · بانتظار وكيل الشحن", project: "برج جدة – الدور 12", value: "—", date: "—", status: "waiting_shipping_quote", wait: "~بانتظار عرض وكيل الشحن" },
+  { id: "#BLD-2019", product: "طلب توريد مشروع كامل",   specs: "10 أصناف · قيد استكمال التسعير DDP", project: "برج جدة – الدور 12", value: "—", date: "—", status: "waiting_shipping_quote", wait: "~قيد استكمال التسعير" },
 ];
 
 const INITIAL_PAYMENT_CASES = [
@@ -609,15 +588,10 @@ const INITIAL_PAYMENT_CASES = [
 
 const QUOTE_SCENARIOS = {
   "#BLD-2022": {
-    sources: [
-      { id: "SRC-1", supplier: "مصنع FerroMix (إيطاليا)", mode: "DDP مباشر من المصنع", supply: "26,400", shipping: "مشمول", status: "جاهز" },
-      { id: "SRC-2", supplier: "مصنع AquaValve (إيطاليا)", mode: "EXW بدون شحن",       supply: "23,900", shipping: "بانتظار وكيل الشحن", status: "قيد تسعير الشحن" },
-      { id: "SRC-3", supplier: "موزع سعودي معتمد",         mode: "DDP محلي",             supply: "30,100", shipping: "مشمول", status: "جاهز" },
-    ],
     options: [
-      { id: "OPT-1", name: "الخيار الاقتصادي", path: "مصنع إيطالي + وكيل شحن", supply: "25,900", shipping: "2,100", fee: "3,750", ddp: "31,750", eta: "14 يوم", recommended: true },
-      { id: "OPT-2", name: "الخيار المتوازن",  path: "مصنع DDP مباشر",          supply: "26,400", shipping: "1,900", fee: "4,100", ddp: "32,400", eta: "10 أيام", recommended: false },
-      { id: "OPT-3", name: "الخيار السريع",    path: "موزع محلي DDP",            supply: "30,100", shipping: "500",   fee: "2,900", ddp: "33,500", eta: "6 أيام", recommended: false },
+      { id: "OPT-1", name: "الخيار الاقتصادي", path: "توريد اقتصادي", supply: "25,900", shipping: "2,100", fee: "3,750", ddp: "31,750", eta: "14 يوم", recommended: true },
+      { id: "OPT-2", name: "الخيار المتوازن",  path: "توريد متوازن",  supply: "26,400", shipping: "1,900", fee: "4,100", ddp: "32,400", eta: "10 أيام", recommended: false },
+      { id: "OPT-3", name: "الخيار السريع",    path: "توريد سريع",     supply: "30,100", shipping: "500",   fee: "2,900", ddp: "33,500", eta: "6 أيام", recommended: false },
     ],
   },
 };
@@ -799,7 +773,7 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
             {[
               { dot: "#09B14B", text: <>شحنة الطلب <b style={{ color: "var(--forest)" }}>#BLD-2023</b> في الطريق لموقع المشروع</>, time: "منذ ساعتين" },
               { dot: "#C5D92D", text: <>وصلك عرض <b style={{ color: "var(--forest)" }}>DDP شامل</b> للطلب #BLD-2022</>,             time: "منذ 3 ساعات" },
-              { dot: "#A0B020", text: <>جارٍ تسعير الطلب <b style={{ color: "var(--forest)" }}>#BLD-2020</b> من الموردين</>,         time: "أمس 10:30 ص" },
+              { dot: "#A0B020", text: <>جارٍ إعداد عرض DDP للطلب <b style={{ color: "var(--forest)" }}>#BLD-2020</b></>,               time: "أمس 10:30 ص" },
               { dot: "var(--t3)", text: <>اكتمل توريد الطلب <b style={{ color: "var(--forest)" }}>#BLD-2024</b></>,                   time: "أمس 8:00 ص" },
             ].map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 11 }}>
@@ -843,15 +817,15 @@ const HomePage = ({ onModal, requests = INITIAL_REQUESTS }) => {
 /* ══════════════════════════════════════════════════════════════════
    PAGE: REQUESTS
 ══════════════════════════════════════════════════════════════════ */
-const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INITIAL_PAYMENT_CASES, onAdvanceStatus }) => {
+const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INITIAL_PAYMENT_CASES }) => {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const tabs = [
     { id: "all",      label: "الكل" },
     { id: "waiting_transfer", label: "بانتظار الحوالة" },
-    { id: "waiting_admin", label: "بانتظار مراجعة بيلد" },
-    { id: "waiting_supplier_quotes", label: "بانتظار عروض الموردين" },
-    { id: "waiting_shipping_quote", label: "بانتظار وكيل الشحن" },
+    { id: "waiting_admin", label: "قيد المراجعة" },
+    { id: "waiting_supplier_quotes", label: "قيد التسعير" },
+    { id: "waiting_shipping_quote", label: "قيد استكمال التسعير" },
     { id: "calculating_final_price", label: "جارٍ احتساب السعر" },
     { id: "ready_for_client", label: "عرض DDP وصل ✦" },
     { id: "shipping", label: "في الطريق" },
@@ -931,8 +905,8 @@ const RequestsPage = ({ onModal, requests = INITIAL_REQUESTS, paymentCases = INI
                       <Upload size={11} /> رفع الحوالة
                     </Btn>
                   )}
-                  {isPipelineStatus(r.status) && onAdvanceStatus && (
-                    <Btn v="ghost" sm onClick={() => onAdvanceStatus(r.id)}><ChevronDown size={11} /> {getNextStatusActionLabel(r.status)}</Btn>
+                  {isPipelineStatus(r.status) && (
+                    <span style={{ fontSize: 10.5, color: "var(--t3)" }}>متابعة تلقائية</span>
                   )}
                   {r.status === "done"   && <Btn v="ghost" sm onClick={() => onModal("orderDetail")}><Eye size={11} /></Btn>}
                 </td>
@@ -984,7 +958,7 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--forest)" }}>{firstReady?.product || "طلباتك في مسار التسعير"}</div>
             <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 3 }}>{firstReady ? `${firstReady.id} · ${firstReady.specs} · ${firstReady.project}` : "سيظهر أول عرض فور اكتمال التسعير"}</div>
-            {scenario && <div style={{ fontSize: 10.5, color: "#07823A", marginTop: 4 }}>تم تجميع {scenario.options.length} عروض من {scenario.sources.length} مصادر</div>}
+            {scenario && <div style={{ fontSize: 10.5, color: "#07823A", marginTop: 4 }}>تم إعداد {scenario.options.length} خيارات توريد لنفس الطلب</div>}
           </div>
           <span style={{ fontSize: 11, color: "var(--t3)", display: "flex", alignItems: "center", gap: 4 }}>
             <Clock size={11} /> 18 ساعة
@@ -1022,39 +996,27 @@ const QuotesPage = ({ onModal, requests = INITIAL_REQUESTS }) => {
     {scenario && (
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-head">
-          <div className="card-title">مصادر التسعير لنفس الطلب</div>
-          <span style={{ fontSize: 11, color: "var(--t3)" }}>الطلب الواحد يمكن أن يُبنى من عدة مصادر</span>
+          <div className="card-title">خيارات التسعير لنفس الطلب</div>
+          <span style={{ fontSize: 11, color: "var(--t3)" }}>يمكنك اختيار الخيار الأنسب حسب السعر ومدة التسليم</span>
         </div>
-        <div className="card-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div>
-            {scenario.sources.map((src) => (
-              <div key={src.id} style={{ border: "1px solid var(--bdr)", borderRadius: 10, padding: 12, background: "var(--bg2)", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>{src.supplier}</div>
-                  <span style={{ fontSize: 10.5, color: src.status.includes("قيد") ? "#2A6EBF" : "#07823A", fontWeight: 600 }}>{src.status}</span>
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 4 }}>{src.mode}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7 }}>
-                  <span style={{ fontSize: 10.5, color: "var(--t2)" }}>توريد: <span className="mono">{src.supply} ر.س</span></span>
-                  <span style={{ fontSize: 10.5, color: "var(--t2)" }}>الشحن: {src.shipping}</span>
-                </div>
+        <div className="card-body" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+          {scenario.options.map((opt) => (
+            <div key={opt.id} style={{ border: opt.recommended ? "1.5px solid rgba(9,177,75,.45)" : "1px solid var(--bdr)", borderRadius: 10, padding: 12, background: opt.recommended ? "var(--green-dim)" : "var(--bg2)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>{opt.name}</div>
+                {opt.recommended && <span style={{ fontSize: 10.5, color: "#07823A", fontWeight: 700 }}>موصى به</span>}
               </div>
-            ))}
-          </div>
-          <div>
-            {scenario.options.map((opt) => (
-              <div key={opt.id} style={{ border: opt.recommended ? "1.5px solid rgba(9,177,75,.45)" : "1px solid var(--bdr)", borderRadius: 10, padding: 12, background: opt.recommended ? "var(--green-dim)" : "var(--bg2)", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>{opt.name}</div>
-                  {opt.recommended && <span style={{ fontSize: 10.5, color: "#07823A", fontWeight: 700 }}>موصى به</span>}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 4 }}>{opt.path} · تسليم {opt.eta}</div>
-                <div style={{ marginTop: 7, fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>
-                  DDP: <span className="mono" style={{ color: "#09B14B" }}>{opt.ddp} ر.س</span>
-                </div>
+              <div style={{ fontSize: 10.5, color: "var(--t3)", marginTop: 4 }}>{opt.path} · تسليم {opt.eta}</div>
+              <div style={{ display: "flex", gap: 14, marginTop: 7, fontSize: 10.5, color: "var(--t2)" }}>
+                <span>توريد: <span className="mono">{opt.supply} ر.س</span></span>
+                <span>لوجستيات: <span className="mono">{opt.shipping} ر.س</span></span>
+                <span>رسوم بيلد: <span className="mono">{opt.fee} ر.س</span></span>
               </div>
-            ))}
-          </div>
+              <div style={{ marginTop: 7, fontSize: 12.5, color: "var(--forest)", fontWeight: 700 }}>
+                DDP: <span className="mono" style={{ color: "#09B14B" }}>{opt.ddp} ر.س</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )}
@@ -1983,7 +1945,7 @@ const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
         {[
           { l: "المشروع",               v: "برج جدة – الدور 12" },
           { l: "نوع الطلب",             v: "طلب مشروع كامل (12 صنف)" },
-          { l: "مصادر التسعير",          v: "3 مصادر (مصنع/موزع/وكيل شحن)" },
+          { l: "خيارات التسعير",         v: "3 خيارات DDP" },
           { l: "موعد التسليم المتوقع",  v: "27 فبراير 2026" },
           { l: "نطاق التسليم",          v: "DDP حتى موقع المشروع" },
         ].map((d, i) => (
@@ -1997,8 +1959,8 @@ const ReviewQuoteModal = ({ open, onClose, onAccept }) => (
     <div style={{ background: "var(--bg2)", borderRadius: 11, padding: 16, border: "1px solid var(--bdr)" }}>
       <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 12, fontWeight: 600 }}>تفاصيل DDP — شامل جميع التكاليف حتى التسليم</div>
       {[
-        { k: "توريد الموردين (مصادر متعددة)", v: "28,200 ر.س" },
-        { k: "الشحن (وكيل الشحن + جمارك)",    v: "1,850 ر.س" },
+        { k: "قيمة المواد",                   v: "28,200 ر.س" },
+        { k: "الشحن والجمارك",                 v: "1,850 ر.س" },
         { k: "هامش وخدمة منصة بيلد",          v: "1,700 ر.س" },
       ].map((r, i) => (
         <div className="sum-row" key={i}>
@@ -2045,7 +2007,7 @@ const OrderDetailModal = ({ open, onClose, onToast }) => (
     </div>
     <div style={{ background: "var(--bg2)", borderRadius: 11, padding: 16, border: "1px solid var(--bdr)" }}>
       {[
-        { k: "قيمة التوريد من الموردين", v: "44,000 ر.س" },
+        { k: "قيمة المواد",             v: "44,000 ر.س" },
         { k: "الشحن والجمارك",          v: "2,500 ر.س" },
         { k: "رسوم منصة بيلد",          v: "2,000 ر.س" },
       ].map((r, i) => (
@@ -2140,32 +2102,8 @@ export default function BuildApp() {
     }, 2800);
   };
 
-  const advanceRequestStatus = (id) => {
-    let movedTo = null;
-    setRequests((prev) => prev.map((r) => {
-      if (r.id !== id) return r;
-      const next = nextEngineStatus(r.status);
-      movedTo = next;
-      if (next === "ready_for_client") {
-        const fallback = Math.round(9000 + Math.random() * 42000).toLocaleString("en-US");
-        return { ...r, status: next, value: r.value === "—" ? fallback : r.value, date: "اليوم" };
-      }
-      if (next !== r.status) {
-        return { ...r, status: next, wait: getWaitLabel(next) };
-      }
-      return r;
-    }));
-
-    if (movedTo && movedTo !== "ready_for_client") {
-      showToast({ icon: "🔄", msg: "تم تحديث حالة الطلب", sub: `الحالة الجديدة: ${STATUSES[movedTo]?.label || movedTo}` });
-    }
-    if (movedTo === "ready_for_client") {
-      showToast({ icon: "✅", msg: "العرض جاهز للعميل", sub: "تم احتساب السعر النهائي ويمكن مراجعته الآن" });
-    }
-  };
-
   const renderPage = () => {
-    const p = { onToast: showToast, onModal: openModal, requests, paymentCases, onAdvanceStatus: advanceRequestStatus };
+    const p = { onToast: showToast, onModal: openModal, requests, paymentCases };
     switch (page) {
       case "home":      return <HomePage      {...p} />;
       case "requests":  return <RequestsPage  {...p} />;
