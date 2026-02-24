@@ -37,10 +37,10 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           <Image
             src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
             alt={isRtl ? "شعار بيلد" : "Build logo"}
-            width={isRtl ? 130 : 110}
-            height={34}
+            width={4302}
+            height={1500}
             priority
-            className="h-[34px] w-auto"
+            className="h-[32px] w-auto"
           />
         </Link>
 
