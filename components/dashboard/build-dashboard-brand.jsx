@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, ClipboardList, Clock, Truck, BarChart3,
   FileText, Settings, Bell, Search, Upload, X, Check,
@@ -2033,11 +2034,71 @@ export default function BuildApp() {
   const [newReqMode, setNewReqMode] = useState("manual");
   const [activePaymentId, setActivePaymentId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [paymentCases, setPaymentCases] = useState(INITIAL_PAYMENT_CASES);
+  const [requests, setRequests] = useState([]);
+  const [paymentCases, setPaymentCases] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
   const tRef = useRef(null);
   const reqIdRef = useRef(2100);
   const paymentIdRef = useRef(9010);
+
+  /* ── Load data from Supabase on mount ── */
+  const loadData = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    setUser(authUser);
+
+    if (!authUser) { setLoadingData(false); return; }
+
+    const [{ data: reqs }, { data: pays }] = await Promise.all([
+      supabase.from("requests").select("*").eq("user_id", authUser.id).order("created_at", { ascending: false }),
+      supabase.from("payment_cases").select("*").eq("user_id", authUser.id).order("created_at", { ascending: false }),
+    ]);
+
+    if (reqs && reqs.length > 0) {
+      setRequests(reqs.map(r => ({
+        id: r.id,
+        product: r.product,
+        specs: r.specs,
+        project: r.project,
+        value: r.value,
+        date: r.date,
+        status: r.status,
+        wait: r.wait,
+      })));
+      // Set next IDs beyond DB data
+      const maxReqNum = reqs.reduce((m, r) => {
+        const n = parseInt(r.id.replace("#BLD-", ""), 10);
+        return n > m ? n : m;
+      }, 2099);
+      reqIdRef.current = maxReqNum + 1;
+    } else {
+      setRequests(INITIAL_REQUESTS);
+    }
+
+    if (pays && pays.length > 0) {
+      setPaymentCases(pays.map(p => ({
+        id: p.id,
+        requestId: p.request_id,
+        project: p.project,
+        amount: p.amount,
+        date: p.date,
+        status: p.status,
+        proof: p.proof,
+      })));
+      const maxPayNum = pays.reduce((m, p) => {
+        const n = parseInt(p.id.replace("#TRF-", ""), 10);
+        return n > m ? n : m;
+      }, 9009);
+      paymentIdRef.current = maxPayNum + 1;
+    } else {
+      setPaymentCases(INITIAL_PAYMENT_CASES);
+    }
+
+    setLoadingData(false);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   const showToast = t => {
     setToast(t);
@@ -2072,9 +2133,12 @@ export default function BuildApp() {
     setModal(name);
   };
 
-  const submitTransferProof = (paymentId, proofFileName) => {
+  const submitTransferProof = async (paymentId, proofFileName) => {
     if (!paymentId) return;
 
+    const supabase = createClient();
+
+    // Optimistic UI
     setPaymentCases((prev) => prev.map((p) => (
       p.id === paymentId
         ? { ...p, status: "finance_review", proof: proofFileName, date: "اليوم" }
@@ -2083,7 +2147,15 @@ export default function BuildApp() {
     setModal(null);
     showToast({ icon: "🧾", msg: "تم رفع صورة الحوالة", sub: "تم تحويلها إلى قسم المالية للمراجعة" });
 
-    setTimeout(() => {
+    // Persist proof to Supabase
+    await supabase.from("payment_cases").update({
+      status: "finance_review",
+      proof: proofFileName,
+      date: "اليوم",
+    }).eq("id", paymentId);
+
+    // Simulate finance approval after 2.8s
+    setTimeout(async () => {
       let approvedCase = null;
       setPaymentCases((prev) => prev.map((p) => {
         if (p.id !== paymentId) return p;
@@ -2091,12 +2163,15 @@ export default function BuildApp() {
         return { ...p, status: "approved", date: "اليوم" };
       }));
 
+      await supabase.from("payment_cases").update({ status: "approved", date: "اليوم" }).eq("id", paymentId);
+
       if (approvedCase?.requestId) {
         setRequests((prev) => prev.map((r) => (
           r.id === approvedCase.requestId && r.status !== "done"
             ? { ...r, status: "shipping", date: "اليوم", wait: undefined }
             : r
         )));
+        await supabase.from("requests").update({ status: "shipping", date: "اليوم", wait: null }).eq("id", approvedCase.requestId);
       }
       showToast({ icon: "✅", msg: "تم اعتماد الحوالة", sub: "اعتمدت المالية الدفع وبدأ التوريد" });
     }, 2800);
@@ -2175,10 +2250,12 @@ export default function BuildApp() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: 700, color: "#1D3F1F", fontSize: 13,
               boxShadow: "0 2px 10px rgba(197,217,45,.4)",
-            }}>م</div>
+            }}>{(user?.user_metadata?.company_name || user?.email || "؟")[0].toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>م. محمد السعيد</div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 1 }}>مقاول · الرياض</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user?.user_metadata?.company_name || user?.email || "مستخدم"}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 1 }}>{user?.email || ""}</div>
             </div>
             <MoreHorizontal size={14} color="rgba(255,255,255,.3)" />
           </div>
@@ -2229,7 +2306,7 @@ export default function BuildApp() {
         onClose={() => setModal(null)}
         onToast={showToast}
         initialMode={newReqMode}
-        onSubmit={(payload) => {
+        onSubmit={async (payload) => {
           const itemCount = payload.itemCount || payload.items?.length || 0;
           const productSummary = payload.source === "boq"
             ? `طلب مشروع عبر BOQ (${payload.boqFileName || "ملف كميات"})`
@@ -2242,8 +2319,9 @@ export default function BuildApp() {
               ? (payload.sheetLink ? "رابط Google Sheet مرفوع · قيد التسعير" : "ملف Excel/CSV مرفوع · قيد التسعير")
               : `${itemCount || 1} أصناف · قيد التسعير كطلب شامل`;
 
+          const newId = `#BLD-${reqIdRef.current++}`;
           const newRequest = {
-            id: `#BLD-${reqIdRef.current++}`,
+            id: newId,
             product: productSummary,
             specs,
             project: payload.project || "—",
@@ -2252,9 +2330,36 @@ export default function BuildApp() {
             status: "waiting_admin",
             wait: getWaitLabel("waiting_admin"),
           };
+
+          // Optimistic UI
           setRequests((prev) => [newRequest, ...prev]);
           setPage("requests");
           setModal(null);
+
+          // Persist to Supabase
+          if (user) {
+            const supabase = createClient();
+            await supabase.from("requests").insert({
+              id: newId,
+              user_id: user.id,
+              product: productSummary,
+              specs,
+              project: payload.project || "—",
+              value: "—",
+              date: "اليوم",
+              status: "waiting_admin",
+              wait: getWaitLabel("waiting_admin"),
+              source: payload.source,
+              delivery_address: payload.deliveryAddress || null,
+              delivery_date: payload.deliveryDate || null,
+              notes: payload.notes || null,
+              boq_file: payload.boqFileName || null,
+              table_file: payload.tableFileName || null,
+              sheet_link: payload.sheetLink || null,
+              items: payload.items ? JSON.stringify(payload.items) : null,
+            });
+          }
+
           const qtyText = payload.source === "boq"
             ? "تم استلام ملف BOQ"
             : payload.source === "table"
@@ -2275,7 +2380,7 @@ export default function BuildApp() {
         onSubmit={(proofFileName) => submitTransferProof(activePaymentCase?.id, proofFileName)}
       />
       <ReviewQuoteModal open={modal === "reviewQuote"} onClose={() => setModal(null)}
-        onAccept={() => {
+        onAccept={async () => {
           const target = requests.find((r) => isQuoteReadyStatus(r.status));
           if (!target) {
             setModal(null);
@@ -2283,10 +2388,12 @@ export default function BuildApp() {
             return;
           }
 
+          const supabase = createClient();
           const transferExists = paymentCases.some((p) => p.requestId === target.id && p.status !== "approved");
           if (!transferExists) {
+            const newTrfId = `#TRF-${paymentIdRef.current++}`;
             const newTransfer = {
-              id: `#TRF-${paymentIdRef.current++}`,
+              id: newTrfId,
               requestId: target.id,
               project: target.project,
               amount: target.value === "—" ? "—" : target.value,
@@ -2295,11 +2402,27 @@ export default function BuildApp() {
               proof: null,
             };
             setPaymentCases((prev) => [newTransfer, ...prev]);
+
+            if (user) {
+              await supabase.from("payment_cases").insert({
+                id: newTrfId,
+                user_id: user.id,
+                request_id: target.id,
+                project: target.project,
+                amount: target.value === "—" ? "—" : target.value,
+                date: "اليوم",
+                status: "waiting_transfer",
+                proof: null,
+              });
+            }
           }
 
           setRequests((prev) => prev.map((r) => (
             r.id === target.id ? { ...r, status: "waiting_transfer", date: "اليوم" } : r
           )));
+          if (user) {
+            await supabase.from("requests").update({ status: "waiting_transfer", date: "اليوم" }).eq("id", target.id);
+          }
           setModal(null);
           setPage("finance");
           showToast({ icon: "💳", msg: "تم قبول العرض", sub: "حوّل المبلغ وارفع صورة الحوالة لبدء التوريد" });
