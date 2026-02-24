@@ -86,7 +86,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     stat3: isRtl ? "سرعة التوريد" : "Supply Speed",
     categoriesTitle: isRtl ? "فئات التوريد" : "Supply Categories",
     categoriesSub: isRtl
-      ? "نربطك بالموردين المتخصصين في كل فئة من فئات مواد البناء"
+      ? "حلول متكاملة من منتجات البناء والتشطيب"
       : "We connect you with specialized suppliers across all construction material categories",
     howTitle: isRtl ? "كيف نشتغل؟" : "How Build Works",
     howSub: isRtl
