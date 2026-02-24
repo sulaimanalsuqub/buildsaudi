@@ -10,71 +10,24 @@ type HomeContentProps = {
 };
 
 const categories = [
-  {
-    en: "Building Materials",
-    ar: "مواد بناء وإنشاء",
-    icon: "🏗️",
-  },
-  {
-    en: "Safety Tools",
-    ar: "أدوات السلامة",
-    icon: "🦺",
-  },
-  {
-    en: "Paint & Decor",
-    ar: "دهانات وديكور",
-    icon: "🎨",
-  },
-  {
-    en: "Electrical & Lighting",
-    ar: "كهرباء وإنارة",
-    icon: "💡",
-  },
-  {
-    en: "Plumbing",
-    ar: "سباكة",
-    icon: "🔧",
-  },
-  {
-    en: "Sanitary Ware",
-    ar: "أدوات صحية",
-    icon: "🚿",
-  },
-  {
-    en: "HVAC",
-    ar: "تكييف وتبريد",
-    icon: "❄️",
-  },
-  {
-    en: "Piping Systems",
-    ar: "أنظمة الأنابيب",
-    icon: "🔩",
-  },
-  {
-    en: "Pumps & Tanks",
-    ar: "مضخات وخزانات",
-    icon: "🛢️",
-  },
-  {
-    en: "Flooring & Ceramics",
-    ar: "أرضيات وسيراميك",
-    icon: "🪨",
-  },
-  {
-    en: "Insulation",
-    ar: "عوازل",
-    icon: "🧱",
-  },
-  {
-    en: "Adhesives",
-    ar: "مواد لاصقة",
-    icon: "🔗",
-  },
+  { en: "Building Materials", ar: "مواد بناء وإنشاء", icon: "🏗️" },
+  { en: "Safety Tools", ar: "أدوات السلامة", icon: "🦺" },
+  { en: "Paint & Decor", ar: "دهانات وديكور", icon: "🎨" },
+  { en: "Electrical & Lighting", ar: "كهرباء وإنارة", icon: "💡" },
+  { en: "Plumbing", ar: "سباكة", icon: "🔧" },
+  { en: "Sanitary Ware", ar: "أدوات صحية", icon: "🚿" },
+  { en: "HVAC", ar: "تكييف وتبريد", icon: "❄️" },
+  { en: "Piping Systems", ar: "أنظمة الأنابيب", icon: "🔩" },
+  { en: "Pumps & Tanks", ar: "مضخات وخزانات", icon: "🛢️" },
+  { en: "Flooring & Ceramics", ar: "أرضيات وسيراميك", icon: "🪨" },
+  { en: "Insulation", ar: "عوازل", icon: "🧱" },
+  { en: "Adhesives", ar: "مواد لاصقة", icon: "🔗" },
 ];
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
   const t = {
     heroTitle: isRtl ? "أسرع طريقة لتوريد مشاريعكم" : "The Fastest Way to Supply Your Projects",
+    heroHighlight: isRtl ? "مشاريعكم" : "Your Projects",
     heroSub: isRtl
       ? "رحلة البناء أسهل وأسرع"
       : "A clearer and faster supply workflow for construction projects.",
@@ -92,6 +45,11 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     howSub: isRtl
       ? "ثلاث خطوات بسيطة من الطلب إلى التسليم"
       : "Three simple steps from request to delivery",
+    ctaTitle: isRtl ? "جاهز تبدأ توريد مشروعك؟" : "Ready to Supply Your Project?",
+    ctaSub: isRtl
+      ? "سجّل الآن وابدأ باستقبال عروض الأسعار لمشاريعك"
+      : "Register now and start receiving quotes for your projects",
+    ctaBtn: isRtl ? "سجّل كمورد" : "Register as Vendor",
     steps: isRtl
       ? [
           {
@@ -136,67 +94,102 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   };
 
   return (
-    <main>
-      {/* Hero Section */}
+    <main dir={isRtl ? "rtl" : "ltr"}>
+
+      {/* ── Hero ── */}
       <section className="section-pad bg-transparent">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="surface-card relative mx-auto max-w-[1160px] overflow-hidden rounded-[30px] border-brand-dark/12 px-5 py-10 text-center sm:px-8 md:px-12 md:py-14"
+            transition={{ duration: 0.5 }}
+            className="surface-card relative mx-auto max-w-[1160px] overflow-hidden rounded-[32px] px-5 py-12 text-center sm:px-8 md:px-16 md:py-20"
           >
+            {/* background gradient */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-[radial-gradient(circle_at_8%_14%,rgba(197,217,45,0.26)_0%,transparent_38%),radial-gradient(circle_at_88%_20%,rgba(9,177,75,0.2)_0%,transparent_40%),radial-gradient(circle_at_78%_84%,rgba(29,63,31,0.14)_0%,transparent_42%),linear-gradient(140deg,rgba(244,243,235,0.96),rgba(255,255,255,0.98))]"
+              className="absolute inset-0 bg-[radial-gradient(circle_at_8%_14%,rgba(197,217,45,0.22)_0%,transparent_40%),radial-gradient(circle_at_88%_20%,rgba(9,177,75,0.18)_0%,transparent_42%),radial-gradient(circle_at_78%_84%,rgba(29,63,31,0.12)_0%,transparent_44%),linear-gradient(140deg,rgba(244,243,235,0.97),rgba(255,255,255,0.99))]"
             />
 
             <div className="relative z-10">
-              <p className="type-small mx-auto w-fit rounded-full border border-brand-dark/15 bg-white/70 px-4 py-1.5 font-semibold text-brand-dark/80">
+              {/* badge */}
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="type-small mx-auto w-fit rounded-full border border-brand-primary/30 bg-brand-primary/8 px-4 py-1.5 font-semibold text-brand-primary"
+              >
                 {t.badge}
-              </p>
+              </motion.p>
 
-              <h1 className="type-hero mx-auto mt-8 text-brand-dark">{t.heroTitle}</h1>
-              <p className="type-subheading mx-auto mt-8 text-brand-dark/80">{t.heroSub}</p>
+              {/* headline */}
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.18 }}
+                className="type-hero mx-auto mt-6 text-brand-dark"
+              >
+                {t.heroTitle}
+              </motion.h1>
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              {/* subheading */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.26 }}
+                className="type-subheading mx-auto mt-5 max-w-xl text-brand-dark/70"
+              >
+                {t.heroSub}
+              </motion.p>
+
+              {/* CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.34 }}
+                className="mt-8 flex flex-wrap items-center justify-center gap-3"
+              >
                 <Link
                   href={isRtl ? "/ar/auth/sign-in" : "/auth/sign-in"}
-                  className="rounded-full bg-brand-primary px-8 py-3 type-button text-white transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
+                  className="rounded-full bg-brand-primary px-8 py-3.5 type-button text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
                 >
                   {t.primaryCta}
                 </Link>
                 <Link
                   href={isRtl ? "/ar/register" : "/register"}
-                  className="rounded-full border border-brand-dark/20 bg-white px-8 py-3 type-button text-brand-dark transition-colors hover:border-brand-dark/35 hover:bg-brand-dark/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark/20"
+                  className="rounded-full border border-brand-dark/20 bg-white px-8 py-3.5 type-button text-brand-dark transition-all hover:border-brand-dark/40 hover:bg-brand-dark/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark/20"
                 >
                   {t.secondaryCta}
                 </Link>
-              </div>
+              </motion.div>
             </div>
 
-            <div className="relative z-10 mx-auto mt-10 max-w-4xl rounded-2xl border border-brand-dark/10 bg-white/92 p-4 shadow-soft md:p-5">
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-xl border border-brand-dark/10 bg-white p-4 text-start">
-                  <p className="type-small text-brand-dark/60">{t.stat1}</p>
-                  <p className="mt-2 text-2xl font-bold text-brand-dark">128</p>
-                </div>
-                <div className="rounded-xl border border-brand-dark/10 bg-white p-4 text-start">
-                  <p className="type-small text-brand-dark/60">{t.stat2}</p>
-                  <p className="mt-2 text-2xl font-bold text-brand-dark">340</p>
-                </div>
-                <div className="rounded-xl border border-brand-dark/10 bg-white p-4 text-start">
-                  <p className="type-small text-brand-dark/60">{t.stat3}</p>
-                  <p className="mt-2 text-2xl font-bold text-brand-dark">+42%</p>
-                </div>
+            {/* stats bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.42 }}
+              className="relative z-10 mx-auto mt-12 max-w-3xl rounded-2xl border border-brand-dark/10 bg-white/90 p-3 shadow-soft backdrop-blur-sm md:p-4"
+            >
+              <div className="grid grid-cols-3 divide-x divide-brand-dark/8 rtl:divide-x-reverse">
+                {[
+                  { label: t.stat1, value: "128" },
+                  { label: t.stat2, value: "340" },
+                  { label: t.stat3, value: "+42%" },
+                ].map((stat) => (
+                  <div key={stat.label} className="px-4 py-3 text-center">
+                    <p className="type-small text-brand-dark/55">{stat.label}</p>
+                    <p className="mt-1 text-2xl font-bold tracking-tight text-brand-dark">{stat.value}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         </Container>
       </section>
 
-      {/* How It Works Section */}
-      <section className="section-pad bg-transparent" dir={isRtl ? "rtl" : "ltr"}>
+      {/* ── How It Works ── */}
+      <section className="section-pad bg-transparent">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -206,35 +199,36 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
           >
             <div className="mb-12 text-center">
               <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
-              <p className="type-body mx-auto mt-3 text-brand-dark/65">{t.howSub}</p>
+              <p className="type-body mx-auto mt-3 text-brand-dark/60">{t.howSub}</p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="relative grid gap-4 md:grid-cols-3">
+              {/* connector line */}
+              <div
+                aria-hidden="true"
+                className="absolute start-[16.66%] end-[16.66%] top-10 hidden h-px bg-gradient-to-r from-brand-primary/30 via-brand-primary/60 to-brand-primary/30 md:block rtl:bg-gradient-to-l"
+              />
+
               {t.steps.map((step, index) => (
                 <motion.div
                   key={step.number}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: index * 0.1 }}
-                  className="surface-card relative flex flex-col gap-4 rounded-2xl p-6"
+                  transition={{ duration: 0.35, delay: index * 0.12 }}
+                  className="surface-card flex flex-col items-center gap-4 rounded-2xl p-6 text-center"
                 >
-                  <div className="flex items-center justify-between">
+                  {/* icon circle */}
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-brand-accent/10">
                     <span className="text-3xl">{step.icon}</span>
-                    <span className="text-4xl font-bold text-brand-dark/8 select-none">{step.number}</span>
+                    <span className="absolute -end-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-bold text-white">
+                      {index + 1}
+                    </span>
                   </div>
                   <div>
                     <h3 className="type-card-title text-brand-dark">{step.title}</h3>
-                    <p className="type-small mt-2 text-brand-dark/65 leading-relaxed">{step.desc}</p>
+                    <p className="type-small mt-2 text-brand-dark/60 leading-relaxed">{step.desc}</p>
                   </div>
-                  {index < t.steps.length - 1 && (
-                    <div
-                      aria-hidden="true"
-                      className="absolute -end-3 top-1/2 hidden -translate-y-1/2 text-brand-primary/40 md:block"
-                    >
-                      {isRtl ? "←" : "→"}
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </div>
@@ -242,8 +236,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      {/* Categories Section */}
-      <section className="section-pad bg-transparent" dir={isRtl ? "rtl" : "ltr"}>
+      {/* ── Categories ── */}
+      <section className="section-pad bg-transparent">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -253,7 +247,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
           >
             <div className="mb-10 text-center">
               <h2 className="type-section-title mx-auto text-brand-dark">{t.categoriesTitle}</h2>
-              <p className="type-body mx-auto mt-3 text-brand-dark/65">{t.categoriesSub}</p>
+              <p className="type-body mx-auto mt-3 text-brand-dark/60">{t.categoriesSub}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -263,10 +257,12 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: index * 0.04 }}
-                  className="surface-card group flex flex-col gap-3 rounded-2xl p-4 transition-shadow hover:shadow-soft"
+                  transition={{ duration: 0.28, delay: index * 0.04 }}
+                  className="surface-card group flex items-center gap-3 rounded-2xl p-4 transition-all hover:border-brand-primary/30 hover:shadow-soft"
                 >
-                  <span className="text-2xl">{category.icon}</span>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary/8 text-xl transition-colors group-hover:bg-brand-primary/14">
+                    {category.icon}
+                  </div>
                   <p className="type-small font-semibold text-brand-dark leading-snug">
                     {isRtl ? category.ar : category.en}
                   </p>
@@ -276,6 +272,37 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
           </motion.div>
         </Container>
       </section>
+
+      {/* ── CTA Banner ── */}
+      <section className="section-pad bg-transparent">
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+            className="relative overflow-hidden rounded-[28px] bg-brand-dark px-6 py-12 text-center md:px-16 md:py-16"
+          >
+            {/* decorative blobs */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(9,177,75,0.35)_0%,transparent_55%),radial-gradient(circle_at_85%_30%,rgba(197,217,45,0.25)_0%,transparent_50%)]"
+            />
+
+            <div className="relative z-10">
+              <h2 className="type-section-title mx-auto text-white">{t.ctaTitle}</h2>
+              <p className="type-body mx-auto mt-4 max-w-lg text-white/70">{t.ctaSub}</p>
+              <Link
+                href={isRtl ? "/ar/register" : "/register"}
+                className="mt-8 inline-block rounded-full bg-brand-primary px-10 py-3.5 type-button text-white shadow-lg transition-all hover:bg-brand-accent hover:text-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                {t.ctaBtn}
+              </Link>
+            </div>
+          </motion.div>
+        </Container>
+      </section>
+
     </main>
   );
 }
