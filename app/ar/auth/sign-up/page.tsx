@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { createClient } from "@/lib/supabase/client";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function ArabicSignUpPage() {
+  const router = useRouter();
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,8 +31,19 @@ export default function ArabicSignUpPage() {
       return;
     }
     setLoading(true);
-    // TODO: connect Supabase auth here
-    setTimeout(() => setLoading(false), 1000);
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { company_name: company } },
+    });
+    setLoading(false);
+    if (authError) {
+      setError("حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.");
+      return;
+    }
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (

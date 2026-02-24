@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { createClient } from "@/lib/supabase/client";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,11 +19,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    // TODO: connect Supabase resetPasswordForEmail here
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 1000);
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    setLoading(false);
+    setSent(true);
   };
 
   return (
