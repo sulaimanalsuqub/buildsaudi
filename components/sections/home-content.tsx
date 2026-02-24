@@ -88,7 +88,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     categoriesSub: isRtl
       ? "نربطك بالموردين المتخصصين في كل فئة من فئات مواد البناء"
       : "We connect you with specialized suppliers across all construction material categories",
-    howTitle: isRtl ? "كيف يعمل بيلد؟" : "How Build Works",
+    howTitle: isRtl ? "كيف نشتغل؟" : "How Build Works",
     howSub: isRtl
       ? "ثلاث خطوات بسيطة من الطلب إلى التسليم"
       : "Three simple steps from request to delivery",
