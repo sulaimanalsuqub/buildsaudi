@@ -5,7 +5,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <SiteHeader />
-      {children}
+      <div className="pt-[52px] md:pt-[64px]">{children}</div>
       <SiteFooter />
     </>
   );
