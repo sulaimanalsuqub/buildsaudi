@@ -203,11 +203,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             </div>
 
             <div className="relative grid gap-4 md:grid-cols-3">
-              {/* connector line */}
-              <div
-                aria-hidden="true"
-                className="absolute start-[16.66%] end-[16.66%] top-10 hidden h-px bg-gradient-to-r from-brand-primary/30 via-brand-primary/60 to-brand-primary/30 md:block rtl:bg-gradient-to-l"
-              />
 
               {t.steps.map((step, index) => (
                 <motion.div
