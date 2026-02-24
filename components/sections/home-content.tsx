@@ -9,6 +9,69 @@ type HomeContentProps = {
   isRtl?: boolean;
 };
 
+const categories = [
+  {
+    en: "Building Materials",
+    ar: "مواد بناء وإنشاء",
+    icon: "🏗️",
+  },
+  {
+    en: "Safety Tools",
+    ar: "أدوات السلامة",
+    icon: "🦺",
+  },
+  {
+    en: "Paint & Decor",
+    ar: "دهانات وديكور",
+    icon: "🎨",
+  },
+  {
+    en: "Electrical & Lighting",
+    ar: "كهرباء وإنارة",
+    icon: "💡",
+  },
+  {
+    en: "Plumbing",
+    ar: "سباكة",
+    icon: "🔧",
+  },
+  {
+    en: "Sanitary Ware",
+    ar: "أدوات صحية",
+    icon: "🚿",
+  },
+  {
+    en: "HVAC",
+    ar: "تكييف وتبريد",
+    icon: "❄️",
+  },
+  {
+    en: "Piping Systems",
+    ar: "أنظمة الأنابيب",
+    icon: "🔩",
+  },
+  {
+    en: "Pumps & Tanks",
+    ar: "مضخات وخزانات",
+    icon: "🛢️",
+  },
+  {
+    en: "Flooring & Ceramics",
+    ar: "أرضيات وسيراميك",
+    icon: "🪨",
+  },
+  {
+    en: "Insulation",
+    ar: "عوازل",
+    icon: "🧱",
+  },
+  {
+    en: "Adhesives",
+    ar: "مواد لاصقة",
+    icon: "🔗",
+  },
+];
+
 export function HomeContent({ isRtl = false }: HomeContentProps) {
   const t = {
     heroTitle: isRtl ? "أسرع طريقة لتوريد مشاريعكم" : "The Fastest Way to Supply Your Projects",
@@ -20,11 +83,16 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     badge: isRtl ? "منصة بيلد لتوريد مواد البناء" : "Build Construction Supply Platform",
     stat1: isRtl ? "طلبات اليوم" : "Today Requests",
     stat2: isRtl ? "موردون نشطون" : "Active Suppliers",
-    stat3: isRtl ? "سرعة التوريد" : "Supply Speed"
+    stat3: isRtl ? "سرعة التوريد" : "Supply Speed",
+    categoriesTitle: isRtl ? "فئات التوريد" : "Supply Categories",
+    categoriesSub: isRtl
+      ? "نربطك بالموردين المتخصصين في كل فئة من فئات مواد البناء"
+      : "We connect you with specialized suppliers across all construction material categories",
   };
 
   return (
     <main>
+      {/* Hero Section */}
       <section className="section-pad bg-transparent">
         <Container>
           <motion.div
@@ -77,6 +145,41 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   <p className="mt-2 text-2xl font-bold text-brand-dark">+42%</p>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* Categories Section */}
+      <section className="section-pad bg-transparent" dir={isRtl ? "rtl" : "ltr"}>
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+          >
+            <div className="mb-10 text-center">
+              <h2 className="type-section-title mx-auto text-brand-dark">{t.categoriesTitle}</h2>
+              <p className="type-body mx-auto mt-3 text-brand-dark/65">{t.categoriesSub}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category.en}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: index * 0.04 }}
+                  className="surface-card group flex flex-col gap-3 rounded-2xl p-4 transition-shadow hover:shadow-soft"
+                >
+                  <span className="text-2xl">{category.icon}</span>
+                  <p className="type-small font-semibold text-brand-dark leading-snug">
+                    {isRtl ? category.ar : category.en}
+                  </p>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </Container>
