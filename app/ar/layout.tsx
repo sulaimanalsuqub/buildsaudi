@@ -5,7 +5,7 @@ export default function ArabicLayout({ children }: { children: React.ReactNode }
   return (
     <section dir="rtl" lang="ar">
       <SiteHeader isRtl />
-      <div className="pt-[52px] md:pt-[64px]">{children}</div>
+      <div className="pt-[68px]">{children}</div>
       <SiteFooter isRtl />
     </section>
   );

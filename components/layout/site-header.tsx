@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { Container } from "@/components/ui/container";
+
 type SiteHeaderProps = {
   isRtl?: boolean;
 };
@@ -12,7 +14,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -21,52 +23,34 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const languageHref = isRtl ? "/" : "/ar";
 
   return (
-    <div className="fixed top-0 inset-x-0 z-40 flex justify-center pointer-events-none">
-      <header
-        className={[
-          "pointer-events-auto w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8",
-          "transition-all duration-300 ease-in-out",
-          scrolled
-            ? "mt-2 rounded-[26px] bg-white/55 backdrop-blur-xl border border-brand-dark/10"
-            : "mt-0 rounded-none bg-white/55 backdrop-blur-md border-b border-brand-dark/10",
-        ].join(" ")}
-      >
-        <div
-          className={[
-            "flex items-center justify-between transition-all duration-300",
-            scrolled ? "h-[46px] md:h-[56px]" : "h-[52px] md:h-[64px]",
-          ].join(" ")}
-        >
-          {/* Logo */}
-          <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
-            <Image
-              src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
-              alt={isRtl ? "شعار بيلد" : "Build logo"}
-              width={isRtl ? 130 : 110}
-              height={36}
-              priority
-              className={[
-                "transition-all duration-300",
-                scrolled ? "h-[28px] md:h-[32px]" : "h-[32px] md:h-[36px]",
-                "w-auto",
-              ].join(" ")}
-            />
-          </Link>
+    <header
+      className={[
+        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
+        scrolled
+          ? "bg-white/70 shadow-[0_2px_24px_rgba(29,63,31,0.08)] backdrop-blur-2xl"
+          : "bg-white/30 backdrop-blur-md",
+        "border-b border-white/40",
+      ].join(" ")}
+    >
+      <Container className="flex h-[68px] items-center justify-between">
+        <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
+          <Image
+            src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
+            alt={isRtl ? "شعار بيلد" : "Build logo"}
+            width={isRtl ? 130 : 110}
+            height={34}
+            priority
+            className="h-[34px] w-auto"
+          />
+        </Link>
 
-          {/* Language pill */}
-          <Link
-            href={languageHref}
-            className={[
-              "rounded-full border border-brand-dark/20 font-semibold text-brand-dark",
-              "transition-all duration-300 hover:border-brand-dark/35 hover:bg-brand-dark/[0.04]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark/20",
-              scrolled ? "px-3 py-1 text-[11px]" : "px-4 py-1.5 text-xs",
-            ].join(" ")}
-          >
-            {isRtl ? "EN" : "ع"}
-          </Link>
-        </div>
-      </header>
-    </div>
+        <Link
+          href={languageHref}
+          className="rounded-full border border-brand-dark/20 bg-white/60 px-4 py-1.5 text-xs font-semibold text-brand-dark backdrop-blur-sm transition-all hover:bg-white/80 hover:border-brand-dark/35"
+        >
+          {isRtl ? "EN" : "ع"}
+        </Link>
+      </Container>
+    </header>
   );
 }
