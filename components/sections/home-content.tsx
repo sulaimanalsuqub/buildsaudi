@@ -88,6 +88,51 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     categoriesSub: isRtl
       ? "نربطك بالموردين المتخصصين في كل فئة من فئات مواد البناء"
       : "We connect you with specialized suppliers across all construction material categories",
+    howTitle: isRtl ? "كيف يعمل بيلد؟" : "How Build Works",
+    howSub: isRtl
+      ? "ثلاث خطوات بسيطة من الطلب إلى التسليم"
+      : "Three simple steps from request to delivery",
+    steps: isRtl
+      ? [
+          {
+            number: "01",
+            title: "أرسل طلبك",
+            desc: "حدد المواد والكميات التي يحتاجها مشروعك وأرسل الطلب عبر المنصة",
+            icon: "📋",
+          },
+          {
+            number: "02",
+            title: "استلم عرض السعر",
+            desc: "يصلك عرض سعر نهائي وشامل من بيلد خلال وقت قصير",
+            icon: "💰",
+          },
+          {
+            number: "03",
+            title: "استلم موادك في الموقع",
+            desc: "بعد الموافقة على العرض، نتولى الشحن والتوصيل مباشرة إلى موقع مشروعك",
+            icon: "🚚",
+          },
+        ]
+      : [
+          {
+            number: "01",
+            title: "Submit Your Request",
+            desc: "Specify the materials and quantities your project needs and submit through the platform",
+            icon: "📋",
+          },
+          {
+            number: "02",
+            title: "Receive a Quote",
+            desc: "Get a comprehensive final price quote from Build in a short time",
+            icon: "💰",
+          },
+          {
+            number: "03",
+            title: "Receive at Your Site",
+            desc: "Once you approve the quote, we handle shipping and delivery directly to your project site",
+            icon: "🚚",
+          },
+        ],
   };
 
   return (
@@ -145,6 +190,53 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   <p className="mt-2 text-2xl font-bold text-brand-dark">+42%</p>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="section-pad bg-transparent" dir={isRtl ? "rtl" : "ltr"}>
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+          >
+            <div className="mb-12 text-center">
+              <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
+              <p className="type-body mx-auto mt-3 text-brand-dark/65">{t.howSub}</p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {t.steps.map((step, index) => (
+                <motion.div
+                  key={step.number}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: index * 0.1 }}
+                  className="surface-card relative flex flex-col gap-4 rounded-2xl p-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl">{step.icon}</span>
+                    <span className="text-4xl font-bold text-brand-dark/8 select-none">{step.number}</span>
+                  </div>
+                  <div>
+                    <h3 className="type-card-title text-brand-dark">{step.title}</h3>
+                    <p className="type-small mt-2 text-brand-dark/65 leading-relaxed">{step.desc}</p>
+                  </div>
+                  {index < t.steps.length - 1 && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute -end-3 top-1/2 hidden -translate-y-1/2 text-brand-primary/40 md:block"
+                    >
+                      {isRtl ? "←" : "→"}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </Container>
