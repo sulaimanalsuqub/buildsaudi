@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import { AuthShell } from "@/components/auth/auth-shell";
@@ -7,16 +9,33 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata: Metadata = {
-  title: "Create Account",
-  description: "Create your Build account"
-};
-
 export default function SignUpPage() {
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!company || !email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    setLoading(true);
+    // TODO: connect Supabase auth here
+    setTimeout(() => setLoading(false), 1000);
+  };
+
   return (
     <AuthShell
       title="Create your Build account"
-      subtitle="Set up your organization account to receive project opportunities and manage supply operations."
+      subtitle="Set up your organization account to start submitting supply requests and managing your projects."
     >
       <Card>
         <CardHeader>
@@ -24,21 +43,52 @@ export default function SignUpPage() {
           <CardDescription>Use your business details to register securely.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="name">Company name</Label>
-              <Input id="name" placeholder="Build Supplies Co." className="h-11 text-base" />
+              <Label htmlFor="company">Company name</Label>
+              <Input
+                id="company"
+                placeholder="Build Supplies Co."
+                className="h-11 text-base"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Business email</Label>
-              <Input id="email" type="email" placeholder="name@company.com" className="h-11 text-base" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@company.com"
+                className="h-11 text-base"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Create a strong password" className="h-11 text-base" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="At least 8 characters"
+                className="h-11 text-base"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" size="lg" className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark">
-              Create Account
+            {error && (
+              <p className="type-small rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600">{error}</p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark"
+            >
+              {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
         </CardContent>

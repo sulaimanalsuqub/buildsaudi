@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import { AuthShell } from "@/components/auth/auth-shell";
@@ -7,16 +9,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata: Metadata = {
-  title: "Sign In",
-  description: "Access your Build dashboard"
-};
-
 export default function SignInPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    setLoading(true);
+    // TODO: connect Supabase auth here
+    setTimeout(() => setLoading(false), 1000);
+  };
+
   return (
     <AuthShell
       title="Sign in to your Build account"
-      subtitle="Access supplier requests, project opportunities, and account tools in one secure workspace."
+      subtitle="Access your project requests, quotes, and supply operations in one secure workspace."
     >
       <Card>
         <CardHeader>
@@ -24,10 +38,18 @@ export default function SignInPage() {
           <CardDescription>Enter your credentials to continue.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="name@company.com" className="h-11 text-base" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@company.com"
+                className="h-11 text-base"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -36,10 +58,26 @@ export default function SignInPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input id="password" type="password" placeholder="••••••••" className="h-11 text-base" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                className="h-11 text-base"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" size="lg" className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark">
-              Sign In
+            {error && (
+              <p className="type-small rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600">{error}</p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark"
+            >
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
         </CardContent>

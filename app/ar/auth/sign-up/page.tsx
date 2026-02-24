@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import { AuthShell } from "@/components/auth/auth-shell";
@@ -7,18 +9,35 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata: Metadata = {
-  title: "إنشاء حساب",
-  description: "إنشاء حساب جديد في بيلد"
-};
-
 export default function ArabicSignUpPage() {
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!company || !email || !password) {
+      setError("يرجى تعبئة جميع الحقول.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("كلمة المرور يجب أن تكون 8 أحرف على الأقل.");
+      return;
+    }
+    setLoading(true);
+    // TODO: connect Supabase auth here
+    setTimeout(() => setLoading(false), 1000);
+  };
+
   return (
     <AuthShell
       isRtl
       backLabel="العودة للرئيسية"
       title="أنشئ حساب شركتك في بيلد"
-      subtitle="أنشئ حسابًا مؤسسيًا للوصول إلى فرص التوريد وإدارة عملياتك من مكان واحد."
+      subtitle="أنشئ حسابًا مؤسسيًا لبدء إرسال طلبات التوريد وإدارة مشاريعك."
     >
       <Card>
         <CardHeader>
@@ -26,21 +45,52 @@ export default function ArabicSignUpPage() {
           <CardDescription>استخدم بيانات شركتك للتسجيل بشكل آمن.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit} dir="rtl">
             <div className="space-y-2">
-              <Label htmlFor="name">اسم الشركة</Label>
-              <Input id="name" placeholder="شركة بيلد للتوريد" className="h-11 text-base" />
+              <Label htmlFor="company">اسم الشركة</Label>
+              <Input
+                id="company"
+                placeholder="شركة بيلد للتوريد"
+                className="h-11 text-base"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">البريد الإلكتروني الرسمي</Label>
-              <Input id="email" type="email" placeholder="name@company.com" className="h-11 text-base" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@company.com"
+                className="h-11 text-base"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">كلمة المرور</Label>
-              <Input id="password" type="password" placeholder="أنشئ كلمة مرور قوية" className="h-11 text-base" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="8 أحرف على الأقل"
+                className="h-11 text-base"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" size="lg" className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark">
-              إنشاء الحساب
+            {error && (
+              <p className="type-small rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600">{error}</p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="type-button h-11 w-full bg-brand-primary hover:bg-brand-dark"
+            >
+              {loading ? "جارٍ إنشاء الحساب..." : "إنشاء الحساب"}
             </Button>
           </form>
         </CardContent>
