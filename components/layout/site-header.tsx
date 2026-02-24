@@ -9,8 +9,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const homeHref = isRtl ? "/ar" : "/";
-
-  const registerHref = isRtl ? "/ar/register" : "/register";
+  const signInHref = isRtl ? "/ar/auth/sign-in" : "/auth/sign-in";
   const languageHref = isRtl ? "/" : "/ar";
 
   return (
@@ -34,10 +33,16 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             {isRtl ? "EN" : "ع"}
           </Link>
           <Link
-            href={registerHref}
+            href={signInHref}
+            className="rounded-full border border-brand-dark/20 px-5 py-2.5 type-button font-semibold text-brand-dark transition-colors hover:border-brand-dark/35 hover:bg-brand-dark/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark/20"
+          >
+            {isRtl ? "تسجيل الدخول" : "Sign In"}
+          </Link>
+          <Link
+            href="/dashboard"
             className="rounded-full bg-brand-primary px-5 py-2.5 type-button text-white transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
           >
-            {isRtl ? "ابدأ التوريد" : "Start Supplying"}
+            {isRtl ? "اطلب المنتجات" : "Order Products"}
           </Link>
         </div>
       </Container>
