@@ -260,35 +260,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      {/* ── CTA Banner ── */}
-      <section className="py-14 pb-20 md:py-20 md:pb-28">
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45 }}
-            className="relative overflow-hidden rounded-[28px] bg-brand-dark px-6 py-14 text-center md:px-16 md:py-16"
-          >
-            {/* decorative blobs */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(9,177,75,0.35)_0%,transparent_55%),radial-gradient(circle_at_85%_30%,rgba(197,217,45,0.22)_0%,transparent_50%)]"
-            />
-
-            <div className="relative z-10">
-              <h2 className="type-section-title mx-auto text-white">{t.ctaTitle}</h2>
-              <p className="type-body mx-auto mt-4 max-w-lg text-white/65">{t.ctaSub}</p>
-              <Link
-                href={isRtl ? "/ar/register" : "/register"}
-                className="mt-8 inline-block rounded-full bg-brand-primary px-10 py-3.5 type-button text-white shadow-lg transition-all hover:bg-brand-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                {t.ctaBtn}
-              </Link>
-            </div>
-          </motion.div>
-        </Container>
-      </section>
 
     </main>
   );
