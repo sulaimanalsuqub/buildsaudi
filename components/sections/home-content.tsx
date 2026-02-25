@@ -30,7 +30,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     heroSub: isRtl
       ? "رحلة البناء أسهل وأسرع"
       : "A clearer and faster supply workflow for construction projects.",
-    primaryCta: isRtl ? "ابدأ التوريد الآن" : "Start Supplying Now",
+    primaryCta: isRtl ? "اطلب المنتجات" : "Order Products",
     secondaryCta: isRtl ? "تحدث مع خبير" : "Talk to an Expert",
     badge: isRtl ? "أسرع طريق لتوريد منتجات البناء" : "Build Construction Supply Platform",
     stat1: isRtl ? "طلبات اليوم" : "Today Requests",
