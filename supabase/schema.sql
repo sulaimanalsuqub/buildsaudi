@@ -73,3 +73,33 @@ create policy "Users insert own payment cases"
 create policy "Users update own payment cases"
   on public.payment_cases for update
   using (auth.uid() = user_id);
+
+-- ──────────────────────────────────────────────
+--  QUOTES  (طلبات عروض الأسعار من صفحة get-quote)
+-- ──────────────────────────────────────────────
+create table if not exists public.quotes (
+  id                uuid        primary key default gen_random_uuid(),
+  project_name      text        not null,
+  client_name       text        not null,
+  phone             text        not null,
+  materials         text        not null,
+  boq_file_url      text,
+  sheet_link        text,
+  delivery_address  text        not null,
+  delivery_date     date        not null,
+  notes             text,
+  status            text        not null default 'new',
+  created_at        timestamptz default now()
+);
+
+-- Public insert allowed (no auth required for quote requests)
+alter table public.quotes enable row level security;
+
+create policy "Anyone can submit a quote"
+  on public.quotes for insert
+  with check (true);
+
+-- Only service role / admin can read quotes (no user-facing read needed)
+create policy "Service role reads quotes"
+  on public.quotes for select
+  using (false);

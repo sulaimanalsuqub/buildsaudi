@@ -22,7 +22,7 @@ export default function ArabicGetQuotePage() {
         </div>
 
         {/* Form Card */}
-        <div className="rounded-[20px] border border-brand-dark/10 bg-white p-4 shadow-soft sm:rounded-[24px] sm:p-6 md:p-8">
+        <div className="rounded-[20px] border border-brand-dark/10 bg-white p-4 sm:rounded-[24px] sm:p-6 md:p-8">
           <GetQuoteForm isRtl={true} />
         </div>
       </div>

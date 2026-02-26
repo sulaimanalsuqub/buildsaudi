@@ -96,7 +96,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative mx-auto max-w-[1160px] overflow-hidden rounded-[24px] border border-brand-dark/10 bg-white/80 px-4 py-10 text-center shadow-soft backdrop-blur-sm sm:rounded-[32px] sm:px-8 sm:py-14 md:px-16 md:py-20"
+            className="relative mx-auto max-w-[1160px] overflow-hidden rounded-[24px] border border-brand-dark/10 bg-white/80 px-4 py-10 text-center backdrop-blur-sm sm:rounded-[32px] sm:px-8 sm:py-14 md:px-16 md:py-20"
           >
             {/* background gradient */}
             <div
@@ -144,7 +144,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               >
                 <Link
                   href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                  className="rounded-full bg-brand-primary px-8 py-3.5 type-button text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 text-center"
+                  className="rounded-full bg-brand-primary px-8 py-3.5 type-button text-white transition-all hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 text-center"
                 >
                   {t.primaryCta}
                 </Link>
@@ -162,19 +162,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.42 }}
-              className="relative z-10 mx-auto mt-8 max-w-2xl rounded-2xl border border-brand-dark/10 bg-white/90 p-2 shadow-soft backdrop-blur-sm sm:p-3 md:p-4"
+              className="relative z-10 mx-auto mt-8 max-w-2xl rounded-2xl border border-brand-dark/10 bg-white/90 p-2 backdrop-blur-sm sm:p-3 md:p-4"
             >
-              <div className="grid grid-cols-3 divide-x divide-brand-dark/[0.08] rtl:divide-x-reverse">
-                {[
-                  { label: t.stat1, value: "128" },
-                  { label: t.stat2, value: "340" },
-                  { label: t.stat3, value: "+42%" },
-                ].map((stat) => (
-                  <div key={stat.label} className="px-2 py-2 text-center sm:px-4 sm:py-2.5">
-                    <p className="text-[11px] leading-tight text-brand-dark/50 sm:text-xs">{stat.label}</p>
-                    <p className="mt-0.5 text-lg font-bold tracking-tight text-brand-dark sm:text-[22px] md:text-2xl">{stat.value}</p>
-                  </div>
-                ))}
+              <div className="flex items-center justify-center px-4 py-3 sm:px-6 sm:py-4">
+                <div className="text-center">
+                  <p className="text-[11px] leading-tight text-brand-dark/50 sm:text-xs">{t.stat2}</p>
+                  <p className="mt-0.5 text-lg font-bold tracking-tight text-brand-dark sm:text-[22px] md:text-2xl">340</p>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -203,12 +197,12 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.35, delay: index * 0.12 }}
-                  className="flex flex-col items-center gap-4 rounded-[20px] border border-brand-dark/10 bg-white p-5 text-center shadow-soft sm:rounded-[24px] sm:gap-5 sm:p-7"
+                  className="flex flex-col items-center gap-4 rounded-[20px] border border-brand-dark/10 bg-white p-5 text-center sm:rounded-[24px] sm:gap-5 sm:p-7"
                 >
                   {/* icon circle */}
                   <div className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full border border-brand-primary/20 bg-gradient-to-br from-brand-primary/[0.10] to-brand-accent/[0.10]">
                     <span className="text-[28px] leading-none">{step.icon}</span>
-                    <span className="absolute -end-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-bold text-white shadow-sm">
+                    <span className="absolute -end-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-bold text-white">
                       {index + 1}
                     </span>
                   </div>
@@ -245,7 +239,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.28, delay: index * 0.04 }}
-                  className="group flex items-center gap-3 rounded-[20px] border border-brand-dark/10 bg-white p-4 shadow-soft transition-all hover:border-brand-primary/30 hover:shadow-[0_8px_24px_rgba(9,177,75,0.10)]"
+                  className="group flex items-center gap-3 rounded-[20px] border border-brand-dark/10 bg-white p-4 transition-all hover:border-brand-primary/30"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary/[0.08] text-xl transition-colors group-hover:bg-brand-primary/[0.14]">
                     {category.icon}

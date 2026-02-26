@@ -27,7 +27,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
       className={[
         "fixed inset-x-0 top-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-white/70 shadow-[0_2px_24px_rgba(29,63,31,0.08)] backdrop-blur-2xl"
+          ? "bg-white/70 backdrop-blur-2xl"
           : "bg-white/30 backdrop-blur-md",
         "border-b border-white/40",
       ].join(" ")}

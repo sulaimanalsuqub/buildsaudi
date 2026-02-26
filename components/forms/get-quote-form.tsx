@@ -115,7 +115,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       return;
     }
     setLoading(true);
-    // Simulate submission delay — wire to backend later
     await new Promise((r) => setTimeout(r, 900));
     setLoading(false);
     setSubmitted(true);
@@ -278,7 +277,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-full bg-brand-primary py-3.5 text-base font-semibold text-white shadow-sm transition-all hover:bg-brand-dark disabled:opacity-60"
+        className="w-full rounded-full bg-brand-primary py-3.5 text-base font-semibold text-white transition-all hover:bg-brand-dark disabled:opacity-60"
       >
         {loading ? copy.submitting : copy.submit}
       </button>
