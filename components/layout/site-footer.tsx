@@ -18,8 +18,9 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             <Image
               src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
               alt={isRtl ? "شعار بيلد" : "Build logo"}
-              width={isRtl ? 124 : 106}
-              height={36}
+              width={4302}
+              height={1500}
+              className="h-[30px] w-auto"
             />
           </div>
           <div className="flex flex-wrap items-center gap-6 type-small text-brand-dark/70">

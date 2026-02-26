@@ -39,9 +39,9 @@ body {
   }
 
   .type-hero {
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 700;
-    line-height: 1.12;
+    line-height: 1.14;
     letter-spacing: -0.02em;
     max-width: 60ch;
   }
@@ -86,9 +86,16 @@ body {
   }
 }
 
+@media (min-width: 640px) {
+  .type-hero {
+    font-size: 44px;
+    line-height: 1.12;
+  }
+}
+
 @media (min-width: 768px) {
   .type-hero {
-    font-size: 56px;
+    font-size: 54px;
     line-height: 1.1;
   }
 
