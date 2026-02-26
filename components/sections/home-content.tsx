@@ -143,7 +143,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 className="mt-7 flex flex-wrap items-center justify-center gap-3"
               >
                 <Link
-                  href={isRtl ? "/ar/auth/sign-in" : "/auth/sign-in"}
+                  href={isRtl ? "/ar/get-quote" : "/get-quote"}
                   className="rounded-full bg-brand-primary px-8 py-3.5 type-button text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
                 >
                   {t.primaryCta}
