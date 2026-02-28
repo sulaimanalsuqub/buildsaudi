@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { QuoteActions } from "./quote-actions";
+import { AdminNotesClient } from "./admin-notes-client";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   new:                    { label: "جديد", color: "bg-amber-100 text-amber-700" },
@@ -197,6 +198,3 @@ function Row({ label, value, dir }: { label: string; value: string; dir?: string
 function AdminNotesBox({ id, currentNotes }: { id: string; currentNotes: string }) {
   return <AdminNotesClient id={id} currentNotes={currentNotes} />;
 }
-
-// Workaround: import below
-import { AdminNotesClient } from "./admin-notes-client";
