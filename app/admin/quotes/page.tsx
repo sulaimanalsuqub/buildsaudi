@@ -55,8 +55,10 @@ export default async function AdminQuotesPage() {
               quotes.map((q) => {
                 const status = STATUS_LABELS[q.status] ?? { label: q.status, color: "bg-gray-100 text-gray-600" };
                 return (
-                  <tr key={q.id} className="hover:bg-[#F4F3EB]/40">
-                    <td className="px-4 py-3 font-medium text-[#1D3F1F]">{q.project_name}</td>
+                  <tr key={q.id} className="cursor-pointer hover:bg-[#F4F3EB]/40" onClick={() => {}}>
+                    <td className="px-4 py-3 font-medium text-[#1D3F1F]">
+                      <a href={`/admin/quotes/${q.id}`} className="hover:text-[#09B14B]">{q.project_name}</a>
+                    </td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{q.client_name}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70" dir="ltr">{q.phone}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{q.delivery_address}</td>

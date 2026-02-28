@@ -47,8 +47,10 @@ export default async function AdminVendorsPage() {
                 const status = STATUS_LABELS[v.status] ?? { label: v.status, color: "bg-gray-100 text-gray-600" };
                 const cats = (v.vendor_categories as { category: string }[])?.map((c) => c.category) ?? [];
                 return (
-                  <tr key={v.id} className="hover:bg-[#F4F3EB]/40">
-                    <td className="px-4 py-3 font-medium text-[#1D3F1F]">{v.establishment_name}</td>
+                  <tr key={v.id} className="cursor-pointer hover:bg-[#F4F3EB]/40">
+                    <td className="px-4 py-3 font-medium text-[#1D3F1F]">
+                      <a href={`/admin/vendors/${v.id}`} className="hover:text-[#09B14B]">{v.establishment_name}</a>
+                    </td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{v.manager_name}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70" dir="ltr">{v.contact_number}</td>
                     <td className="px-4 py-3">
