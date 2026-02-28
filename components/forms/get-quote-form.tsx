@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type GetQuoteFormProps = {
   isRtl?: boolean;
@@ -115,9 +116,25 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("quotes").insert({
+        project_name: form.projectName,
+        client_name: form.clientName,
+        phone: form.phone,
+        materials: form.materials,
+        sheet_link: form.sheetLink || null,
+        delivery_address: form.deliveryAddress,
+        delivery_date: form.deliveryDate,
+        notes: form.notes || null,
+      });
+      if (error) throw error;
+      setSubmitted(true);
+    } catch {
+      setErrors({ submit: isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const reset = () => {
@@ -272,6 +289,10 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           className={inputCls(false) + " resize-none"}
         />
       </Field>
+
+      {errors.submit && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{errors.submit}</p>
+      )}
 
       {/* Submit */}
       <button

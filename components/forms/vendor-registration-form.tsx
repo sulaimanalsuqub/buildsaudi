@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -175,6 +176,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const [step, setStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [regionSearch, setRegionSearch] = useState("");
 
   const form = useForm<FormValues>({
@@ -208,8 +210,48 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     setStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const onSubmit = form.handleSubmit(() => {
-    setIsSubmitted(true);
+  const onSubmit = form.handleSubmit(async (data) => {
+    setSubmitError("");
+    try {
+      const supabase = createClient();
+      const { data: vendor, error: vendorError } = await supabase
+        .from("vendors")
+        .insert({
+          establishment_name: data.establishmentName,
+          manager_name: data.managerName,
+          contact_number: data.contactNumber,
+          email: data.email,
+          cr_number: data.crNumber,
+          vendor_type: data.vendorType,
+          represented_brands: data.representedBrands || null,
+          has_warehouse: data.hasWarehouseInKsa === "yes",
+          offers_credit: data.offersCredit === "yes",
+          credit_limit: data.creditLimit ? Number(data.creditLimit) : null,
+          payment_terms: data.paymentTerms,
+          worked_on_gov_projects: data.workedOnGovProjects === "yes",
+        })
+        .select("id")
+        .single();
+      if (vendorError) throw vendorError;
+
+      // Insert categories
+      if (data.productCategories.length > 0) {
+        await supabase.from("vendor_categories").insert(
+          data.productCategories.map((c) => ({ vendor_id: vendor.id, category: c }))
+        );
+      }
+
+      // Insert regions
+      if (data.coverageRegions.length > 0) {
+        await supabase.from("vendor_regions").insert(
+          data.coverageRegions.map((r) => ({ vendor_id: vendor.id, region: r }))
+        );
+      }
+
+      setIsSubmitted(true);
+    } catch {
+      setSubmitError(isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.");
+    }
   });
 
   if (isSubmitted) {
@@ -429,6 +471,9 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           </Button>
         )}
       </div>
+      {submitError && (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+      )}
     </form>
   );
 }
