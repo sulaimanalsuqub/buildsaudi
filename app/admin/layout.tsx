@@ -17,6 +17,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
+
   const handleLogout = async () => {
     setLoggingOut(true);
     const supabase = createClient();
