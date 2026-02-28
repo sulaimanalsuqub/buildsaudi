@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export default async function AdminHomePage() {
   const supabase = await createClient();
@@ -44,7 +45,7 @@ export default async function AdminHomePage() {
 
       {/* Quick links */}
       <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <a
+        <Link
           href="/admin/quotes"
           className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
         >
@@ -53,8 +54,8 @@ export default async function AdminHomePage() {
             <p className="font-semibold text-[#1D3F1F]">إدارة طلبات التسعير</p>
             <p className="text-sm text-[#1D3F1F]/55">راجع الطلبات وأرسل RFQ للموردين</p>
           </div>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/admin/vendors"
           className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
         >
@@ -63,7 +64,7 @@ export default async function AdminHomePage() {
             <p className="font-semibold text-[#1D3F1F]">إدارة الموردين</p>
             <p className="text-sm text-[#1D3F1F]/55">فعّل أو أوقف الموردين المسجلين</p>
           </div>
-        </a>
+        </Link>
       </div>
     </div>
   );
