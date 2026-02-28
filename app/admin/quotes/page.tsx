@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { ApproveQuoteButton } from "./approve-button";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -57,7 +58,7 @@ export default async function AdminQuotesPage() {
                 return (
                   <tr key={q.id} className="cursor-pointer hover:bg-[#F4F3EB]/40" onClick={() => {}}>
                     <td className="px-4 py-3 font-medium text-[#1D3F1F]">
-                      <a href={`/admin/quotes/${q.id}`} className="hover:text-[#09B14B]">{q.project_name}</a>
+                      <Link href={`/admin/quotes/${q.id}`} className="hover:text-[#09B14B]">{q.project_name}</Link>
                     </td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{q.client_name}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70" dir="ltr">{q.phone}</td>

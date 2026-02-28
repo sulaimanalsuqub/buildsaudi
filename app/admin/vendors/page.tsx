@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { VendorStatusButton } from "./status-button";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -49,7 +50,7 @@ export default async function AdminVendorsPage() {
                 return (
                   <tr key={v.id} className="cursor-pointer hover:bg-[#F4F3EB]/40">
                     <td className="px-4 py-3 font-medium text-[#1D3F1F]">
-                      <a href={`/admin/vendors/${v.id}`} className="hover:text-[#09B14B]">{v.establishment_name}</a>
+                      <Link href={`/admin/vendors/${v.id}`} className="hover:text-[#09B14B]">{v.establishment_name}</Link>
                     </td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{v.manager_name}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70" dir="ltr">{v.contact_number}</td>
