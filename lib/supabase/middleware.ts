@@ -31,18 +31,18 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const url = request.nextUrl.clone();
-  const isAuthPage = url.pathname.startsWith("/auth") || url.pathname.startsWith("/ar/auth");
-  const isDashboard = url.pathname.startsWith("/dashboard");
+  const isAdminPage = url.pathname.startsWith("/admin");
+  const isAdminLogin = url.pathname === "/admin/login";
 
-  // Redirect unauthenticated users away from protected routes
-  if (!user && isDashboard) {
-    url.pathname = "/auth/sign-in";
+  // Redirect unauthenticated users to login
+  if (!user && isAdminPage && !isAdminLogin) {
+    url.pathname = "/admin/login";
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthPage) {
-    url.pathname = "/dashboard";
+  // Redirect authenticated users away from login
+  if (user && isAdminLogin) {
+    url.pathname = "/admin";
     return NextResponse.redirect(url);
   }
 
