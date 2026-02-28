@@ -48,7 +48,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           href={languageHref}
           className="rounded-full border border-brand-dark/20 bg-white/60 px-4 py-1.5 text-xs font-semibold text-brand-dark backdrop-blur-sm transition-all hover:bg-white/80 hover:border-brand-dark/35"
         >
-          {isRtl ? "EN" : "ع"}
+          {isRtl ? "EN" : "AR"}
         </Link>
       </Container>
     </header>

@@ -254,6 +254,35 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
+      {/* ── CTA ── */}
+      <section className="py-10 md:py-20">
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45 }}
+            className="rounded-[24px] border border-brand-primary/20 bg-brand-primary/[0.06] px-6 py-12 text-center sm:rounded-[32px] sm:px-12 md:py-16"
+          >
+            <h2 className="type-section-title mx-auto text-brand-dark">{t.ctaTitle}</h2>
+            <p className="type-body mx-auto mt-3 max-w-lg text-brand-dark/60">{t.ctaSub}</p>
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Link
+                href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                className="rounded-full bg-brand-primary px-8 py-3.5 type-button text-white transition-all hover:bg-brand-dark text-center"
+              >
+                {t.primaryCta}
+              </Link>
+              <Link
+                href={isRtl ? "/ar/register" : "/register"}
+                className="rounded-full border border-brand-dark/20 bg-white px-8 py-3.5 type-button text-brand-dark transition-all hover:border-brand-dark/40 hover:bg-brand-dark/[0.03] text-center"
+              >
+                {t.ctaBtn}
+              </Link>
+            </div>
+          </motion.div>
+        </Container>
+      </section>
 
     </main>
   );
