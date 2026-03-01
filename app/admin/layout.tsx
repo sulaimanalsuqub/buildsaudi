@@ -10,6 +10,7 @@ const navItems = [
   { href: "/admin", label: "الرئيسية", icon: "◉", exact: true },
   { href: "/admin/quotes", label: "طلبات التسعير", icon: "📋" },
   { href: "/admin/vendors", label: "الموردون", icon: "🏭" },
+  { href: "/admin/contracts", label: "العقود", icon: "📝" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

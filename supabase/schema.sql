@@ -262,7 +262,42 @@ alter table public.approvals enable row level security;
 create policy "Service role manages approvals" on public.approvals using (false);
 
 -- ──────────────────────────────────────────────
---  14. AGENT_LOGS  (سجل عمليات AI Agent)
+--  14. CONTRACTS  (عقود الموردين)
+-- ──────────────────────────────────────────────
+
+-- العقد الموحّد (الأدمن يرفع ملف PDF واحد فعّال في أي وقت)
+create table if not exists public.contracts (
+  id          uuid        primary key default gen_random_uuid(),
+  title       text        not null,
+  file_url    text        not null,
+  is_active   boolean     not null default true,
+  created_by  text        not null default 'admin',
+  created_at  timestamptz default now()
+);
+
+alter table public.contracts enable row level security;
+create policy "Admin manages contracts" on public.contracts using (auth.role() = 'authenticated');
+create policy "Public can read active contracts" on public.contracts for select using (is_active = true);
+
+-- توقيعات الموردين على العقد
+create table if not exists public.vendor_contract_signatures (
+  id          uuid        primary key default gen_random_uuid(),
+  contract_id uuid        not null references public.contracts(id) on delete cascade,
+  vendor_id   uuid        not null references public.vendors(id) on delete cascade,
+  token       uuid        not null unique default gen_random_uuid(),
+  signed_at   timestamptz,
+  ip_address  text,
+  created_at  timestamptz default now(),
+  unique(contract_id, vendor_id)
+);
+
+alter table public.vendor_contract_signatures enable row level security;
+create policy "Admin manages signatures" on public.vendor_contract_signatures using (auth.role() = 'authenticated');
+create policy "Public can sign via token" on public.vendor_contract_signatures for update using (true) with check (true);
+create policy "Public can read via token" on public.vendor_contract_signatures for select using (true);
+
+-- ──────────────────────────────────────────────
+--  15. AGENT_LOGS  (سجل عمليات AI Agent)
 -- ──────────────────────────────────────────────
 create table if not exists public.agent_logs (
   id            uuid        primary key default gen_random_uuid(),
