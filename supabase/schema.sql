@@ -262,7 +262,33 @@ alter table public.approvals enable row level security;
 create policy "Service role manages approvals" on public.approvals using (false);
 
 -- ──────────────────────────────────────────────
---  14. CONTRACTS  (عقود الموردين)
+--  14. BRANDS  (العلامات التجارية)
+-- ──────────────────────────────────────────────
+
+create table if not exists public.brands (
+  id          uuid  primary key default gen_random_uuid(),
+  name        text  not null unique,
+  created_at  timestamptz default now()
+);
+
+alter table public.brands enable row level security;
+create policy "Admin manages brands" on public.brands using (auth.role() = 'authenticated');
+create policy "Public can read brands" on public.brands for select using (true);
+
+-- ربط المورد بالعلامات التجارية التي يمثلها
+create table if not exists public.vendor_brands (
+  id          uuid  primary key default gen_random_uuid(),
+  vendor_id   uuid  not null references public.vendors(id) on delete cascade,
+  brand_id    uuid  not null references public.brands(id) on delete cascade,
+  unique(vendor_id, brand_id)
+);
+
+alter table public.vendor_brands enable row level security;
+create policy "Admin manages vendor_brands" on public.vendor_brands using (auth.role() = 'authenticated');
+create policy "Public can read vendor_brands" on public.vendor_brands for select using (true);
+
+-- ──────────────────────────────────────────────
+--  15. CONTRACTS  (عقود الموردين)
 -- ──────────────────────────────────────────────
 
 -- العقد الموحّد (الأدمن يرفع ملف PDF واحد فعّال في أي وقت)

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { VendorStatusButton } from "../status-button";
+import { VendorBrandsEditor } from "./vendor-brands-editor";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending:  { label: "بانتظار المراجعة", color: "bg-amber-100 text-amber-700" },
@@ -24,15 +25,24 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("*, vendor_categories(category), vendor_regions(region)")
+    .select("*, vendor_categories(category), vendor_regions(region), vendor_brands(brand_id, brands(id, name))")
     .eq("id", id)
     .single();
 
   if (!vendor) notFound();
 
+  // All brands for the editor
+  const { data: allBrands } = await supabase
+    .from("brands")
+    .select("id, name")
+    .order("name");
+
   const status = STATUS_LABELS[vendor.status] ?? { label: vendor.status, color: "bg-gray-100 text-gray-600" };
   const cats = (vendor.vendor_categories as { category: string }[])?.map((c) => c.category) ?? [];
   const regions = (vendor.vendor_regions as { region: string }[])?.map((r) => r.region) ?? [];
+  const assignedBrands = (vendor.vendor_brands as { brand_id: string; brands: { id: string; name: string } | null }[])
+    ?.map((vb) => vb.brands)
+    .filter(Boolean) as { id: string; name: string }[] ?? [];
 
   return (
     <div>
@@ -132,6 +142,16 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
           ) : (
             <p className="text-sm text-[#1D3F1F]/30">لا توجد مناطق</p>
           )}
+        </div>
+
+        {/* Brands */}
+        <div className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 sm:col-span-2">
+          <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">العلامات التجارية التي يمثّلها</h2>
+          <VendorBrandsEditor
+            vendorId={vendor.id}
+            assignedBrands={assignedBrands}
+            allBrands={allBrands ?? []}
+          />
         </div>
 
         {/* Payment Terms */}
