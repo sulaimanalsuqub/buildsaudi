@@ -118,7 +118,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("quotes").insert({
+      const { data: inserted, error } = await supabase.from("quotes").insert({
         project_name: form.projectName,
         client_name: form.clientName,
         phone: form.phone,
@@ -127,8 +127,23 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         delivery_address: form.deliveryAddress,
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      // إرسال إشعار للأدمن (fire and forget)
+      fetch("/api/email/new-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: inserted?.id ?? "",
+          project_name: form.projectName,
+          client_name: form.clientName,
+          phone: form.phone,
+          delivery_address: form.deliveryAddress,
+          materials: form.materials,
+        }),
+      }).catch(() => {});
+
       setSubmitted(true);
     } catch {
       setErrors({ submit: isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again." });

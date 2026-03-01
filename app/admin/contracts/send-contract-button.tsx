@@ -42,18 +42,32 @@ export function SendContractButton({ contractId, vendors, label, small }: Props)
 
       if (error) throw error;
 
-      // Build sign links and show them (in production: send via email API)
-      const links = (inserted ?? []).map((sig) => {
+      // Fetch contract title for the email
+      const supabase2 = createClient();
+      const { data: contract } = await supabase2
+        .from("contracts")
+        .select("title")
+        .eq("id", contractId)
+        .single();
+
+      // Send email to each vendor via API route
+      const emailPromises = (inserted ?? []).map((sig) => {
         const vendor = vendors.find((v) => v.id === sig.vendor_id);
-        const url = `${window.location.origin}/vendor/sign/${sig.token}`;
-        return `${vendor?.establishment_name ?? sig.vendor_id}: ${url}`;
+        if (!vendor) return Promise.resolve();
+        return fetch("/api/email/contract-sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            establishment_name: vendor.establishment_name,
+            manager_name: vendor.establishment_name,
+            email: vendor.email,
+            token: sig.token,
+            contractTitle: contract?.title ?? "عقد الموردين",
+          }),
+        });
       });
 
-      if (links.length > 0) {
-        alert(
-          `تم إنشاء روابط التوقيع التالية:\n\n${links.join("\n\n")}\n\nيمكنك إرسالها للموردين عبر البريد الإلكتروني.`
-        );
-      }
+      await Promise.allSettled(emailPromises);
 
       setDone(true);
       router.refresh();

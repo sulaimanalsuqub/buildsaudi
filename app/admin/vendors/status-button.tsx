@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function VendorStatusButton({ id, currentStatus }: { id: string; currentStatus: string }) {
+interface Props {
+  id: string;
+  currentStatus: string;
+  vendorEmail?: string;
+  vendorName?: string;
+  managerName?: string;
+}
+
+export function VendorStatusButton({ id, currentStatus, vendorEmail, vendorName, managerName }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -12,6 +20,23 @@ export function VendorStatusButton({ id, currentStatus }: { id: string; currentS
     setLoading(true);
     const supabase = createClient();
     await supabase.from("vendors").update({ status }).eq("id", id);
+
+    // إرسال إيميل عند التفعيل أو الرفض
+    if (vendorEmail && vendorName && (status === "active" || status === "rejected")) {
+      fetch("/api/email/vendor-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: status === "active" ? "activated" : "rejected",
+          vendor: {
+            establishment_name: vendorName,
+            manager_name: managerName ?? vendorName,
+            email: vendorEmail,
+          },
+        }),
+      }).catch(() => {});
+    }
+
     router.refresh();
     setLoading(false);
   };

@@ -17,6 +17,7 @@ interface Vendor {
   establishment_name: string;
   manager_name: string;
   contact_number: string;
+  email: string;
   status: string;
   created_at: string;
   vendor_categories: { category: string }[];
@@ -144,7 +145,13 @@ export function VendorsTable({ vendors, allBrands }: Props) {
                       {new Date(v.created_at).toLocaleDateString("ar-SA")}
                     </td>
                     <td className="px-4 py-3">
-                      <VendorStatusButton id={v.id} currentStatus={v.status} />
+                      <VendorStatusButton
+                        id={v.id}
+                        currentStatus={v.status}
+                        vendorEmail={v.email}
+                        vendorName={v.establishment_name}
+                        managerName={v.manager_name}
+                      />
                     </td>
                   </tr>
                 );

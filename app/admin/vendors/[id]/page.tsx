@@ -66,7 +66,13 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             </span>
           </div>
         </div>
-        <VendorStatusButton id={vendor.id} currentStatus={vendor.status} />
+        <VendorStatusButton
+          id={vendor.id}
+          currentStatus={vendor.status}
+          vendorEmail={vendor.email}
+          vendorName={vendor.establishment_name}
+          managerName={vendor.manager_name}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
