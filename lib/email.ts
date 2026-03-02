@@ -2,8 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// بعد التحقق من build.sa في Resend، غيّر إلى: "Build Saudi <noreply@build.sa>"
-const FROM = "Build Saudi <onboarding@resend.dev>";
+const FROM = "Build Saudi <noreply@mail.build.com.sa>";
 const ADMIN_EMAIL = "sulaimanalsuqub@gmail.com";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa";
 
