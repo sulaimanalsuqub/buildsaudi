@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { VendorStatusButton } from "../status-button";
 import { VendorBrandsEditor } from "./vendor-brands-editor";
+import { DeleteVendorButton } from "../delete-vendor-button";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending:  { label: "بانتظار المراجعة", color: "bg-amber-100 text-amber-700" },
@@ -66,13 +67,16 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             </span>
           </div>
         </div>
-        <VendorStatusButton
-          id={vendor.id}
-          currentStatus={vendor.status}
-          vendorEmail={vendor.email}
-          vendorName={vendor.establishment_name}
-          managerName={vendor.manager_name}
-        />
+        <div className="flex items-center gap-2">
+          <VendorStatusButton
+            id={vendor.id}
+            currentStatus={vendor.status}
+            vendorEmail={vendor.email}
+            vendorName={vendor.establishment_name}
+            managerName={vendor.manager_name}
+          />
+          <DeleteVendorButton id={vendor.id} redirect />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

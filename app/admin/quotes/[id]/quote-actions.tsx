@@ -41,6 +41,14 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
     setLoading(false);
   };
 
+  const deleteQuote = async () => {
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع.")) return;
+    setLoading(true);
+    const supabase = createClient();
+    await supabase.from("quotes").delete().eq("id", id);
+    router.push("/admin/quotes");
+  };
+
   const action = NEXT_STATUS[currentStatus];
 
   if (currentStatus === "done") {
@@ -79,6 +87,14 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
           إلغاء
         </button>
       )}
+      <button
+        onClick={deleteQuote}
+        disabled={loading}
+        className="rounded-full border border-red-300 bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all hover:bg-red-200 disabled:opacity-60"
+        title="حذف نهائي"
+      >
+        🗑
+      </button>
     </div>
   );
 }

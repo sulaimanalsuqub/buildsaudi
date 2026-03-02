@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ApproveQuoteButton } from "./approve-button";
+import { DeleteQuoteButton } from "./delete-quote-button";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   new:                     { label: "جديد", color: "bg-amber-100 text-amber-700" },
@@ -72,10 +73,10 @@ export default async function AdminQuotesPage() {
                       {new Date(q.created_at).toLocaleDateString("ar-SA")}
                     </td>
                     <td className="px-4 py-3">
-                      {q.status === "new" && <ApproveQuoteButton id={q.id} />}
-                      {q.status !== "new" && (
-                        <span className="text-xs text-[#1D3F1F]/30">—</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {q.status === "new" && <ApproveQuoteButton id={q.id} />}
+                        <DeleteQuoteButton id={q.id} />
+                      </div>
                     </td>
                   </tr>
                 );

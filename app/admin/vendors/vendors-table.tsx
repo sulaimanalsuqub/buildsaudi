@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { VendorStatusButton } from "./status-button";
+import { DeleteVendorButton } from "./delete-vendor-button";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending:  { label: "بانتظار المراجعة", color: "bg-amber-100 text-amber-700" },
@@ -145,13 +146,16 @@ export function VendorsTable({ vendors, allBrands }: Props) {
                       {new Date(v.created_at).toLocaleDateString("ar-SA")}
                     </td>
                     <td className="px-4 py-3">
-                      <VendorStatusButton
-                        id={v.id}
-                        currentStatus={v.status}
-                        vendorEmail={v.email}
-                        vendorName={v.establishment_name}
-                        managerName={v.manager_name}
-                      />
+                      <div className="flex items-center gap-2">
+                        <VendorStatusButton
+                          id={v.id}
+                          currentStatus={v.status}
+                          vendorEmail={v.email}
+                          vendorName={v.establishment_name}
+                          managerName={v.manager_name}
+                        />
+                        <DeleteVendorButton id={v.id} />
+                      </div>
                     </td>
                   </tr>
                 );
