@@ -17,6 +17,8 @@ const t = {
     clientNamePlaceholder: "مثال: شركة الإنشاءات المتحدة",
     phone: "رقم التواصل",
     phonePlaceholder: "05xxxxxxxx",
+    email: "البريد الإلكتروني",
+    emailPlaceholder: "example@company.com",
     materials: "المواد المطلوبة",
     materialsPlaceholder: "صف المواد التي يحتاجها مشروعك (نوع المادة، الكميات التقريبية...)",
     boqFile: "ملف BOQ أو جدول الكميات",
@@ -48,6 +50,8 @@ const t = {
     clientNamePlaceholder: "e.g. United Construction Co.",
     phone: "Contact Number",
     phonePlaceholder: "+966 5x xxx xxxx",
+    email: "Email Address",
+    emailPlaceholder: "example@company.com",
     materials: "Required Materials",
     materialsPlaceholder: "Describe the materials your project needs (type, approximate quantities...)",
     boqFile: "BOQ or Quantity Schedule File",
@@ -85,6 +89,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     projectName: "",
     clientName: "",
     phone: "",
+    email: "",
     materials: "",
     sheetLink: "",
     deliveryAddress: "",
@@ -102,6 +107,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     if (!form.projectName.trim()) e.projectName = copy.required;
     if (!form.clientName.trim()) e.clientName = copy.required;
     if (!form.phone.trim()) e.phone = copy.required;
+    if (!form.email.trim()) e.email = copy.required;
     if (!form.materials.trim()) e.materials = copy.required;
     if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
     if (!form.deliveryDate) e.deliveryDate = copy.required;
@@ -122,6 +128,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         project_name: form.projectName,
         client_name: form.clientName,
         phone: form.phone,
+        client_email: form.email,
         materials: form.materials,
         sheet_link: form.sheetLink || null,
         delivery_address: form.deliveryAddress,
@@ -130,7 +137,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }).select("id").single();
       if (error) throw error;
 
-      // إرسال إشعار للأدمن (fire and forget)
+      // إرسال إشعار للأدمن + تأكيد للعميل (fire and forget)
       fetch("/api/email/new-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,6 +146,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           project_name: form.projectName,
           client_name: form.clientName,
           phone: form.phone,
+          client_email: form.email,
           delivery_address: form.deliveryAddress,
           materials: form.materials,
         }),
@@ -156,7 +164,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setSubmitted(false);
     setFileName("");
     setErrors({});
-    setForm({ projectName: "", clientName: "", phone: "", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
   };
 
   if (submitted) {
@@ -203,17 +211,29 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         </Field>
       </div>
 
-      {/* Phone */}
-      <Field label={copy.phone} error={errors.phone} required>
-        <input
-          type="tel"
-          placeholder={copy.phonePlaceholder}
-          value={form.phone}
-          onChange={(e) => set("phone", e.target.value)}
-          className={inputCls(!!errors.phone)}
-          dir="ltr"
-        />
-      </Field>
+      {/* Row: Phone + Email */}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label={copy.phone} error={errors.phone} required>
+          <input
+            type="tel"
+            placeholder={copy.phonePlaceholder}
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            className={inputCls(!!errors.phone)}
+            dir="ltr"
+          />
+        </Field>
+        <Field label={copy.email} error={errors.email} required>
+          <input
+            type="email"
+            placeholder={copy.emailPlaceholder}
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            className={inputCls(!!errors.email)}
+            dir="ltr"
+          />
+        </Field>
+      </div>
 
       {/* Materials */}
       <Field label={copy.materials} error={errors.materials} required>

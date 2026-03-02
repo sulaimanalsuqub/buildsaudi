@@ -52,11 +52,33 @@ export async function sendNewQuoteNotification(quote: {
 export async function sendQuoteConfirmationToClient(quote: {
   project_name: string;
   client_name: string;
-  phone: string;
+  client_email: string;
 }) {
-  // نرسل للأدمن فقط — العميل ليس عنده إيميل في النموذج الحالي
-  // هذه الدالة جاهزة للاستخدام لاحقاً عند إضافة حقل إيميل للعميل
-  return Promise.resolve({ skipped: "no client email field yet" });
+  return resend.emails.send({
+    from: FROM,
+    to: quote.client_email,
+    subject: `تم استلام طلبك — ${quote.project_name}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
+        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">تم استلام طلبك ✓</h1>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
+          <p style="margin: 0 0 16px;">مرحباً <strong>${quote.client_name}</strong>،</p>
+          <p style="color: #4b5563; line-height: 1.7;">
+            تم استلام طلب عرض السعر الخاص بمشروع <strong>${quote.project_name}</strong> بنجاح.
+            سيتواصل معك فريق Build Saudi خلال <strong>24 ساعة</strong> بعرض سعر مفصّل.
+          </p>
+          <div style="margin: 24px 0; padding: 16px; background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-size: 13px; color: #6b7280;">المشروع</p>
+            <p style="margin: 4px 0 0; font-weight: 600; color: #1D3F1F;">${quote.project_name}</p>
+          </div>
+          <p style="color: #6b7280; font-size: 13px;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
+          <p style="margin-top: 24px; color: #4b5563;">مع تحياتنا،<br/>فريق Build Saudi</p>
+        </div>
+      </div>
+    `,
+  });
 }
 
 // ─────────────────────────────────────────────
