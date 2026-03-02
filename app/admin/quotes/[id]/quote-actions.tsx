@@ -51,19 +51,36 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
 
   const action = NEXT_STATUS[currentStatus];
 
+  const deleteBtn = (
+    <button
+      onClick={deleteQuote}
+      disabled={loading}
+      className="rounded-full border border-red-300 bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all hover:bg-red-200 disabled:opacity-60"
+      title="حذف نهائي"
+    >
+      🗑
+    </button>
+  );
+
   if (currentStatus === "done") {
     return (
-      <span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
-        مكتمل ✓
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
+          مكتمل ✓
+        </span>
+        {deleteBtn}
+      </div>
     );
   }
 
   if (currentStatus === "cancelled") {
     return (
-      <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600">
-        ملغي
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600">
+          ملغي
+        </span>
+        {deleteBtn}
+      </div>
     );
   }
 
@@ -78,23 +95,14 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
           {loading ? "..." : action.label}
         </button>
       )}
-      {currentStatus !== "done" && currentStatus !== "cancelled" && (
-        <button
-          onClick={cancel}
-          disabled={loading}
-          className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
-        >
-          إلغاء
-        </button>
-      )}
       <button
-        onClick={deleteQuote}
+        onClick={cancel}
         disabled={loading}
-        className="rounded-full border border-red-300 bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all hover:bg-red-200 disabled:opacity-60"
-        title="حذف نهائي"
+        className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
       >
-        🗑
+        إلغاء
       </button>
+      {deleteBtn}
     </div>
   );
 }
