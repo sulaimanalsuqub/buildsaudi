@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
+
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { InviteUserForm } from "./invite-user-form";
 import { DeleteUserButton } from "./delete-user-button";
