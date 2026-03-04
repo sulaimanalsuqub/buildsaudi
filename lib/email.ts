@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = "Build Saudi <noreply@mail.build.com.sa>";
-const ADMIN_EMAIL = "sulaimanalsuqub@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "sulaimanalsuqub@gmail.com";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa";
 
 // ─────────────────────────────────────────────

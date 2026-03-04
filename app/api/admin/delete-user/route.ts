@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
     const { userId } = await req.json();
     if (!userId) return NextResponse.json({ error: "معرّف المستخدم مطلوب" }, { status: 400 });
 

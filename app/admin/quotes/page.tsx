@@ -19,12 +19,26 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelled:               { label: "ملغي", color: "bg-red-100 text-red-700" },
 };
 
-export default async function AdminQuotesPage() {
+const PAGE_SIZE = 20;
+
+export default async function AdminQuotesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10));
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   const supabase = await createClient();
-  const { data: quotes } = await supabase
+  const { data: quotes, count } = await supabase
     .from("quotes")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
   return (
     <div>
@@ -85,6 +99,32 @@ export default async function AdminQuotesPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-[#1D3F1F]/60">
+          <span>
+            صفحة {page} من {totalPages} ({count} طلب)
+          </span>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link
+                href={`/admin/quotes?page=${page - 1}`}
+                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
+              >
+                السابق
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link
+                href={`/admin/quotes?page=${page + 1}`}
+                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
+              >
+                التالي
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
