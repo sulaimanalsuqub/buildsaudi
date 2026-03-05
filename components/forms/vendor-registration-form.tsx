@@ -214,9 +214,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     setSubmitError("");
     try {
       const supabase = createClient();
-      const { data: vendor, error: vendorError } = await supabase
+      const vendorId = crypto.randomUUID();
+
+      const { error: vendorError } = await supabase
         .from("vendors")
         .insert({
+          id: vendorId,
           establishment_name: data.establishmentName,
           manager_name: data.managerName,
           contact_number: data.contactNumber,
@@ -229,22 +232,20 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           credit_limit: data.creditLimit ? Number(data.creditLimit) : null,
           payment_terms: data.paymentTerms,
           worked_on_gov_projects: data.workedOnGovProjects === "yes",
-        })
-        .select("id")
-        .single();
+        });
       if (vendorError) throw vendorError;
 
       // Insert categories
       if (data.productCategories.length > 0) {
         await supabase.from("vendor_categories").insert(
-          data.productCategories.map((c) => ({ vendor_id: vendor.id, category: c }))
+          data.productCategories.map((c) => ({ vendor_id: vendorId, category: c }))
         );
       }
 
       // Insert regions
       if (data.coverageRegions.length > 0) {
         await supabase.from("vendor_regions").insert(
-          data.coverageRegions.map((r) => ({ vendor_id: vendor.id, region: r }))
+          data.coverageRegions.map((r) => ({ vendor_id: vendorId, region: r }))
         );
       }
 
