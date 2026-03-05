@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
 export function DeleteQuoteButton({ id }: { id: string }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -11,9 +9,13 @@ export function DeleteQuoteButton({ id }: { id: string }) {
   const handleDelete = async () => {
     if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟")) return;
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("quotes").delete().eq("id", id);
-    router.refresh();
+    const res = await fetch("/api/admin/delete-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quoteId: id }),
+    });
+    if (res.ok) router.refresh();
+    setLoading(false);
   };
 
   return (

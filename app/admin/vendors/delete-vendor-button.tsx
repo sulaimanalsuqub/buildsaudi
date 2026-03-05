@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 export function DeleteVendorButton({ id, redirect = false }: { id: string; redirect?: boolean }) {
   const [loading, setLoading] = useState(false);
@@ -11,13 +10,19 @@ export function DeleteVendorButton({ id, redirect = false }: { id: string; redir
   const handleDelete = async () => {
     if (!confirm("هل أنت متأكد من حذف هذا المورد نهائياً؟ لا يمكن التراجع.")) return;
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("vendors").delete().eq("id", id);
-    if (redirect) {
-      router.push("/admin/vendors");
-    } else {
-      router.refresh();
+    const res = await fetch("/api/admin/delete-vendor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vendorId: id }),
+    });
+    if (res.ok) {
+      if (redirect) {
+        router.push("/admin/vendors");
+      } else {
+        router.refresh();
+      }
     }
+    setLoading(false);
   };
 
   return (

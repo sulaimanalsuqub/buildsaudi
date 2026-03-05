@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
 const NEXT_STATUS: Record<string, { label: string; next: string }> = {
   new:                    { label: "اعتماد الطلب", next: "admin_approved" },
   admin_approved:         { label: "تأكيد إرسال RFQ", next: "rfq_sent" },
@@ -18,6 +16,14 @@ const NEXT_STATUS: Record<string, { label: string; next: string }> = {
   in_delivery:            { label: "إتمام الطلب", next: "done" },
 };
 
+async function apiPost(path: string, body: object) {
+  return fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export function QuoteActions({ id, currentStatus }: { id: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -26,8 +32,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
     const action = NEXT_STATUS[currentStatus];
     if (!action) return;
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("quotes").update({ status: action.next }).eq("id", id);
+    await apiPost("/api/admin/update-quote-status", { quoteId: id, status: action.next });
     router.refresh();
     setLoading(false);
   };
@@ -35,8 +40,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
   const cancel = async () => {
     if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("quotes").update({ status: "cancelled" }).eq("id", id);
+    await apiPost("/api/admin/update-quote-status", { quoteId: id, status: "cancelled" });
     router.refresh();
     setLoading(false);
   };
@@ -44,9 +48,9 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
   const deleteQuote = async () => {
     if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع.")) return;
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("quotes").delete().eq("id", id);
-    router.push("/admin/quotes");
+    const res = await apiPost("/api/admin/delete-quote", { quoteId: id });
+    if (res.ok) router.push("/admin/quotes");
+    else setLoading(false);
   };
 
   const action = NEXT_STATUS[currentStatus];
