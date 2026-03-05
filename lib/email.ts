@@ -182,3 +182,78 @@ export async function sendVendorRejectedEmail(vendor: {
     `,
   });
 }
+
+// ─────────────────────────────────────────────
+//  6. عرض السعر النهائي للعميل (DDP)
+// ─────────────────────────────────────────────
+export async function sendClientOfferEmail(offer: {
+  client_name: string;
+  client_email: string;
+  project_name: string;
+  materials_total: number;
+  freight_total: number;
+  platform_fee: number;
+  grand_total: number;
+  validity_days: number;
+  offer_token: string;
+  delivery_address: string;
+  delivery_date: string;
+}) {
+  const offerUrl = `${BASE_URL}/offer/${offer.offer_token}`;
+  const fmt = (n: number) => n.toLocaleString("ar-SA") + " ر.س";
+
+  return resend.emails.send({
+    from: FROM,
+    to: offer.client_email,
+    subject: `عرض سعر جاهز — ${offer.project_name}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 620px; margin: 0 auto; color: #1D3F1F;">
+        <div style="background: #1D3F1F; padding: 28px 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">عرض سعر جاهز لمشروعك ✓</h1>
+          <p style="color: rgba(255,255,255,0.7); margin: 6px 0 0; font-size: 14px;">${offer.project_name}</p>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px; background: #fff;">
+          <p style="margin: 0 0 20px; font-size: 15px;">مرحباً <strong>${offer.client_name}</strong>،</p>
+          <p style="color: #4b5563; line-height: 1.7; margin: 0 0 24px;">
+            يسعدنا إبلاغك بأن عرض السعر لمشروع <strong>${offer.project_name}</strong> جاهز الآن.
+            يُرجى مراجعته والرد خلال <strong>${offer.validity_days} أيام</strong>.
+          </p>
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+            <h3 style="margin: 0 0 16px; font-size: 14px; color: #6b7280; font-weight: 600;">تفاصيل العرض</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">قيمة المواد والتوريد</td>
+                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.materials_total)}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">التوصيل والجمارك (DDP)</td>
+                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.freight_total)}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">رسوم خدمة المنصة</td>
+                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.platform_fee)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 14px 0 0; font-size: 16px; font-weight: 700; color: #1D3F1F;">الإجمالي DDP</td>
+                <td style="padding: 14px 0 0; text-align: left; font-size: 18px; font-weight: 700; color: #09B14B;" dir="ltr">${fmt(offer.grand_total)}</td>
+              </tr>
+            </table>
+          </div>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; margin-bottom: 28px;">
+            <p style="margin: 0 0 6px; font-size: 13px; color: #166534;">📦 عنوان التسليم: <strong>${offer.delivery_address}</strong></p>
+            <p style="margin: 0; font-size: 13px; color: #166534;">📅 تاريخ التسليم المطلوب: <strong>${offer.delivery_date}</strong></p>
+          </div>
+          <a href="${offerUrl}" style="display: block; text-align: center; background: #09B14B; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin-bottom: 16px;">
+            مراجعة العرض والرد عليه
+          </a>
+          <p style="text-align: center; font-size: 12px; color: #9ca3af; margin: 0;">
+            صالح لمدة ${offer.validity_days} أيام — ينتهي تلقائياً بعد انتهاء المدة
+          </p>
+          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 28px 0;" />
+          <p style="color: #6b7280; font-size: 13px; margin: 0;">للاستفسار يرجى التواصل معنا مباشرةً.</p>
+          <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
+        </div>
+      </div>
+    `,
+  });
+}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { QuoteActions } from "./quote-actions";
 import { AdminNotesClient } from "./admin-notes-client";
+import { OfferBuilder } from "./offer-builder";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   new:                    { label: "جديد", color: "bg-amber-100 text-amber-700" },
@@ -46,6 +47,15 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
     .single();
 
   if (!quote) notFound();
+
+  // Fetch existing client offer if any
+  const { data: clientOffer } = await supabase
+    .from("client_offers")
+    .select("materials_total, freight_total, platform_fee, grand_total, status, sent_at, offer_token")
+    .eq("quote_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-gray-100 text-gray-600" };
   const currentStepIdx = FLOW_STEPS.findIndex((s) => s.key === quote.status);
@@ -180,6 +190,76 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           <h2 className="mb-3 text-sm font-semibold text-[#1D3F1F]/50">ملاحظات الأدمن الداخلية</h2>
           <AdminNotesBox id={quote.id} currentNotes={quote.admin_notes ?? ""} />
         </div>
+
+        {/* Offer Builder — shown when ready to send offer */}
+        {quote.status === "freight_received" && (
+          <div className="sm:col-span-2">
+            <OfferBuilder
+              quoteId={quote.id}
+              clientName={quote.client_name}
+              clientEmail={quote.client_email ?? ""}
+              projectName={quote.project_name}
+              deliveryAddress={quote.delivery_address}
+              deliveryDate={new Date(quote.delivery_date).toLocaleDateString("ar-SA", {
+                year: "numeric", month: "long", day: "numeric",
+              })}
+            />
+          </div>
+        )}
+
+        {/* Sent Offer Summary */}
+        {clientOffer && ["offer_sent", "client_approved", "payment_pending", "payment_confirmed", "in_delivery", "done"].includes(quote.status) && (
+          <div className="sm:col-span-2 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
+            <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">
+              العرض المُرسَل للعميل
+              {clientOffer.sent_at && (
+                <span className="mr-2 font-normal text-[#1D3F1F]/35">
+                  — {new Date(clientOffer.sent_at).toLocaleDateString("ar-SA")}
+                </span>
+              )}
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm">
+              <div>
+                <p className="text-xs text-[#1D3F1F]/40">المواد</p>
+                <p className="font-semibold text-[#1D3F1F]">{Number(clientOffer.materials_total).toLocaleString("ar-SA")} ر.س</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#1D3F1F]/40">الشحن</p>
+                <p className="font-semibold text-[#1D3F1F]">{Number(clientOffer.freight_total).toLocaleString("ar-SA")} ر.س</p>
+              </div>
+              {clientOffer.platform_fee > 0 && (
+                <div>
+                  <p className="text-xs text-[#1D3F1F]/40">رسوم المنصة</p>
+                  <p className="font-semibold text-[#1D3F1F]">{Number(clientOffer.platform_fee).toLocaleString("ar-SA")} ر.س</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-[#1D3F1F]/40">الإجمالي DDP</p>
+                <p className="text-lg font-bold text-[#09B14B]">{Number(clientOffer.grand_total).toLocaleString("ar-SA")} ر.س</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                clientOffer.status === "accepted" ? "bg-green-100 text-green-700" :
+                clientOffer.status === "rejected" ? "bg-red-100 text-red-700" :
+                "bg-amber-100 text-amber-700"
+              }`}>
+                {clientOffer.status === "accepted" ? "العميل وافق ✓" :
+                 clientOffer.status === "rejected" ? "العميل رفض" : "بانتظار رد العميل"}
+              </span>
+              {clientOffer.offer_token && (
+                <a
+                  href={`/offer/${clientOffer.offer_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#09B14B] hover:underline"
+                >
+                  رابط العرض ↗
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
