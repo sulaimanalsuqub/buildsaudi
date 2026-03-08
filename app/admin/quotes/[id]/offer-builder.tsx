@@ -79,7 +79,7 @@ export function OfferBuilder({
     <div className="rounded-[16px] border border-[#09B14B]/30 bg-[#f0fdf4] p-5">
       <h2 className="mb-1 text-sm font-semibold text-[#1D3F1F]">بناء عرض السعر DDP</h2>
       <p className="mb-4 text-xs text-[#1D3F1F]/55">
-        أدخل الأرقام ثم اضغط "إرسال العرض" — سيصل إيميل للعميل بالتفاصيل ورابط للموافقة
+        أدخل الأرقام ثم اضغط &quot;إرسال العرض&quot; — سيصل إيميل للعميل بالتفاصيل ورابط للموافقة
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
