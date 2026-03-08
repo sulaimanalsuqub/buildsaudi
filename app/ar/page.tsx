@@ -4,7 +4,7 @@ import { HomeContent } from "@/components/sections/home-content";
 import { ServiceSchema } from "@/components/seo/schema-org";
 
 export const metadata: Metadata = {
-  title: "توريد مواد البناء في السعودية | توصيل DDP لموقع المشروع",
+  title: { absolute: "بيلد | مورد مواد البناء في السعودية" },
   description:
     "بيلد منصة سعودية لتوريد مواد البناء بتوصيل DDP مباشرة لموقع مشروعك — أسعار تنافسية، لوجستيات متكاملة، بدون تعقيد.",
   keywords: siteConfig.keywordsAr,

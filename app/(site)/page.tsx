@@ -4,7 +4,7 @@ import { HomeContent } from "@/components/sections/home-content";
 import { ServiceSchema } from "@/components/seo/schema-org";
 
 export const metadata: Metadata = {
-  title: "Construction Material Supply Saudi Arabia | DDP Delivery to Site",
+  title: { absolute: "Build | Construction Material Supplier in Saudi Arabia" },
   description:
     "Build sources and delivers construction materials DDP to your Saudi project site. Faster procurement, competitive pricing, and full logistics — from supplier to site.",
   keywords: siteConfig.keywords,
