@@ -7,14 +7,22 @@ export function AdminNotesClient({ id, currentNotes }: { id: string; currentNote
   const [notes, setNotes] = useState(currentNotes);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const save = async () => {
     setSaving(true);
-    const supabase = createClient();
-    await supabase.from("quotes").update({ admin_notes: notes }).eq("id", id);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaveError("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("quotes").update({ admin_notes: notes }).eq("id", id);
+      if (error) throw error;
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError("فشل الحفظ. حاول مجدداً.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -35,6 +43,7 @@ export function AdminNotesClient({ id, currentNotes }: { id: string; currentNote
           {saving ? "جارٍ الحفظ..." : "حفظ"}
         </button>
         {saved && <span className="text-xs text-[#09B14B]">تم الحفظ ✓</span>}
+        {saveError && <span className="text-xs text-red-500">{saveError}</span>}
       </div>
     </div>
   );

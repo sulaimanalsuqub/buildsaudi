@@ -26,31 +26,65 @@ async function apiPost(path: string, body: object) {
 
 export function QuoteActions({ id, currentStatus }: { id: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const advance = async () => {
     const action = NEXT_STATUS[currentStatus];
     if (!action) return;
     setLoading(true);
-    await apiPost("/api/admin/update-quote-status", { quoteId: id, status: action.next });
-    router.refresh();
-    setLoading(false);
+    setError("");
+    try {
+      const res = await apiPost("/api/admin/update-quote-status", { quoteId: id, status: action.next });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "حدث خطأ");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("حدث خطأ في الاتصال");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const cancel = async () => {
     if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
     setLoading(true);
-    await apiPost("/api/admin/update-quote-status", { quoteId: id, status: "cancelled" });
-    router.refresh();
-    setLoading(false);
+    setError("");
+    try {
+      const res = await apiPost("/api/admin/update-quote-status", { quoteId: id, status: "cancelled" });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "حدث خطأ");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("حدث خطأ في الاتصال");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteQuote = async () => {
     if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع.")) return;
     setLoading(true);
-    const res = await apiPost("/api/admin/delete-quote", { quoteId: id });
-    if (res.ok) router.push("/admin/quotes");
-    else setLoading(false);
+    setError("");
+    try {
+      const res = await apiPost("/api/admin/delete-quote", { quoteId: id });
+      if (res.ok) {
+        router.push("/admin/quotes");
+      } else {
+        const data = await res.json();
+        setError(data.error ?? "فشل الحذف");
+        setLoading(false);
+      }
+    } catch {
+      setError("حدث خطأ في الاتصال");
+      setLoading(false);
+    }
   };
 
   const action = NEXT_STATUS[currentStatus];
@@ -68,45 +102,54 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
 
   if (currentStatus === "done") {
     return (
-      <div className="flex items-center gap-2">
-        <span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
-          مكتمل ✓
-        </span>
-        {deleteBtn}
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
+            مكتمل ✓
+          </span>
+          {deleteBtn}
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     );
   }
 
   if (currentStatus === "cancelled") {
     return (
-      <div className="flex items-center gap-2">
-        <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600">
-          ملغي
-        </span>
-        {deleteBtn}
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-600">
+            ملغي
+          </span>
+          {deleteBtn}
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {action && (
+    <div className="flex flex-col items-end gap-1" dir="rtl">
+      <div className="flex items-center gap-2">
+        {action && (
+          <button
+            onClick={advance}
+            disabled={loading}
+            className="rounded-full bg-[#09B14B] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#1D3F1F] disabled:opacity-60"
+          >
+            {loading ? "..." : action.label}
+          </button>
+        )}
         <button
-          onClick={advance}
+          onClick={cancel}
           disabled={loading}
-          className="rounded-full bg-[#09B14B] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#1D3F1F] disabled:opacity-60"
+          className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
         >
-          {loading ? "..." : action.label}
+          إلغاء
         </button>
-      )}
-      <button
-        onClick={cancel}
-        disabled={loading}
-        className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
-      >
-        إلغاء
-      </button>
-      {deleteBtn}
+        {deleteBtn}
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

@@ -3,6 +3,12 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+// التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
+function isValidSaudiPhone(phone: string): boolean {
+  const cleaned = phone.replace(/\s+/g, "");
+  return /^(05\d{8}|\+9665\d{8}|009665\d{8})$/.test(cleaned);
+}
+
 type GetQuoteFormProps = {
   isRtl?: boolean;
 };
@@ -37,6 +43,9 @@ const t = {
     successMsg: "شكراً لك. سيتواصل معك فريق بيلد خلال 24 ساعة بعرض سعر مفصّل لمشروعك.",
     successBtn: "إرسال طلب آخر",
     required: "هذا الحقل مطلوب",
+    invalidPhone: "رقم الهاتف غير صحيح (مثال: 05xxxxxxxx)",
+    fileTooLarge: "حجم الملف يتجاوز 10 ميجابايت",
+    fileUploadError: "فشل رفع الملف. حاول مجدداً.",
     chooseFile: "اختر ملفاً",
     noFileChosen: "لم يُختر ملف",
     orDivider: "أو",
@@ -70,6 +79,9 @@ const t = {
     successMsg: "Thank you. The Build team will contact you within 24 hours with a detailed quote for your project.",
     successBtn: "Submit Another Request",
     required: "This field is required",
+    invalidPhone: "Invalid phone number (e.g. 05xxxxxxxx)",
+    fileTooLarge: "File size exceeds 10MB",
+    fileUploadError: "File upload failed. Please try again.",
     chooseFile: "Choose File",
     noFileChosen: "No file chosen",
     orDivider: "or",
@@ -83,6 +95,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
@@ -106,11 +119,16 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     const e: Record<string, string> = {};
     if (!form.projectName.trim()) e.projectName = copy.required;
     if (!form.clientName.trim()) e.clientName = copy.required;
-    if (!form.phone.trim()) e.phone = copy.required;
+    if (!form.phone.trim()) {
+      e.phone = copy.required;
+    } else if (!isValidSaudiPhone(form.phone)) {
+      e.phone = copy.invalidPhone;
+    }
     if (!form.email.trim()) e.email = copy.required;
     if (!form.materials.trim()) e.materials = copy.required;
     if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
     if (!form.deliveryDate) e.deliveryDate = copy.required;
+    if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
     return e;
   };
 
@@ -124,6 +142,24 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setLoading(true);
     try {
       const supabase = createClient();
+
+      // رفع ملف BOQ إذا وجد
+      let boqFileUrl: string | null = null;
+      if (selectedFile) {
+        const ext = selectedFile.name.split(".").pop();
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("boq-files")
+          .upload(path, selectedFile, { cacheControl: "3600", upsert: false });
+        if (uploadError) {
+          setErrors({ boqFile: copy.fileUploadError });
+          setLoading(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from("boq-files").getPublicUrl(path);
+        boqFileUrl = urlData.publicUrl;
+      }
+
       const { data: inserted, error } = await supabase.from("quotes").insert({
         project_name: form.projectName,
         client_name: form.clientName,
@@ -134,23 +170,29 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         delivery_address: form.deliveryAddress,
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
+        boq_file_url: boqFileUrl,
       }).select("id").single();
       if (error) throw error;
 
-      // إرسال إشعار للأدمن + تأكيد للعميل (fire and forget)
-      fetch("/api/email/new-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: inserted?.id ?? "",
-          project_name: form.projectName,
-          client_name: form.clientName,
-          phone: form.phone,
-          client_email: form.email,
-          delivery_address: form.deliveryAddress,
-          materials: form.materials,
-        }),
-      }).catch(() => {});
+      // إرسال إشعار للأدمن + تأكيد للعميل
+      try {
+        await fetch("/api/email/new-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: inserted?.id ?? "",
+            project_name: form.projectName,
+            client_name: form.clientName,
+            phone: form.phone,
+            client_email: form.email,
+            delivery_address: form.deliveryAddress,
+            materials: form.materials,
+          }),
+        });
+      } catch {
+        // الطلب تم حفظه - فشل البريد لا يمنع إظهار النجاح
+        console.error("Email notification failed for quote", inserted?.id);
+      }
 
       setSubmitted(true);
     } catch {
@@ -163,8 +205,10 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const reset = () => {
     setSubmitted(false);
     setFileName("");
+    setSelectedFile(null);
     setErrors({});
     setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   if (submitted) {
@@ -267,9 +311,14 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) setFileName(file.name);
+            if (file) {
+              setFileName(file.name);
+              setSelectedFile(file);
+              setErrors((p) => ({ ...p, boqFile: "" }));
+            }
           }}
         />
+        {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
       </Field>
 
       {/* Divider */}

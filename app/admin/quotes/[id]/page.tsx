@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { QuoteActions } from "./quote-actions";
 import { AdminNotesClient } from "./admin-notes-client";
+import { QuoteItemsEditor } from "./quote-items-editor";
+import { RfqManager } from "./rfq-manager";
+import { VendorQuoteEntry } from "./vendor-quote-entry";
+import { FreightQuoteEntry } from "./freight-quote-entry";
 import { OfferBuilder } from "./offer-builder";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -36,6 +40,12 @@ const FLOW_STEPS = [
   { key: "done", label: "مكتمل" },
 ];
 
+// حالات تُشغّل المراحل المختلفة
+const PHASE1_STATUSES = ["admin_approved", "rfq_sent", "vendor_quotes_received", "freight_sent", "freight_received"];
+const PHASE2_STATUSES = ["admin_approved", "rfq_sent"];
+const PHASE3_STATUSES = ["rfq_sent", "vendor_quotes_received", "freight_sent", "freight_received"];
+const PHASE_FREIGHT_STATUSES = ["vendor_quotes_received", "freight_sent", "freight_received"];
+
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -48,17 +58,78 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
   if (!quote) notFound();
 
-  // Fetch existing client offer if any
-  const { data: clientOffer } = await supabase
-    .from("client_offers")
-    .select("materials_total, freight_total, platform_fee, grand_total, status, sent_at, offer_token")
-    .eq("quote_id", id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // جلب كل البيانات المطلوبة بشكل متوازٍ
+  const [
+    { data: clientOffer },
+    { data: quoteItems },
+    { data: rfqsRaw },
+    { data: activeVendors },
+    { data: freightQuotes },
+  ] = await Promise.all([
+    supabase
+      .from("client_offers")
+      .select("materials_total, freight_total, platform_fee, grand_total, status, sent_at, offer_token")
+      .eq("quote_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("quote_items")
+      .select("*")
+      .eq("quote_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("rfqs")
+      .select("*, vendors(id, establishment_name, manager_name, email)")
+      .eq("quote_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("vendors")
+      .select("id, establishment_name, manager_name, email, vendor_categories(category)")
+      .eq("status", "active")
+      .order("establishment_name"),
+    supabase
+      .from("freight_quotes")
+      .select("*")
+      .eq("quote_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  // جلب vendor_quotes بناءً على rfq_ids
+  const rfqIds = (rfqsRaw ?? []).map((r: { id: string }) => r.id);
+  const { data: vendorQuotesRaw } =
+    rfqIds.length > 0
+      ? await supabase
+          .from("vendor_quotes")
+          .select("*")
+          .in("rfq_id", rfqIds)
+          .order("created_at", { ascending: true })
+      : { data: [] };
+
+  // إضافة اسم المورد لعروض الموردين (لـ OfferBuilder)
+  type VendorQuoteRow = {
+    id: string; rfq_id: string; vendor_id: string; total_price: number;
+    delivery_days: number | null; notes: string | null; vendorName?: string;
+  };
+  const vendorQuotes: VendorQuoteRow[] = (vendorQuotesRaw ?? []).map((vq) => {
+    const rfq = (rfqsRaw ?? []).find((r) => r.id === (vq as { rfq_id: string }).rfq_id);
+    const vendor = rfq?.vendors as { establishment_name: string } | null;
+    return { ...(vq as VendorQuoteRow), vendorName: vendor?.establishment_name ?? undefined };
+  });
 
   const status = STATUS_LABELS[quote.status] ?? { label: quote.status, color: "bg-gray-100 text-gray-600" };
   const currentStepIdx = FLOW_STEPS.findIndex((s) => s.key === quote.status);
+
+  const showPhase1 = PHASE1_STATUSES.includes(quote.status);
+  const showPhase2 = PHASE2_STATUSES.includes(quote.status) && (quoteItems ?? []).length > 0;
+  const showPhase3 = PHASE3_STATUSES.includes(quote.status) && (rfqsRaw ?? []).length > 0;
+  const showFreightEntry = PHASE_FREIGHT_STATUSES.includes(quote.status);
+  const showOfferBuilder = quote.status === "freight_received";
+  const showSentOffer =
+    !!clientOffer &&
+    ["offer_sent", "client_approved", "payment_pending", "payment_confirmed", "in_delivery", "done"].includes(
+      quote.status
+    );
 
   return (
     <div>
@@ -188,11 +259,55 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         {/* Admin Notes */}
         <div className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 sm:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-[#1D3F1F]/50">ملاحظات الأدمن الداخلية</h2>
-          <AdminNotesBox id={quote.id} currentNotes={quote.admin_notes ?? ""} />
+          <AdminNotesClient id={quote.id} currentNotes={quote.admin_notes ?? ""} />
         </div>
 
-        {/* Offer Builder — shown when ready to send offer */}
-        {quote.status === "freight_received" && (
+        {/* المرحلة ١: تفكيك المواد */}
+        {showPhase1 && (
+          <div className="sm:col-span-2">
+            <QuoteItemsEditor
+              quoteId={quote.id}
+              initialItems={quoteItems ?? []}
+              materialsText={quote.materials ?? ""}
+              quoteStatus={quote.status}
+            />
+          </div>
+        )}
+
+        {/* المرحلة ٢: إرسال RFQ للموردين */}
+        {showPhase2 && (
+          <div className="sm:col-span-2">
+            <RfqManager
+              quoteId={quote.id}
+              quoteItems={quoteItems ?? []}
+              initialRfqs={rfqsRaw ?? []}
+              activeVendors={activeVendors ?? []}
+            />
+          </div>
+        )}
+
+        {/* المرحلة ٣: إدخال أسعار الموردين */}
+        {showPhase3 && (
+          <div className="sm:col-span-2">
+            <VendorQuoteEntry
+              initialRfqs={rfqsRaw ?? []}
+              initialVendorQuotes={vendorQuotesRaw ?? []}
+            />
+          </div>
+        )}
+
+        {/* أسعار الشحن */}
+        {showFreightEntry && (
+          <div className="sm:col-span-2">
+            <FreightQuoteEntry
+              quoteId={quote.id}
+              initialFreightQuotes={freightQuotes ?? []}
+            />
+          </div>
+        )}
+
+        {/* المرحلة ٤: بناء العرض النهائي */}
+        {showOfferBuilder && (
           <div className="sm:col-span-2">
             <OfferBuilder
               quoteId={quote.id}
@@ -203,12 +318,14 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               deliveryDate={new Date(quote.delivery_date).toLocaleDateString("ar-SA", {
                 year: "numeric", month: "long", day: "numeric",
               })}
+              initialVendorQuotes={vendorQuotes}
+              initialFreightQuotes={freightQuotes ?? []}
             />
           </div>
         )}
 
-        {/* Sent Offer Summary */}
-        {clientOffer && ["offer_sent", "client_approved", "payment_pending", "payment_confirmed", "in_delivery", "done"].includes(quote.status) && (
+        {/* ملخص العرض المُرسَل */}
+        {showSentOffer && clientOffer && (
           <div className="sm:col-span-2 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
             <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">
               العرض المُرسَل للعميل
@@ -229,7 +346,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               </div>
               {clientOffer.platform_fee > 0 && (
                 <div>
-                  <p className="text-xs text-[#1D3F1F]/40">رسوم المنصة</p>
+                  <p className="text-xs text-[#1D3F1F]/40">رسوم إضافية</p>
                   <p className="font-semibold text-[#1D3F1F]">{Number(clientOffer.platform_fee).toLocaleString("ar-SA")} ر.س</p>
                 </div>
               )}
@@ -272,9 +389,4 @@ function Row({ label, value, dir }: { label: string; value: string; dir?: string
       <p className="mt-0.5 text-sm font-medium text-[#1D3F1F]" dir={dir}>{value}</p>
     </div>
   );
-}
-
-// Inline server component — just renders the client box
-function AdminNotesBox({ id, currentNotes }: { id: string; currentNotes: string }) {
-  return <AdminNotesClient id={id} currentNotes={currentNotes} />;
 }
