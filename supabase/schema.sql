@@ -84,6 +84,7 @@ create table if not exists public.quotes (
   id                uuid        primary key default gen_random_uuid(),
   project_name      text        not null,
   client_name       text        not null,
+  client_email      text,
   phone             text        not null,
   materials         text        not null,
   boq_file_url      text,
@@ -181,7 +182,8 @@ create policy "Service role manages vendor_quotes" on public.vendor_quotes using
 create table if not exists public.freight_quotes (
   id              uuid        primary key default gen_random_uuid(),
   quote_id        uuid        not null references public.quotes(id) on delete cascade,
-  agent_id        uuid        not null references public.freight_agents(id) on delete cascade,
+  agent_id        uuid        references public.freight_agents(id) on delete cascade,
+  -- agent_id is nullable — freight is entered manually without requiring an agent record
   price           numeric     not null,
   currency        text        not null default 'SAR',
   delivery_days   int,
@@ -202,9 +204,14 @@ create table if not exists public.client_offers (
   quote_id            uuid        not null references public.quotes(id) on delete cascade,
   materials_total     numeric     not null,
   freight_total       numeric     not null,
-  grand_total         numeric     generated always as (materials_total + freight_total) stored,
+  grand_total         numeric,
+  -- grand_total is computed and stored by the application (materials_total + freight_total + platform_fee)
+  platform_fee        numeric     not null default 0,
   currency            text        not null default 'SAR',
   validity_days       int         default 7,
+  offer_token         uuid        unique,
+  -- used to share the offer link with the client without authentication
+  expires_at          timestamptz,
   items               jsonb,
   freight_agent_id    uuid        references public.freight_agents(id),
   status              text        not null default 'draft',
@@ -217,6 +224,8 @@ create table if not exists public.client_offers (
 
 alter table public.client_offers enable row level security;
 create policy "Service role manages client_offers" on public.client_offers using (false);
+create policy "Public can read offer by token" on public.client_offers for select
+  using (offer_token is not null);
 
 -- ──────────────────────────────────────────────
 --  12. PAYMENTS  (الحوالات البنكية)
@@ -323,7 +332,7 @@ create policy "Public can sign via token" on public.vendor_contract_signatures f
 create policy "Public can read via token" on public.vendor_contract_signatures for select using (true);
 
 -- ──────────────────────────────────────────────
---  15. AGENT_LOGS  (سجل عمليات AI Agent)
+--  16. AGENT_LOGS  (سجل عمليات AI Agent)
 -- ──────────────────────────────────────────────
 create table if not exists public.agent_logs (
   id            uuid        primary key default gen_random_uuid(),
