@@ -62,5 +62,78 @@ create policy "Public can read offer by token"
 -- on conflict do nothing;
 
 -- ─────────────────────────────────────
+-- 6. إضافة unique constraint على rfq_id في vendor_quotes
+--    (الكود يستخدم upsert مع onConflict: "rfq_id")
+-- ─────────────────────────────────────
+alter table public.vendor_quotes
+  add constraint vendor_quotes_rfq_id_unique unique (rfq_id);
+
+-- ─────────────────────────────────────
+-- 7. إضافة updated_at للجداول الرئيسية
+-- ─────────────────────────────────────
+alter table public.quotes
+  add column if not exists updated_at timestamptz default now();
+
+alter table public.vendors
+  add column if not exists updated_at timestamptz default now();
+
+alter table public.client_offers
+  add column if not exists updated_at timestamptz default now();
+
+alter table public.vendor_quotes
+  add column if not exists updated_at timestamptz default now();
+
+-- Trigger لتحديث updated_at تلقائياً عند أي تعديل
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists quotes_updated_at on public.quotes;
+create trigger quotes_updated_at
+  before update on public.quotes
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists vendors_updated_at on public.vendors;
+create trigger vendors_updated_at
+  before update on public.vendors
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists client_offers_updated_at on public.client_offers;
+create trigger client_offers_updated_at
+  before update on public.client_offers
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists vendor_quotes_updated_at on public.vendor_quotes;
+create trigger vendor_quotes_updated_at
+  before update on public.vendor_quotes
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────
+-- 8. إضافة Indexes للأداء
+-- ─────────────────────────────────────
+create index if not exists idx_quotes_status on public.quotes(status);
+create index if not exists idx_quotes_created_at on public.quotes(created_at desc);
+create index if not exists idx_vendors_status on public.vendors(status);
+create index if not exists idx_rfqs_quote_id on public.rfqs(quote_id);
+create index if not exists idx_rfqs_vendor_id on public.rfqs(vendor_id);
+create index if not exists idx_quote_items_quote_id on public.quote_items(quote_id);
+create index if not exists idx_rfq_items_rfq_id on public.rfq_items(rfq_id);
+create index if not exists idx_vendor_quotes_rfq_id on public.vendor_quotes(rfq_id);
+create index if not exists idx_vendor_quotes_vendor_id on public.vendor_quotes(vendor_id);
+create index if not exists idx_freight_quotes_quote_id on public.freight_quotes(quote_id);
+create index if not exists idx_client_offers_quote_id on public.client_offers(quote_id);
+create index if not exists idx_client_offers_offer_token on public.client_offers(offer_token);
+create index if not exists idx_payments_quote_id on public.payments(quote_id);
+create index if not exists idx_vendor_categories_vendor_id on public.vendor_categories(vendor_id);
+create index if not exists idx_vendor_regions_vendor_id on public.vendor_regions(vendor_id);
+create index if not exists idx_vendor_brands_vendor_id on public.vendor_brands(vendor_id);
+create index if not exists idx_vendor_contract_signatures_vendor_id on public.vendor_contract_signatures(vendor_id);
+create index if not exists idx_vendor_contract_signatures_token on public.vendor_contract_signatures(token);
+
+-- ─────────────────────────────────────
 -- ✅ انتهت المايجريشن
 -- ─────────────────────────────────────

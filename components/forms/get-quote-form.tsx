@@ -9,6 +9,10 @@ function isValidSaudiPhone(phone: string): boolean {
   return /^(05\d{8}|\+9665\d{8}|009665\d{8})$/.test(cleaned);
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
 type GetQuoteFormProps = {
   isRtl?: boolean;
 };
@@ -44,6 +48,7 @@ const t = {
     successBtn: "إرسال طلب آخر",
     required: "هذا الحقل مطلوب",
     invalidPhone: "رقم الهاتف غير صحيح (مثال: 05xxxxxxxx)",
+    invalidEmail: "البريد الإلكتروني غير صحيح",
     fileTooLarge: "حجم الملف يتجاوز 10 ميجابايت",
     fileUploadError: "فشل رفع الملف. حاول مجدداً.",
     chooseFile: "اختر ملفاً",
@@ -80,6 +85,7 @@ const t = {
     successBtn: "Submit Another Request",
     required: "This field is required",
     invalidPhone: "Invalid phone number (e.g. 05xxxxxxxx)",
+    invalidEmail: "Invalid email address",
     fileTooLarge: "File size exceeds 10MB",
     fileUploadError: "File upload failed. Please try again.",
     chooseFile: "Choose File",
@@ -93,6 +99,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [submitted, setSubmitted] = useState(false);
+  const [quoteRef, setQuoteRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -124,7 +131,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     } else if (!isValidSaudiPhone(form.phone)) {
       e.phone = copy.invalidPhone;
     }
-    if (!form.email.trim()) e.email = copy.required;
+    if (!form.email.trim()) {
+      e.email = copy.required;
+    } else if (!isValidEmail(form.email)) {
+      e.email = copy.invalidEmail;
+    }
     if (!form.materials.trim()) e.materials = copy.required;
     if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
     if (!form.deliveryDate) e.deliveryDate = copy.required;
@@ -174,6 +185,10 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }).select("id").single();
       if (error) throw error;
 
+      // حفظ الرقم المرجعي
+      const refId = (inserted?.id ?? "").split("-")[0].toUpperCase();
+      setQuoteRef(refId);
+
       // إرسال إشعار للأدمن + تأكيد للعميل
       try {
         await fetch("/api/email/new-quote", {
@@ -204,6 +219,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
   const reset = () => {
     setSubmitted(false);
+    setQuoteRef("");
     setFileName("");
     setSelectedFile(null);
     setErrors({});
@@ -219,6 +235,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         </div>
         <div>
           <h2 className="text-2xl font-bold text-brand-dark">{copy.successTitle}</h2>
+          {quoteRef && (
+            <div className="mt-4 inline-block rounded-xl border border-brand-dark/10 bg-brand-light px-6 py-3">
+              <p className="text-xs text-brand-dark/50">{isRtl ? "رقم الطلب المرجعي" : "Reference Number"}</p>
+              <p className="mt-1 text-lg font-bold tracking-wider text-brand-dark" dir="ltr">#{quoteRef}</p>
+            </div>
+          )}
           <p className="mt-3 max-w-md text-brand-dark/60 leading-relaxed">{copy.successMsg}</p>
         </div>
         <button

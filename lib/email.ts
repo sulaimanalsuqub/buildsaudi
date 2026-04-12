@@ -1,10 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 const FROM = "Build Saudi <noreply@mail.build.com.sa>";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "sulaimanalsuqub@gmail.com";
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL!;
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.build.sa";
 
 // تحصين HTML لمنع XSS
 function esc(str: string | null | undefined): string {
@@ -14,7 +16,21 @@ function esc(str: string | null | undefined): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
+
+// تحصين الروابط — منع javascript: و data: protocols
+function safeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+      return "#";
+    }
+    return url;
+  } catch {
+    return "#";
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -28,7 +44,7 @@ export async function sendNewQuoteNotification(quote: {
   delivery_address: string;
   materials: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `طلب تسعير جديد — ${quote.project_name}`,
@@ -46,7 +62,7 @@ export async function sendNewQuoteNotification(quote: {
             <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">المواد</td><td style="padding: 8px 0;">${esc(quote.materials)}</td></tr>
           </table>
           <div style="margin-top: 24px;">
-            <a href="${BASE_URL}/admin/quotes/${quote.id}"
+            <a href="${safeUrl(`${BASE_URL}/admin/quotes/${quote.id}`)}"
                style="background: #09B14B; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
               عرض الطلب
             </a>
@@ -65,7 +81,7 @@ export async function sendQuoteConfirmationToClient(quote: {
   client_name: string;
   client_email: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: quote.client_email,
     subject: `تم استلام طلبك — ${quote.project_name}`,
@@ -102,9 +118,9 @@ export async function sendContractSignLink(vendor: {
   token: string;
   contractTitle: string;
 }) {
-  const signUrl = `${BASE_URL}/vendor/sign/${vendor.token}`;
+  const signUrl = safeUrl(`${BASE_URL}/vendor/sign/${vendor.token}`);
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: vendor.email,
     subject: `طلب توقيع عقد — ${vendor.contractTitle}`,
@@ -141,7 +157,7 @@ export async function sendVendorActivatedEmail(vendor: {
   manager_name: string;
   email: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: vendor.email,
     subject: "تم تفعيل حسابك كمورد — Build Saudi",
@@ -171,7 +187,7 @@ export async function sendVendorRejectedEmail(vendor: {
   manager_name: string;
   email: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: vendor.email,
     subject: "بخصوص طلب الانضمام — Build Saudi",
@@ -221,7 +237,7 @@ export async function sendRfqToVendor(params: {
     )
     .join("");
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: params.vendorEmail,
     subject: `طلب عرض سعر — ${params.projectName}`,
@@ -295,10 +311,10 @@ export async function sendClientOfferEmail(offer: {
   delivery_address: string;
   delivery_date: string;
 }) {
-  const offerUrl = `${BASE_URL}/offer/${offer.offer_token}`;
+  const offerUrl = safeUrl(`${BASE_URL}/offer/${offer.offer_token}`);
   const fmt = (n: number) => n.toLocaleString("ar-SA") + " ر.س";
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: offer.client_email,
     subject: `عرض سعر جاهز — ${offer.project_name}`,
@@ -348,6 +364,115 @@ export async function sendClientOfferEmail(offer: {
           <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 28px 0;" />
           <p style="color: #6b7280; font-size: 13px; margin: 0;">للاستفسار يرجى التواصل معنا مباشرةً.</p>
           <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+// ─────────────────────────────────────────────
+//  8. إشعار العميل — تحديث حالة الطلب
+// ─────────────────────────────────────────────
+const STATUS_CLIENT_MAP: Record<string, { subject: string; title: string; message: string; color: string }> = {
+  admin_approved: {
+    subject: "طلبك تحت المعالجة",
+    title: "طلبك قيد المعالجة",
+    message: "تم مراجعة طلبك والموافقة عليه. نعمل الآن على تجهيز عروض الأسعار من الموردين المعتمدين وسنوافيك بالعرض النهائي في أقرب وقت.",
+    color: "#09B14B",
+  },
+  payment_pending: {
+    subject: "بانتظار تأكيد الدفع",
+    title: "بانتظار الدفع",
+    message: "شكراً لموافقتك على العرض. يُرجى إتمام عملية الدفع حتى نتمكن من البدء بتجهيز طلبك.",
+    color: "#f59e0b",
+  },
+  payment_confirmed: {
+    subject: "تم تأكيد الدفع",
+    title: "تم تأكيد الدفع ✓",
+    message: "تم استلام وتأكيد الدفع بنجاح. سنبدأ بتجهيز طلبك وشحنه في أقرب وقت.",
+    color: "#09B14B",
+  },
+  in_delivery: {
+    subject: "طلبك في الطريق",
+    title: "طلبك في الطريق إليك",
+    message: "تم شحن طلبك وهو في الطريق إلى موقع التسليم. سنوافيك بالتفاصيل عند الوصول.",
+    color: "#3b82f6",
+  },
+  done: {
+    subject: "تم تسليم طلبك بنجاح",
+    title: "تم التسليم ✓",
+    message: "تم تسليم طلبك بنجاح إلى الموقع المحدد. شكراً لثقتك في Build Saudi ونتطلع للتعاون معك مجدداً.",
+    color: "#09B14B",
+  },
+  cancelled: {
+    subject: "تم إلغاء الطلب",
+    title: "تم إلغاء الطلب",
+    message: "نود إبلاغك بأنه تم إلغاء طلبك. إذا كان لديك أي استفسار، لا تتردد في التواصل معنا.",
+    color: "#ef4444",
+  },
+};
+
+export function getClientNotifiableStatuses(): string[] {
+  return Object.keys(STATUS_CLIENT_MAP);
+}
+
+export async function sendQuoteStatusToClient(params: {
+  client_name: string;
+  client_email: string;
+  project_name: string;
+  status: string;
+}) {
+  const config = STATUS_CLIENT_MAP[params.status];
+  if (!config) return null;
+
+  return getResend().emails.send({
+    from: FROM,
+    to: params.client_email,
+    subject: `${config.subject} — ${params.project_name}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
+        <div style="background: ${config.color}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">${config.title}</h1>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
+          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(params.client_name)}</strong>،</p>
+          <p style="color: #4b5563; line-height: 1.7; margin: 0 0 24px;">${config.message}</p>
+          <div style="background: #f9fafb; border-radius: 10px; padding: 16px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+            <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280;">المشروع</p>
+            <p style="margin: 0; font-weight: 600; color: #1D3F1F;">${esc(params.project_name)}</p>
+          </div>
+          <p style="color: #6b7280; font-size: 13px; margin: 0;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
+          <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+// ─────────────────────────────────────────────
+//  9. تأكيد تسجيل المورد
+// ─────────────────────────────────────────────
+export async function sendVendorRegistrationConfirmation(vendor: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+}) {
+  return getResend().emails.send({
+    from: FROM,
+    to: vendor.email,
+    subject: "تم استلام طلب انضمامكم — Build Saudi",
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
+        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">تم استلام طلب انضمامكم ✓</h1>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
+          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(vendor.manager_name)}</strong> / ${esc(vendor.establishment_name)}،</p>
+          <p style="color: #4b5563; line-height: 1.7;">
+            شكراً لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi.
+            تم استلام طلبكم وسيتم مراجعته من قبل فريقنا. سنوافيكم بالنتيجة في أقرب وقت.
+          </p>
+          <p style="margin-top: 24px; color: #4b5563;">مع تحياتنا،<br/>فريق Build Saudi</p>
         </div>
       </div>
     `,

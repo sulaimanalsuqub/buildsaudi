@@ -33,6 +33,24 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
 
+    // التحقق من أن الطلب في الحالة الصحيحة قبل إرسال العرض
+    const { data: currentQuote } = await adminSupabase
+      .from("quotes")
+      .select("status")
+      .eq("id", quoteId)
+      .single();
+
+    if (!currentQuote) {
+      return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
+    }
+
+    if (currentQuote.status !== "freight_received") {
+      return NextResponse.json(
+        { error: `لا يمكن إرسال العرض — الحالة الحالية "${currentQuote.status}" يجب أن تكون "freight_received"` },
+        { status: 409 }
+      );
+    }
+
     // Generate a unique token for the offer link
     const offerToken = crypto.randomUUID();
     const expiresAt = new Date();
@@ -62,6 +80,16 @@ export async function POST(req: NextRequest) {
       .from("quotes")
       .update({ status: "offer_sent" })
       .eq("id", quoteId);
+
+    // تسجيل في سجل الموافقات
+    await adminSupabase.from("approvals").insert({
+      entity_type: "client_offer",
+      entity_id: quoteId,
+      stage: "approve_final_offer",
+      action: "approved",
+      actor: user.email ?? "admin",
+      notes: `عرض نهائي بقيمة ${grandTotal} ر.س — مرسل للعميل ${clientEmail}`,
+    });
 
     // Send email to client
     await sendClientOfferEmail({

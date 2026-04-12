@@ -76,26 +76,32 @@ const yesNoOptions: Option[] = [
   { value: "no", en: "No", ar: "لا" }
 ];
 
+const saudiPhoneRegex = /^(05\d{8}|\+9665\d{8}|009665\d{8})$/;
+const crNumberRegex = /^\d{10,15}$/;
+
 const formSchema = z
   .object({
-    establishmentName: z.string().min(2),
-    managerName: z.string().min(2),
-    contactNumber: z.string().min(7),
-    email: z.string().email(),
-    crNumber: z.string().min(4),
-    productCategories: z.array(z.string()).min(1),
-    vendorType: z.string().min(1),
+    establishmentName: z.string().min(2, "required"),
+    managerName: z.string().min(2, "required"),
+    contactNumber: z.string().regex(saudiPhoneRegex, "invalidPhone"),
+    email: z.string().email("invalidEmail"),
+    crNumber: z.string().regex(crNumberRegex, "invalidCR"),
+    productCategories: z.array(z.string()).min(1, "required"),
+    vendorType: z.string().min(1, "required"),
     representedBrands: z.string().optional(),
-    coverageRegions: z.array(z.string()).min(1),
+    coverageRegions: z.array(z.string()).min(1, "required"),
     hasWarehouseInKsa: z.enum(["yes", "no"]),
     offersCredit: z.enum(["yes", "no"]),
-    paymentTerms: z.array(z.string()).min(1),
-    creditLimit: z.string().min(1),
+    paymentTerms: z.array(z.string()).min(1, "required"),
+    creditLimit: z.string().optional(),
     workedOnGovProjects: z.enum(["yes", "no"])
   })
   .superRefine((value, ctx) => {
     if (value.vendorType === "importer" && !value.representedBrands?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["representedBrands"], message: "Represented brands are required" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["representedBrands"], message: "required" });
+    }
+    if (value.offersCredit === "yes" && !value.creditLimit?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["creditLimit"], message: "required" });
     }
   });
 
@@ -124,6 +130,19 @@ const stepFields: (keyof FormValues)[][] = [
   ["coverageRegions", "hasWarehouseInKsa", "offersCredit", "paymentTerms", "creditLimit", "workedOnGovProjects"],
   []
 ];
+
+const errorMessages: Record<string, { en: string; ar: string }> = {
+  required: { en: "This field is required", ar: "هذا الحقل مطلوب" },
+  invalidPhone: { en: "Invalid Saudi phone (e.g. 05xxxxxxxx)", ar: "رقم الهاتف غير صحيح (مثال: 05xxxxxxxx)" },
+  invalidEmail: { en: "Invalid email address", ar: "البريد الإلكتروني غير صحيح" },
+  invalidCR: { en: "CR number must be 10-15 digits", ar: "رقم السجل يجب أن يكون 10-15 رقم" },
+};
+
+function localizeError(code: string | undefined, isRtl: boolean): string | undefined {
+  if (!code) return undefined;
+  const msg = errorMessages[code];
+  return msg ? (isRtl ? msg.ar : msg.en) : code;
+}
 
 function textByLang(isRtl: boolean, en: string, ar: string) {
   return isRtl ? ar : en;
@@ -249,6 +268,21 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         );
       }
 
+      // إرسال إيميل تأكيد للمورد
+      try {
+        await fetch("/api/email/vendor-registered", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            establishment_name: data.establishmentName,
+            manager_name: data.managerName,
+            email: data.email,
+          }),
+        });
+      } catch {
+        console.error("Vendor registration email failed");
+      }
+
       setIsSubmitted(true);
     } catch {
       setSubmitError(isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.");
@@ -295,15 +329,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               <ErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.contactNumber}>
-              <Input {...form.register("contactNumber")} className="h-11 text-base" />
+              <Input {...form.register("contactNumber")} className="h-11 text-base" dir="ltr" placeholder="05xxxxxxxx" />
               <ErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.email}>
-              <Input type="email" {...form.register("email")} className="h-11 text-base" />
+              <Input type="email" {...form.register("email")} className="h-11 text-base" dir="ltr" placeholder="example@company.com" />
               <ErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.crNumber} className="md:col-span-2">
-              <Input {...form.register("crNumber")} className="h-11 text-base" />
+              <Input {...form.register("crNumber")} className="h-11 text-base" dir="ltr" placeholder="1234567890" />
               <ErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
             </Field>
           </div>
@@ -488,9 +522,9 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
-function ErrorText({ text }: { text?: string; isRtl: boolean }) {
+function ErrorText({ text, isRtl }: { text?: string; isRtl: boolean }) {
   if (!text) return null;
-  return <p className="type-small text-red-600">{text}</p>;
+  return <p className="type-small text-red-600">{localizeError(text, isRtl)}</p>;
 }
 
 function OptionGrid({ children }: { children: React.ReactNode }) {

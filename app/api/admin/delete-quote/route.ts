@@ -16,6 +16,25 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
 
+    // التحقق من حالة الطلب — لا يمكن حذف طلب في مرحلة متقدمة
+    const { data: quote } = await adminSupabase
+      .from("quotes")
+      .select("status")
+      .eq("id", quoteId)
+      .single();
+
+    if (!quote) {
+      return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
+    }
+
+    const protectedStatuses = ["client_approved", "payment_pending", "payment_confirmed", "in_delivery", "done"];
+    if (protectedStatuses.includes(quote.status)) {
+      return NextResponse.json(
+        { error: `لا يمكن حذف طلب في حالة "${quote.status}" — يمكنك إلغاؤه بدلاً من حذفه` },
+        { status: 409 }
+      );
+    }
+
     const { error } = await adminSupabase.from("quotes").delete().eq("id", quoteId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

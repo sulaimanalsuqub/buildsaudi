@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { sendQuoteStatusToClient, getClientNotifiableStatuses } from "@/lib/email";
 
 // تسلسل الحالات الصحيح — كل حالة تقبل الانتقال إليها من الحالات المدرجة فقط
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     // التحقق من الحالة الحالية قبل التحديث
     const { data: current } = await adminSupabase
       .from("quotes")
-      .select("status")
+      .select("status, client_name, client_email, project_name")
       .eq("id", quoteId)
       .single();
 
@@ -58,6 +59,30 @@ export async function POST(req: NextRequest) {
 
     const { error } = await adminSupabase.from("quotes").update({ status }).eq("id", quoteId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // تسجيل في سجل الموافقات
+    await adminSupabase.from("approvals").insert({
+      entity_type: "quote",
+      entity_id: quoteId,
+      stage: status,
+      action: status === "cancelled" ? "rejected" : "approved",
+      actor: user.email ?? "admin",
+      notes: `${current.status} → ${status}`,
+    });
+
+    // إرسال إشعار للعميل إذا كان عنده إيميل والحالة تستوجب إشعار
+    if (current.client_email && getClientNotifiableStatuses().includes(status)) {
+      try {
+        await sendQuoteStatusToClient({
+          client_name: current.client_name,
+          client_email: current.client_email,
+          project_name: current.project_name,
+          status,
+        });
+      } catch (e) {
+        console.error("Client status email failed:", e);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch {

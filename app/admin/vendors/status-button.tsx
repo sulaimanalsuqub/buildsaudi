@@ -21,6 +21,16 @@ export function VendorStatusButton({ id, currentStatus, vendorEmail, vendorName,
     const supabase = createClient();
     await supabase.from("vendors").update({ status }).eq("id", id);
 
+    // تسجيل في سجل الموافقات
+    await supabase.from("approvals").insert({
+      entity_type: "vendor",
+      entity_id: id,
+      stage: status === "active" ? "activate_vendor" : status === "rejected" ? "activate_vendor" : "activate_vendor",
+      action: status === "active" ? "approved" : "rejected",
+      actor: "admin",
+      notes: `${currentStatus} → ${status}`,
+    });
+
     // إرسال إيميل عند التفعيل أو الرفض
     if (vendorEmail && vendorName && (status === "active" || status === "rejected")) {
       fetch("/api/email/vendor-status", {

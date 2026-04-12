@@ -25,7 +25,8 @@ create table if not exists public.vendors (
   status                text        not null default 'pending',
   -- 'pending' | 'active' | 'paused' | 'rejected'
   notes                 text,
-  created_at            timestamptz default now()
+  created_at            timestamptz default now(),
+  updated_at            timestamptz default now()
 );
 
 alter table public.vendors enable row level security;
@@ -97,7 +98,8 @@ create table if not exists public.quotes (
   -- | 'freight_sent' | 'freight_received' | 'offer_sent'
   -- | 'client_approved' | 'payment_pending' | 'payment_confirmed' | 'in_delivery' | 'done' | 'cancelled'
   admin_notes       text,
-  created_at        timestamptz default now()
+  created_at        timestamptz default now(),
+  updated_at        timestamptz default now()
 );
 
 alter table public.quotes enable row level security;
@@ -158,7 +160,7 @@ create policy "Service role manages rfq_items" on public.rfq_items using (false)
 -- ──────────────────────────────────────────────
 create table if not exists public.vendor_quotes (
   id              uuid        primary key default gen_random_uuid(),
-  rfq_id          uuid        not null references public.rfqs(id) on delete cascade,
+  rfq_id          uuid        not null unique references public.rfqs(id) on delete cascade,
   vendor_id       uuid        not null references public.vendors(id) on delete cascade,
   total_price     numeric     not null,
   currency        text        not null default 'SAR',
@@ -170,7 +172,8 @@ create table if not exists public.vendor_quotes (
   source          text        default 'ai_agent',
   -- 'ai_agent' | 'manual'
   notes           text,
-  created_at      timestamptz default now()
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
 );
 
 alter table public.vendor_quotes enable row level security;
@@ -219,7 +222,8 @@ create table if not exists public.client_offers (
   sent_at             timestamptz,
   client_response_at  timestamptz,
   notes               text,
-  created_at          timestamptz default now()
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
 );
 
 alter table public.client_offers enable row level security;

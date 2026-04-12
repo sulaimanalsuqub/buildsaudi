@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     );
 
     const { error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/admin`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/admin`,
     });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
