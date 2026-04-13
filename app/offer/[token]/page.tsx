@@ -142,7 +142,7 @@ export default async function OfferPage({ params }: { params: Promise<{ token: s
 
         {/* Response Buttons */}
         {!isExpired && !isResponded && (
-          <OfferResponse token={token} />
+          <OfferResponse token={token} grandTotal={fmt(offer.grand_total)} />
         )}
 
         <p className="text-center text-xs text-[#1D3F1F]/30 pb-4">

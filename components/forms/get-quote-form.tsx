@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
 function isValidSaudiPhone(phone: string): boolean {
@@ -16,6 +17,8 @@ function isValidEmail(email: string): boolean {
 type GetQuoteFormProps = {
   isRtl?: boolean;
 };
+
+const STORAGE_KEY = "build-quote-form-draft";
 
 const t = {
   ar: {
@@ -54,6 +57,23 @@ const t = {
     chooseFile: "اختر ملفاً",
     noFileChosen: "لم يُختر ملف",
     orDivider: "أو",
+    stepText: "الخطوة",
+    ofText: "من",
+    steps: ["معلومات العميل", "تفاصيل المشروع", "التوصيل", "مراجعة وإرسال"],
+    back: "السابق",
+    next: "متابعة",
+    review: "مراجعة البيانات",
+    notProvided: "غير محدد",
+    timelineTitle: "ماذا بعد؟",
+    timelineSteps: [
+      "تم استلام طلبك",
+      "مراجعة الطلب من فريقنا",
+      "إرسال عرض السعر لك",
+      "موافقتك على العرض",
+      "توصيل المواد للموقع",
+    ],
+    contactMsg: "سنتواصل معك على",
+    contactTime: "خلال 24-48 ساعة",
   },
   en: {
     pageTitle: "Request a Quote",
@@ -91,13 +111,33 @@ const t = {
     chooseFile: "Choose File",
     noFileChosen: "No file chosen",
     orDivider: "or",
+    stepText: "Step",
+    ofText: "of",
+    steps: ["Client Info", "Project Details", "Delivery", "Review & Submit"],
+    back: "Back",
+    next: "Continue",
+    review: "Review Details",
+    notProvided: "Not provided",
+    timelineTitle: "What's Next?",
+    timelineSteps: [
+      "Request received",
+      "Our team reviews your request",
+      "We send you a price quote",
+      "You approve the offer",
+      "Materials delivered to site",
+    ],
+    contactMsg: "We'll contact you at",
+    contactTime: "within 24-48 hours",
   },
 };
+
+const TOTAL_STEPS = 4;
 
 export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const copy = isRtl ? t.ar : t.en;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [quoteRef, setQuoteRef] = useState("");
   const [loading, setLoading] = useState(false);
@@ -117,39 +157,77 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     notes: "",
   });
 
+  // تحميل المسودة من localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setForm((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // حفظ المسودة تلقائياً
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    } catch {
+      // ignore
+    }
+  }, [form]);
+
   const set = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }));
     setErrors((p) => ({ ...p, [field]: "" }));
   };
 
-  const validate = () => {
+  const validateStep = (s: number) => {
     const e: Record<string, string> = {};
-    if (!form.projectName.trim()) e.projectName = copy.required;
-    if (!form.clientName.trim()) e.clientName = copy.required;
-    if (!form.phone.trim()) {
-      e.phone = copy.required;
-    } else if (!isValidSaudiPhone(form.phone)) {
-      e.phone = copy.invalidPhone;
+    if (s === 0) {
+      if (!form.clientName.trim()) e.clientName = copy.required;
+      if (!form.phone.trim()) {
+        e.phone = copy.required;
+      } else if (!isValidSaudiPhone(form.phone)) {
+        e.phone = copy.invalidPhone;
+      }
+      if (!form.email.trim()) {
+        e.email = copy.required;
+      } else if (!isValidEmail(form.email)) {
+        e.email = copy.invalidEmail;
+      }
+    } else if (s === 1) {
+      if (!form.projectName.trim()) e.projectName = copy.required;
+      if (!form.materials.trim()) e.materials = copy.required;
+      if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
+    } else if (s === 2) {
+      if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
+      if (!form.deliveryDate) e.deliveryDate = copy.required;
     }
-    if (!form.email.trim()) {
-      e.email = copy.required;
-    } else if (!isValidEmail(form.email)) {
-      e.email = copy.invalidEmail;
-    }
-    if (!form.materials.trim()) e.materials = copy.required;
-    if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
-    if (!form.deliveryDate) e.deliveryDate = copy.required;
-    if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
     return e;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = validate();
+  const handleNext = () => {
+    const errs = validateStep(step);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
+    setErrors({});
+    setStep((prev) => Math.min(prev + 1, TOTAL_STEPS - 1));
+  };
+
+  const handleBack = () => {
+    setErrors({});
+    setStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step < TOTAL_STEPS - 1) return;
+
     setLoading(true);
     try {
       const supabase = createClient();
@@ -205,10 +283,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           }),
         });
       } catch {
-        // الطلب تم حفظه - فشل البريد لا يمنع إظهار النجاح
         console.error("Email notification failed for quote", inserted?.id);
       }
 
+      // مسح المسودة بعد النجاح
+      localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
     } catch {
       setErrors({ submit: isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again." });
@@ -223,17 +302,23 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setFileName("");
     setSelectedFile(null);
     setErrors({});
+    setStep(0);
     setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
+    localStorage.removeItem(STORAGE_KEY);
   };
 
+  const progress = ((step + 1) / TOTAL_STEPS) * 100;
+
+  /* ── شاشة النجاح مع Timeline ── */
   if (submitted) {
+    const timelineIcons = ["✅", "🔍", "📩", "✅", "🚚"];
     return (
-      <div className="flex flex-col items-center gap-6 py-10 text-center">
+      <div className="flex flex-col items-center gap-8 py-10" dir={isRtl ? "rtl" : "ltr"}>
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-primary/[0.10] text-4xl">
           ✅
         </div>
-        <div>
+        <div className="text-center">
           <h2 className="text-2xl font-bold text-brand-dark">{copy.successTitle}</h2>
           {quoteRef && (
             <div className="mt-4 inline-block rounded-xl border border-brand-dark/10 bg-brand-light px-6 py-3">
@@ -241,11 +326,38 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               <p className="mt-1 text-lg font-bold tracking-wider text-brand-dark" dir="ltr">#{quoteRef}</p>
             </div>
           )}
-          <p className="mt-3 max-w-md text-brand-dark/60 leading-relaxed">{copy.successMsg}</p>
         </div>
+
+        {/* Timeline */}
+        <div className="w-full max-w-md">
+          <h3 className="text-base font-bold text-brand-dark mb-4 text-center">{copy.timelineTitle}</h3>
+          <div className="space-y-0">
+            {copy.timelineSteps.map((label, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm shrink-0 ${i === 0 ? "bg-brand-primary text-white" : "bg-brand-dark/8 text-brand-dark/60"}`}>
+                    {timelineIcons[i]}
+                  </div>
+                  {i < copy.timelineSteps.length - 1 && (
+                    <div className="w-0.5 h-6 bg-brand-dark/10" />
+                  )}
+                </div>
+                <p className={`pt-2 text-sm ${i === 0 ? "font-semibold text-brand-dark" : "text-brand-dark/65"}`}>
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* رسالة التواصل */}
+        <p className="text-sm text-brand-dark/60 text-center max-w-md">
+          {copy.contactMsg} <span className="font-semibold text-brand-dark" dir="ltr">{form.email}</span> {copy.contactTime}
+        </p>
+
         <button
           onClick={reset}
-          className="mt-2 rounded-full border border-brand-dark/20 px-8 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04]"
+          className="rounded-full border border-brand-dark/20 px-8 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04]"
         >
           {copy.successBtn}
         </button>
@@ -254,160 +366,219 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} dir={isRtl ? "rtl" : "ltr"} className="space-y-5">
-      {/* Row: Project + Client */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label={copy.projectName} error={errors.projectName} required>
-          <input
-            type="text"
-            placeholder={copy.projectNamePlaceholder}
-            value={form.projectName}
-            onChange={(e) => set("projectName", e.target.value)}
-            className={inputCls(!!errors.projectName)}
-          />
-        </Field>
-        <Field label={copy.clientName} error={errors.clientName} required>
-          <input
-            type="text"
-            placeholder={copy.clientNamePlaceholder}
-            value={form.clientName}
-            onChange={(e) => set("clientName", e.target.value)}
-            className={inputCls(!!errors.clientName)}
-          />
-        </Field>
-      </div>
-
-      {/* Row: Phone + Email */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label={copy.phone} error={errors.phone} required>
-          <input
-            type="tel"
-            placeholder={copy.phonePlaceholder}
-            value={form.phone}
-            onChange={(e) => set("phone", e.target.value)}
-            className={inputCls(!!errors.phone)}
-            dir="ltr"
-          />
-        </Field>
-        <Field label={copy.email} error={errors.email} required>
-          <input
-            type="email"
-            placeholder={copy.emailPlaceholder}
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
-            className={inputCls(!!errors.email)}
-            dir="ltr"
-          />
-        </Field>
-      </div>
-
-      {/* Materials */}
-      <Field label={copy.materials} error={errors.materials} required>
-        <textarea
-          rows={3}
-          placeholder={copy.materialsPlaceholder}
-          value={form.materials}
-          onChange={(e) => set("materials", e.target.value)}
-          className={inputCls(!!errors.materials) + " resize-none"}
-        />
-      </Field>
-
-      {/* BOQ File */}
-      <Field label={copy.boqFile}>
-        <div
-          className="flex cursor-pointer items-center gap-3 rounded-xl border border-brand-dark/15 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <span className="text-xl">📎</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-brand-dark truncate">
-              {fileName || copy.chooseFile}
-            </p>
-            {!fileName && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
-          </div>
+    <form onSubmit={handleSubmit} dir={isRtl ? "rtl" : "ltr"} className="space-y-6">
+      {/* Progress Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold text-brand-dark/65">
+            {copy.stepText} {step + 1} {copy.ofText} {TOTAL_STEPS}
+          </p>
+          <p className="text-xs font-semibold text-brand-dark">{copy.steps[step]}</p>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.pdf,.csv"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              setFileName(file.name);
-              setSelectedFile(file);
-              setErrors((p) => ({ ...p, boqFile: "" }));
-            }
-          }}
-        />
-        {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
-      </Field>
-
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-brand-dark/10" />
-        <span className="text-xs text-brand-dark/40 font-medium">{copy.orDivider}</span>
-        <div className="flex-1 h-px bg-brand-dark/10" />
+        <div className="h-1.5 w-full rounded-full bg-brand-dark/10" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.28 }}
+            className="h-full rounded-full bg-brand-primary"
+          />
+        </div>
       </div>
 
-      {/* Sheet Link */}
-      <Field label={copy.sheetLink}>
-        <input
-          type="url"
-          placeholder={copy.sheetLinkPlaceholder}
-          value={form.sheetLink}
-          onChange={(e) => set("sheetLink", e.target.value)}
-          className={inputCls(false)}
-          dir="ltr"
-        />
-      </Field>
+      {/* Step Content */}
+      <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-5">
+        {/* الخطوة 1: معلومات العميل */}
+        {step === 0 && (
+          <>
+            <Field label={copy.clientName} error={errors.clientName} required>
+              <input
+                type="text"
+                placeholder={copy.clientNamePlaceholder}
+                value={form.clientName}
+                onChange={(e) => set("clientName", e.target.value)}
+                className={inputCls(!!errors.clientName)}
+              />
+            </Field>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label={copy.phone} error={errors.phone} required>
+                <input
+                  type="tel"
+                  placeholder={copy.phonePlaceholder}
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  className={inputCls(!!errors.phone)}
+                  dir="ltr"
+                />
+              </Field>
+              <Field label={copy.email} error={errors.email} required>
+                <input
+                  type="email"
+                  placeholder={copy.emailPlaceholder}
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  className={inputCls(!!errors.email)}
+                  dir="ltr"
+                />
+              </Field>
+            </div>
+          </>
+        )}
 
-      {/* Row: Address + Date */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label={copy.deliveryAddress} error={errors.deliveryAddress} required>
-          <input
-            type="text"
-            placeholder={copy.deliveryAddressPlaceholder}
-            value={form.deliveryAddress}
-            onChange={(e) => set("deliveryAddress", e.target.value)}
-            className={inputCls(!!errors.deliveryAddress)}
-          />
-        </Field>
-        <Field label={copy.deliveryDate} error={errors.deliveryDate} required>
-          <input
-            type="date"
-            value={form.deliveryDate}
-            onChange={(e) => set("deliveryDate", e.target.value)}
-            className={inputCls(!!errors.deliveryDate)}
-            dir="ltr"
-            min={new Date().toISOString().split("T")[0]}
-          />
-        </Field>
-      </div>
+        {/* الخطوة 2: تفاصيل المشروع */}
+        {step === 1 && (
+          <>
+            <Field label={copy.projectName} error={errors.projectName} required>
+              <input
+                type="text"
+                placeholder={copy.projectNamePlaceholder}
+                value={form.projectName}
+                onChange={(e) => set("projectName", e.target.value)}
+                className={inputCls(!!errors.projectName)}
+              />
+            </Field>
+            <Field label={copy.materials} error={errors.materials} required>
+              <textarea
+                rows={3}
+                placeholder={copy.materialsPlaceholder}
+                value={form.materials}
+                onChange={(e) => set("materials", e.target.value)}
+                className={inputCls(!!errors.materials) + " resize-none"}
+              />
+            </Field>
+            <Field label={copy.boqFile}>
+              <div
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-brand-dark/15 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span className="text-xl">📎</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-brand-dark truncate">
+                    {fileName || copy.chooseFile}
+                  </p>
+                  {!fileName && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.pdf,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFileName(file.name);
+                    setSelectedFile(file);
+                    setErrors((p) => ({ ...p, boqFile: "" }));
+                  }
+                }}
+              />
+              {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
+            </Field>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-brand-dark/10" />
+              <span className="text-xs text-brand-dark/40 font-medium">{copy.orDivider}</span>
+              <div className="flex-1 h-px bg-brand-dark/10" />
+            </div>
+            <Field label={copy.sheetLink}>
+              <input
+                type="url"
+                placeholder={copy.sheetLinkPlaceholder}
+                value={form.sheetLink}
+                onChange={(e) => set("sheetLink", e.target.value)}
+                className={inputCls(false)}
+                dir="ltr"
+              />
+            </Field>
+          </>
+        )}
 
-      {/* Notes */}
-      <Field label={copy.notes}>
-        <textarea
-          rows={3}
-          placeholder={copy.notesPlaceholder}
-          value={form.notes}
-          onChange={(e) => set("notes", e.target.value)}
-          className={inputCls(false) + " resize-none"}
-        />
-      </Field>
+        {/* الخطوة 3: التوصيل */}
+        {step === 2 && (
+          <>
+            <Field label={copy.deliveryAddress} error={errors.deliveryAddress} required>
+              <input
+                type="text"
+                placeholder={copy.deliveryAddressPlaceholder}
+                value={form.deliveryAddress}
+                onChange={(e) => set("deliveryAddress", e.target.value)}
+                className={inputCls(!!errors.deliveryAddress)}
+              />
+            </Field>
+            <Field label={copy.deliveryDate} error={errors.deliveryDate} required>
+              <input
+                type="date"
+                value={form.deliveryDate}
+                onChange={(e) => set("deliveryDate", e.target.value)}
+                className={inputCls(!!errors.deliveryDate)}
+                dir="ltr"
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </Field>
+            <Field label={copy.notes}>
+              <textarea
+                rows={3}
+                placeholder={copy.notesPlaceholder}
+                value={form.notes}
+                onChange={(e) => set("notes", e.target.value)}
+                className={inputCls(false) + " resize-none"}
+              />
+            </Field>
+          </>
+        )}
+
+        {/* الخطوة 4: مراجعة */}
+        {step === 3 && (
+          <div className="rounded-xl border border-brand-dark/12 bg-brand-light/45 p-5">
+            <h3 className="text-base font-bold text-brand-dark mb-4">{copy.review}</h3>
+            <dl className="grid gap-3 text-sm text-brand-dark/85 sm:grid-cols-2">
+              <ReviewRow label={copy.clientName} value={form.clientName || copy.notProvided} />
+              <ReviewRow label={copy.phone} value={form.phone || copy.notProvided} dir="ltr" />
+              <ReviewRow label={copy.email} value={form.email || copy.notProvided} dir="ltr" />
+              <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
+              <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
+              {fileName && <ReviewRow label={copy.boqFile} value={fileName} />}
+              {form.sheetLink && <ReviewRow label={copy.sheetLink} value={form.sheetLink} dir="ltr" />}
+              <ReviewRow label={copy.deliveryAddress} value={form.deliveryAddress || copy.notProvided} />
+              <ReviewRow label={copy.deliveryDate} value={form.deliveryDate || copy.notProvided} dir="ltr" />
+              {form.notes && <ReviewRow label={copy.notes} value={form.notes} className="sm:col-span-2" />}
+            </dl>
+          </div>
+        )}
+      </motion.div>
 
       {errors.submit && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{errors.submit}</p>
       )}
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-full bg-brand-primary py-3.5 text-base font-semibold text-white transition-all hover:bg-brand-dark disabled:opacity-60"
-      >
-        {loading ? copy.submitting : copy.submit}
-      </button>
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={handleBack}
+          disabled={step === 0}
+          className="rounded-full border border-brand-dark/20 px-6 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04] disabled:opacity-40"
+        >
+          {copy.back}
+        </button>
+
+        {step < TOTAL_STEPS - 1 ? (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
+          >
+            {copy.next}
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark disabled:opacity-60"
+          >
+            {loading ? copy.submitting : copy.submit}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
@@ -431,6 +602,15 @@ function Field({
       </label>
       {children}
       {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, dir, className }: { label: string; value: string; dir?: string; className?: string }) {
+  return (
+    <div className={`rounded-lg bg-white p-3 ${className ?? ""}`}>
+      <dt className="text-xs font-semibold text-brand-dark/70">{label}</dt>
+      <dd className="text-sm mt-1 text-brand-dark break-words" dir={dir}>{value}</dd>
     </div>
   );
 }

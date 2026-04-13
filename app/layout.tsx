@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
 import Script from "next/script";
+import { Toaster } from "sonner";
 
 import { siteConfig } from "@/lib/site";
 import { OrganizationSchema, WebsiteSchema } from "@/components/seo/schema-org";
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           />
         </noscript>
         {children}
+        <Toaster position="top-center" richColors dir="rtl" />
         {/* Google Tag Manager (script) */}
         <Script
           id="gtm-script"

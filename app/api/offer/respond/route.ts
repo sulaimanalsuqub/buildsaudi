@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, action } = await req.json();
-    // action: 'accepted' | 'rejected'
+    const { token, action, reason } = await req.json();
+    // action: 'accepted' | 'rejected' | 'modification_requested'
 
-    if (!token || !["accepted", "rejected"].includes(action)) {
+    if (!token || !["accepted", "rejected", "modification_requested"].includes(action)) {
       return NextResponse.json({ error: "بيانات غير صحيحة" }, { status: 400 });
     }
 
@@ -40,9 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Update offer status
+    const offerStatus = action === "modification_requested" ? "sent" : action;
+    const updateData: Record<string, string> = { status: offerStatus };
+    if (action !== "modification_requested") {
+      updateData.client_response_at = new Date().toISOString();
+    }
     await adminSupabase
       .from("client_offers")
-      .update({ status: action, client_response_at: new Date().toISOString() })
+      .update(updateData)
       .eq("id", offer.id);
 
     // التحقق من حالة الطلب قبل التحديث
@@ -59,21 +64,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update quote status
-    const nextQuoteStatus = action === "accepted" ? "client_approved" : "cancelled";
-    await adminSupabase
-      .from("quotes")
-      .update({ status: nextQuoteStatus })
-      .eq("id", offer.quote_id);
+    // Update quote status (only for accept/reject, not modification requests)
+    if (action !== "modification_requested") {
+      const nextQuoteStatus = action === "accepted" ? "client_approved" : "cancelled";
+      await adminSupabase
+        .from("quotes")
+        .update({ status: nextQuoteStatus })
+        .eq("id", offer.quote_id);
+    }
 
     // تسجيل رد العميل في سجل الموافقات
+    const notesMap: Record<string, string> = {
+      accepted: "العميل وافق على العرض",
+      rejected: reason ? `العميل رفض العرض — السبب: ${reason}` : "العميل رفض العرض",
+      modification_requested: `العميل طلب تعديل — ${reason || "بدون تفاصيل"}`,
+    };
     await adminSupabase.from("approvals").insert({
       entity_type: "client_offer",
       entity_id: offer.quote_id,
       stage: "client_response",
-      action: action === "accepted" ? "approved" : "rejected",
+      action: action === "accepted" ? "approved" : action === "rejected" ? "rejected" : "modification_requested",
       actor: "client",
-      notes: action === "accepted" ? "العميل وافق على العرض" : "العميل رفض العرض",
+      notes: notesMap[action],
     });
 
     return NextResponse.json({ ok: true, action });

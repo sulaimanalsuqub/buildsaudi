@@ -47,7 +47,8 @@ export default async function AdminQuotesPage({
         <p className="mt-1 text-sm text-[#1D3F1F]/55">جميع الطلبات الواردة من العملاء</p>
       </div>
 
-      <div className="overflow-hidden rounded-[16px] border border-[#1D3F1F]/10 bg-white">
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-hidden rounded-[16px] border border-[#1D3F1F]/10 bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#1D3F1F]/10 bg-[#F4F3EB]/60 text-right text-xs font-semibold text-[#1D3F1F]/50">
@@ -98,6 +99,45 @@ export default async function AdminQuotesPage({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {!quotes || quotes.length === 0 ? (
+          <div className="rounded-2xl border border-[#1D3F1F]/10 bg-white px-5 py-12 text-center text-[#1D3F1F]/40">
+            لا توجد طلبات بعد
+          </div>
+        ) : (
+          quotes.map((q) => {
+            const status = STATUS_LABELS[q.status] ?? { label: q.status, color: "bg-gray-100 text-gray-600" };
+            return (
+              <Link
+                key={q.id}
+                href={`/admin/quotes/${q.id}`}
+                className="block rounded-2xl border border-[#1D3F1F]/10 bg-white p-4 transition-colors hover:bg-[#F4F3EB]/40"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="text-sm font-bold text-[#1D3F1F]">{q.project_name}</h3>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 ${status.color}`}>
+                    {status.label}
+                  </span>
+                </div>
+                <div className="space-y-1 text-xs text-[#1D3F1F]/60">
+                  <p>{q.client_name}</p>
+                  <p dir="ltr" className="text-left">{q.phone}</p>
+                  <div className="flex items-center justify-between pt-1">
+                    <p>{q.delivery_address}</p>
+                    <p dir="ltr">{new Date(q.created_at).toLocaleDateString("ar-SA")}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-[#1D3F1F]/5" onClick={(e) => e.preventDefault()}>
+                  {q.status === "new" && <ApproveQuoteButton id={q.id} />}
+                  <DeleteQuoteButton id={q.id} />
+                </div>
+              </Link>
+            );
+          })
+        )}
       </div>
 
       {totalPages > 1 && (

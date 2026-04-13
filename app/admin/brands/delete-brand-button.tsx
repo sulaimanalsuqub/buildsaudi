@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function DeleteBrandButton({
   id,
@@ -15,28 +17,46 @@ export function DeleteBrandButton({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleDelete = async () => {
-    const msg =
-      vendorCount > 0
-        ? `هذه العلامة مرتبطة بـ ${vendorCount} مورد. هل تريد حذفها؟`
-        : `هل تريد حذف "${name}"؟`;
-    if (!confirm(msg)) return;
-
     setLoading(true);
+    setOpen(false);
     const supabase = createClient();
-    await supabase.from("brands").delete().eq("id", id);
-    router.refresh();
+    const { error } = await supabase.from("brands").delete().eq("id", id);
+    if (error) {
+      toast.error("فشل حذف العلامة التجارية");
+    } else {
+      toast.success(`تم حذف "${name}"`);
+      router.refresh();
+    }
     setLoading(false);
   };
 
+  const description =
+    vendorCount > 0
+      ? `هذه العلامة مرتبطة بـ ${vendorCount} مورد. هل تريد حذفها؟`
+      : `هل تريد حذف "${name}"؟`;
+
   return (
-    <button
-      onClick={handleDelete}
-      disabled={loading}
-      className="rounded-lg px-2.5 py-1 text-xs text-[#1D3F1F]/30 hover:bg-red-50 hover:text-red-500 disabled:opacity-40 transition-colors"
-    >
-      {loading ? "..." : "حذف"}
-    </button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        disabled={loading}
+        className="rounded-lg px-2.5 py-1 text-xs text-[#1D3F1F]/30 hover:bg-red-50 hover:text-red-500 disabled:opacity-40 transition-colors"
+      >
+        {loading ? "..." : "حذف"}
+      </button>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="حذف العلامة التجارية"
+        description={description}
+        confirmLabel="حذف"
+        variant="danger"
+        onConfirm={handleDelete}
+        loading={loading}
+      />
+    </>
   );
 }

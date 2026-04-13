@@ -81,7 +81,8 @@ export function VendorsTable({ vendors, allBrands }: Props) {
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-[16px] border border-[#1D3F1F]/10 bg-white">
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-hidden rounded-[16px] border border-[#1D3F1F]/10 bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#1D3F1F]/10 bg-[#F4F3EB]/60 text-right text-xs font-semibold text-[#1D3F1F]/50">
@@ -163,6 +164,67 @@ export function VendorsTable({ vendors, allBrands }: Props) {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-[#1D3F1F]/10 bg-white px-5 py-12 text-center text-[#1D3F1F]/40">
+            لا يوجد موردون مطابقون
+          </div>
+        ) : (
+          filtered.map((v) => {
+            const status = STATUS_LABELS[v.status] ?? { label: v.status, color: "bg-gray-100 text-gray-600" };
+            const cats = v.vendor_categories?.map((c) => c.category) ?? [];
+            const brands = v.vendor_brands?.map((vb) => vb.brands).filter(Boolean) as Brand[];
+            return (
+              <div key={v.id} className="rounded-2xl border border-[#1D3F1F]/10 bg-white p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <Link href={`/admin/vendors/${v.id}`} className="text-sm font-bold text-[#1D3F1F] hover:text-[#09B14B]">
+                    {v.establishment_name}
+                  </Link>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 ${status.color}`}>
+                    {status.label}
+                  </span>
+                </div>
+                <div className="space-y-1 text-xs text-[#1D3F1F]/60">
+                  <p>{v.manager_name}</p>
+                  <p dir="ltr" className="text-left">{v.contact_number}</p>
+                </div>
+                {cats.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {cats.slice(0, 3).map((c) => (
+                      <span key={c} className="rounded-full bg-[#09B14B]/10 px-2 py-0.5 text-xs text-[#09B14B]">
+                        {c}
+                      </span>
+                    ))}
+                    {cats.length > 3 && <span className="text-xs text-[#1D3F1F]/40">+{cats.length - 3}</span>}
+                  </div>
+                )}
+                {brands.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {brands.slice(0, 2).map((b) => (
+                      <span key={b.id} className="rounded-full border border-[#1D3F1F]/10 bg-[#F4F3EB] px-2 py-0.5 text-xs text-[#1D3F1F]/70">
+                        {b.name}
+                      </span>
+                    ))}
+                    {brands.length > 2 && <span className="text-xs text-[#1D3F1F]/40">+{brands.length - 2}</span>}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-[#1D3F1F]/5">
+                  <VendorStatusButton
+                    id={v.id}
+                    currentStatus={v.status}
+                    vendorEmail={v.email}
+                    vendorName={v.establishment_name}
+                    managerName={v.manager_name}
+                  />
+                  <DeleteVendorButton id={v.id} />
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

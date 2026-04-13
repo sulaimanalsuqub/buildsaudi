@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
 const NEXT_STATUS: Record<string, { label: string; next: string }> = {
   new:                    { label: "اعتماد الطلب", next: "admin_approved" },
   admin_approved:         { label: "تأكيد إرسال RFQ", next: "rfq_sent" },
@@ -27,6 +30,8 @@ async function apiPost(path: string, body: object) {
 export function QuoteActions({ id, currentStatus }: { id: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showCancel, setShowCancel] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const router = useRouter();
 
   const advance = async () => {
@@ -41,6 +46,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
         setError(data.error ?? "حدث خطأ");
         return;
       }
+      toast.success("تم تحديث حالة الطلب");
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
@@ -50,7 +56,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
   };
 
   const cancel = async () => {
-    if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
+    setShowCancel(false);
     setLoading(true);
     setError("");
     try {
@@ -60,6 +66,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
         setError(data.error ?? "حدث خطأ");
         return;
       }
+      toast.success("تم إلغاء الطلب");
       router.refresh();
     } catch {
       setError("حدث خطأ في الاتصال");
@@ -69,12 +76,13 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
   };
 
   const deleteQuote = async () => {
-    if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع.")) return;
+    setShowDelete(false);
     setLoading(true);
     setError("");
     try {
       const res = await apiPost("/api/admin/delete-quote", { quoteId: id });
       if (res.ok) {
+        toast.success("تم حذف الطلب");
         router.push("/admin/quotes");
       } else {
         const data = await res.json();
@@ -91,7 +99,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
 
   const deleteBtn = (
     <button
-      onClick={deleteQuote}
+      onClick={() => setShowDelete(true)}
       disabled={loading}
       className="rounded-full border border-red-300 bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all hover:bg-red-200 disabled:opacity-60"
       title="حذف نهائي"
@@ -110,6 +118,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
           {deleteBtn}
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
+        <ConfirmDialog open={showDelete} onOpenChange={setShowDelete} title="حذف الطلب" description="هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع." confirmLabel="حذف" variant="danger" onConfirm={deleteQuote} loading={loading} />
       </div>
     );
   }
@@ -124,6 +133,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
           {deleteBtn}
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
+        <ConfirmDialog open={showDelete} onOpenChange={setShowDelete} title="حذف الطلب" description="هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع." confirmLabel="حذف" variant="danger" onConfirm={deleteQuote} loading={loading} />
       </div>
     );
   }
@@ -141,7 +151,7 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
           </button>
         )}
         <button
-          onClick={cancel}
+          onClick={() => setShowCancel(true)}
           disabled={loading}
           className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
         >
@@ -150,6 +160,8 @@ export function QuoteActions({ id, currentStatus }: { id: string; currentStatus:
         {deleteBtn}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
+      <ConfirmDialog open={showCancel} onOpenChange={setShowCancel} title="إلغاء الطلب" description="هل أنت متأكد من إلغاء هذا الطلب؟" confirmLabel="إلغاء الطلب" variant="danger" onConfirm={cancel} loading={loading} />
+      <ConfirmDialog open={showDelete} onOpenChange={setShowDelete} title="حذف الطلب" description="هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع." confirmLabel="حذف" variant="danger" onConfirm={deleteQuote} loading={loading} />
     </div>
   );
 }
