@@ -35,6 +35,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // تسجيل في سجل الموافقات قبل الحذف
+    await adminSupabase.from("approvals").insert({
+      entity_type: "quote",
+      entity_id: quoteId,
+      stage: "delete_quote",
+      action: "approved",
+      actor: user.email ?? "admin",
+      notes: `تم حذف طلب في حالة "${quote.status}"`,
+    });
+
     const { error } = await adminSupabase.from("quotes").delete().eq("id", quoteId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

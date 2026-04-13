@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
   }
 
+  if (parseFloat(totalPrice) <= 0) {
+    return NextResponse.json({ error: "السعر يجب أن يكون أكبر من صفر" }, { status: 400 });
+  }
+
   const adminSupabase = getAdminClient();
 
   // Upsert: واحد لكل rfq
@@ -80,6 +84,16 @@ export async function POST(req: NextRequest) {
 
   // تحديث حالة الـ RFQ إلى received
   await adminSupabase.from("rfqs").update({ status: "received" }).eq("id", rfqId);
+
+  // تسجيل في سجل الموافقات
+  await adminSupabase.from("approvals").insert({
+    entity_type: "vendor_quote",
+    entity_id: rfqId,
+    stage: "receive_vendor_quote",
+    action: "approved",
+    actor: user?.email ?? "admin",
+    notes: `عرض مورد بقيمة ${parseFloat(totalPrice)} — RFQ: ${rfqId.slice(0, 8)}`,
+  });
 
   return NextResponse.json({ ok: true, vendorQuote: vq });
 }

@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
     }
 
+    if (materialsTotal <= 0 || freightTotal <= 0) {
+      return NextResponse.json({ error: "الأسعار يجب أن تكون أكبر من صفر" }, { status: 400 });
+    }
+
     const adminSupabase = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -56,32 +60,61 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (validityDays ?? 7));
 
-    // Insert into client_offers
-    const { error: insertError } = await adminSupabase.from("client_offers").insert({
-      quote_id: quoteId,
-      materials_total: materialsTotal,
-      freight_total: freightTotal,
-      platform_fee: platformFee ?? 0,
-      grand_total: grandTotal,
-      validity_days: validityDays ?? 7,
-      offer_token: offerToken,
-      status: "sent",
-      sent_at: new Date().toISOString(),
-      expires_at: expiresAt.toISOString(),
-    });
+    // 1. Insert into client_offers
+    const { data: insertedOffer, error: insertError } = await adminSupabase
+      .from("client_offers")
+      .insert({
+        quote_id: quoteId,
+        materials_total: materialsTotal,
+        freight_total: freightTotal,
+        platform_fee: platformFee ?? 0,
+        grand_total: grandTotal,
+        validity_days: validityDays ?? 7,
+        offer_token: offerToken,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      })
+      .select("id")
+      .single();
 
     if (insertError) {
       console.error("offer insert error:", insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // Advance quote status to offer_sent
+    // 2. Send email BEFORE updating quote status — rollback if email fails
+    try {
+      await sendClientOfferEmail({
+        client_name: clientName,
+        client_email: clientEmail,
+        project_name: projectName,
+        materials_total: materialsTotal,
+        freight_total: freightTotal,
+        platform_fee: platformFee ?? 0,
+        grand_total: grandTotal,
+        validity_days: validityDays ?? 7,
+        offer_token: offerToken,
+        delivery_address: deliveryAddress,
+        delivery_date: deliveryDate,
+      });
+    } catch (emailError) {
+      // Rollback: حذف العرض إذا فشل الإيميل
+      console.error("Offer email failed, rolling back:", emailError);
+      await adminSupabase.from("client_offers").delete().eq("id", insertedOffer.id);
+      return NextResponse.json(
+        { error: "فشل إرسال الإيميل — لم يتم تحديث حالة الطلب" },
+        { status: 502 }
+      );
+    }
+
+    // 3. Email succeeded — advance quote status
     await adminSupabase
       .from("quotes")
       .update({ status: "offer_sent" })
       .eq("id", quoteId);
 
-    // تسجيل في سجل الموافقات
+    // 4. تسجيل في سجل الموافقات
     await adminSupabase.from("approvals").insert({
       entity_type: "client_offer",
       entity_id: quoteId,
@@ -89,21 +122,6 @@ export async function POST(req: NextRequest) {
       action: "approved",
       actor: user.email ?? "admin",
       notes: `عرض نهائي بقيمة ${grandTotal} ر.س — مرسل للعميل ${clientEmail}`,
-    });
-
-    // Send email to client
-    await sendClientOfferEmail({
-      client_name: clientName,
-      client_email: clientEmail,
-      project_name: projectName,
-      materials_total: materialsTotal,
-      freight_total: freightTotal,
-      platform_fee: platformFee ?? 0,
-      grand_total: grandTotal,
-      validity_days: validityDays ?? 7,
-      offer_token: offerToken,
-      delivery_address: deliveryAddress,
-      delivery_date: deliveryDate,
     });
 
     return NextResponse.json({ ok: true, offer_token: offerToken });

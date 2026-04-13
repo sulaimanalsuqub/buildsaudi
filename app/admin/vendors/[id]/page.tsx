@@ -71,9 +71,6 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
           <VendorStatusButton
             id={vendor.id}
             currentStatus={vendor.status}
-            vendorEmail={vendor.email}
-            vendorName={vendor.establishment_name}
-            managerName={vendor.manager_name}
           />
           <DeleteVendorButton id={vendor.id} redirect />
         </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendClientResponseNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     // التحقق من حالة الطلب قبل التحديث
     const { data: currentQuote } = await adminSupabase
       .from("quotes")
-      .select("status")
+      .select("status, project_name, client_name")
       .eq("id", offer.quote_id)
       .single();
 
@@ -87,6 +88,19 @@ export async function POST(req: NextRequest) {
       actor: "client",
       notes: notesMap[action],
     });
+
+    // إشعار الأدمن برد العميل
+    try {
+      await sendClientResponseNotification({
+        project_name: currentQuote.project_name,
+        client_name: currentQuote.client_name,
+        action,
+        reason: reason || undefined,
+        quote_id: offer.quote_id,
+      });
+    } catch (e) {
+      console.error("Admin notification email failed:", e);
+    }
 
     return NextResponse.json({ ok: true, action });
   } catch (e) {

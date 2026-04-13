@@ -4,6 +4,12 @@ import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/e
 export async function POST(req: NextRequest) {
   try {
     const quote = await req.json();
+
+    // التحقق من الحقول المطلوبة
+    if (!quote.client_name || !quote.project_name || !quote.phone) {
+      return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
+    }
+
     // إشعار الأدمن
     await sendNewQuoteNotification(quote);
     // تأكيد للعميل إذا أدخل إيميله

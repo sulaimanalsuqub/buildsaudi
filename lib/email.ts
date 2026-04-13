@@ -478,3 +478,66 @@ export async function sendVendorRegistrationConfirmation(vendor: {
     `,
   });
 }
+
+/* ─────────────────────────────────────────────── */
+/*  10. إشعار الأدمن عند رد العميل على العرض      */
+/* ─────────────────────────────────────────────── */
+
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  accepted:                { label: "وافق على العرض",  color: "#09B14B" },
+  rejected:                { label: "رفض العرض",       color: "#dc2626" },
+  modification_requested:  { label: "طلب تعديل",       color: "#f59e0b" },
+};
+
+export async function sendClientResponseNotification(data: {
+  project_name: string;
+  client_name: string;
+  action: string;
+  reason?: string;
+  quote_id: string;
+}) {
+  const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280" };
+  const adminUrl = safeUrl(`${BASE_URL}/admin/quotes/${data.quote_id}`);
+
+  return getResend().emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `رد العميل: ${actionInfo.label} — ${data.project_name}`,
+    html: `
+      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
+        <div style="background: ${esc(actionInfo.color)}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">رد العميل على العرض</h1>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; width: 120px;">المشروع:</td>
+              <td style="padding: 8px 0; font-weight: bold;">${esc(data.project_name)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">العميل:</td>
+              <td style="padding: 8px 0;">${esc(data.client_name)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">الرد:</td>
+              <td style="padding: 8px 0;">
+                <span style="background: ${esc(actionInfo.color)}20; color: ${esc(actionInfo.color)}; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+                  ${esc(actionInfo.label)}
+                </span>
+              </td>
+            </tr>
+            ${data.reason ? `
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; vertical-align: top;">السبب:</td>
+              <td style="padding: 8px 0; color: #4b5563; line-height: 1.6;">${esc(data.reason)}</td>
+            </tr>
+            ` : ""}
+          </table>
+          <a href="${adminUrl}" style="display: inline-block; background: #1D3F1F; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">
+            عرض الطلب في لوحة التحكم
+          </a>
+        </div>
+      </div>
+    `,
+  });
+}

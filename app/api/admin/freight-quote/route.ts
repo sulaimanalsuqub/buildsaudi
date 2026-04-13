@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
   }
 
+  if (parseFloat(price) <= 0) {
+    return NextResponse.json({ error: "السعر يجب أن يكون أكبر من صفر" }, { status: 400 });
+  }
+
   const adminSupabase = getAdminClient();
 
   // نبني الـ payload ديناميكياً — companyName يُدمج في notes
@@ -69,5 +73,16 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // تسجيل في سجل الموافقات
+  await adminSupabase.from("approvals").insert({
+    entity_type: "freight_quote",
+    entity_id: quoteId,
+    stage: "receive_freight_quote",
+    action: "approved",
+    actor: user?.email ?? "admin",
+    notes: `عرض شحن بقيمة ${parseFloat(price)} ${currency ?? "SAR"}${companyName ? ` — ${companyName}` : ""}`,
+  });
+
   return NextResponse.json({ ok: true, freightQuote: fq });
 }

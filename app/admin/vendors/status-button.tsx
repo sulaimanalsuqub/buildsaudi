@@ -2,53 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface Props {
   id: string;
   currentStatus: string;
-  vendorEmail?: string;
-  vendorName?: string;
-  managerName?: string;
 }
 
-export function VendorStatusButton({ id, currentStatus, vendorEmail, vendorName, managerName }: Props) {
+export function VendorStatusButton({ id, currentStatus }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const update = async (status: string) => {
     setLoading(true);
-    const supabase = createClient();
-    await supabase.from("vendors").update({ status }).eq("id", id);
-
-    // تسجيل في سجل الموافقات
-    await supabase.from("approvals").insert({
-      entity_type: "vendor",
-      entity_id: id,
-      stage: status === "active" ? "activate_vendor" : status === "rejected" ? "activate_vendor" : "activate_vendor",
-      action: status === "active" ? "approved" : "rejected",
-      actor: "admin",
-      notes: `${currentStatus} → ${status}`,
-    });
-
-    // إرسال إيميل عند التفعيل أو الرفض
-    if (vendorEmail && vendorName && (status === "active" || status === "rejected")) {
-      fetch("/api/email/vendor-status", {
+    try {
+      const res = await fetch("/api/admin/vendor-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: status === "active" ? "activated" : "rejected",
-          vendor: {
-            establishment_name: vendorName,
-            manager_name: managerName ?? vendorName,
-            email: vendorEmail,
-          },
-        }),
-      }).catch(() => {});
-    }
+        body: JSON.stringify({ vendorId: id, status }),
+      });
 
-    router.refresh();
-    setLoading(false);
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "حدث خطأ");
+        return;
+      }
+
+      toast.success(
+        status === "active" ? "تم تفعيل المورد" :
+        status === "rejected" ? "تم رفض المورد" :
+        "تم إيقاف المورد"
+      );
+      router.refresh();
+    } catch {
+      toast.error("حدث خطأ في الاتصال");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (currentStatus === "pending") {

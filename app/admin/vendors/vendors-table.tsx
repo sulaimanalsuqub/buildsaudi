@@ -151,9 +151,6 @@ export function VendorsTable({ vendors, allBrands }: Props) {
                         <VendorStatusButton
                           id={v.id}
                           currentStatus={v.status}
-                          vendorEmail={v.email}
-                          vendorName={v.establishment_name}
-                          managerName={v.manager_name}
                         />
                         <DeleteVendorButton id={v.id} />
                       </div>
@@ -215,9 +212,6 @@ export function VendorsTable({ vendors, allBrands }: Props) {
                   <VendorStatusButton
                     id={v.id}
                     currentStatus={v.status}
-                    vendorEmail={v.email}
-                    vendorName={v.establishment_name}
-                    managerName={v.manager_name}
                   />
                   <DeleteVendorButton id={v.id} />
                 </div>

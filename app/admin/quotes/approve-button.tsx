@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export function ApproveQuoteButton({ id }: { id: string }) {
   const [loading, setLoading] = useState(false);
@@ -10,13 +10,26 @@ export function ApproveQuoteButton({ id }: { id: string }) {
 
   const approve = async () => {
     setLoading(true);
-    const supabase = createClient();
-    await supabase
-      .from("quotes")
-      .update({ status: "admin_approved" })
-      .eq("id", id);
-    router.refresh();
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/update-quote-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: id, status: "admin_approved" }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "حدث خطأ");
+        return;
+      }
+
+      toast.success("تم اعتماد الطلب");
+      router.refresh();
+    } catch {
+      toast.error("حدث خطأ في الاتصال");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     adminSupabase
       .from("vendors")
       .select("id, establishment_name, manager_name, email")
-      .in("id", vendorIds),
+      .in("id", vendorIds)
+      .eq("status", "active"),
   ]);
 
   if (!quote) return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
@@ -84,6 +85,16 @@ export async function POST(req: NextRequest) {
     .select();
 
   if (rfqError) return NextResponse.json({ error: rfqError.message }, { status: 500 });
+
+  // تسجيل في سجل الموافقات
+  await adminSupabase.from("approvals").insert({
+    entity_type: "quote",
+    entity_id: quoteId,
+    stage: "send_rfq",
+    action: "approved",
+    actor: user?.email ?? "admin",
+    notes: `تم إرسال RFQ لـ ${(createdRfqs ?? []).length} مورد`,
+  });
 
   // إرسال الإيميلات (لا تفشل العملية إذا فشل إيميل واحد)
   const deliveryDate = new Date(quote.delivery_date).toLocaleDateString("ar-SA", {
@@ -128,12 +139,18 @@ export async function POST(req: NextRequest) {
 }
 
 // PATCH /api/admin/rfq — تحديث حالة RFQ
+const VALID_RFQ_STATUSES = ["sent", "received", "no_response", "rejected"];
+
 export async function PATCH(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
   const { rfqId, status } = await req.json();
   if (!rfqId || !status) return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
+
+  if (!VALID_RFQ_STATUSES.includes(status)) {
+    return NextResponse.json({ error: "حالة RFQ غير مسموح بها" }, { status: 400 });
+  }
 
   const adminSupabase = getAdminClient();
   const { error } = await adminSupabase.from("rfqs").update({ status }).eq("id", rfqId);
