@@ -232,24 +232,27 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     try {
       const supabase = createClient();
 
-      // رفع ملف BOQ إذا وجد
+      // رفع ملف BOQ إذا وجد — عبر API server-side لتجاوز RLS
       let boqFileUrl: string | null = null;
       if (selectedFile) {
-        const ext = selectedFile.name.split(".").pop();
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("boq-files")
-          .upload(path, selectedFile, { cacheControl: "3600", upsert: false });
-        if (uploadError) {
+        const uploadForm = new FormData();
+        uploadForm.append("file", selectedFile);
+        uploadForm.append("folder", "boq");
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
+        if (!uploadRes.ok) {
           setErrors({ boqFile: copy.fileUploadError });
           setLoading(false);
           return;
         }
-        const { data: urlData } = supabase.storage.from("boq-files").getPublicUrl(path);
-        boqFileUrl = urlData.publicUrl;
+        const uploadData = await uploadRes.json();
+        boqFileUrl = uploadData.url;
       }
 
-      const { data: inserted, error } = await supabase.from("quotes").insert({
+      // توليد ID من جانب العميل لتجاوز قيود RLS على SELECT
+      const quoteId = crypto.randomUUID();
+
+      const { error } = await supabase.from("quotes").insert({
+        id: quoteId,
         project_name: form.projectName,
         client_name: form.clientName,
         phone: form.phone,
@@ -260,11 +263,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         boq_file_url: boqFileUrl,
-      }).select("id").single();
+      });
       if (error) throw error;
 
       // حفظ الرقم المرجعي
-      const refId = (inserted?.id ?? "").split("-")[0].toUpperCase();
+      const refId = quoteId.split("-")[0].toUpperCase();
       setQuoteRef(refId);
 
       // إرسال إشعار للأدمن + تأكيد للعميل
@@ -273,7 +276,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: inserted?.id ?? "",
+            id: quoteId,
             project_name: form.projectName,
             client_name: form.clientName,
             phone: form.phone,
@@ -283,7 +286,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           }),
         });
       } catch {
-        console.error("Email notification failed for quote", inserted?.id);
+        console.error("Email notification failed for quote", quoteId);
       }
 
       // مسح المسودة بعد النجاح

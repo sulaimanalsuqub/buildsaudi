@@ -252,7 +252,18 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           payment_terms: data.paymentTerms,
           worked_on_gov_projects: data.workedOnGovProjects === "yes",
         });
-      if (vendorError) throw vendorError;
+      if (vendorError) {
+        // رسائل خطأ مخصصة للقيود الفريدة
+        if (vendorError.message?.includes("vendors_email_key")) {
+          setSubmitError(isRtl ? "البريد الإلكتروني مسجل مسبقاً" : "This email is already registered");
+          return;
+        }
+        if (vendorError.message?.includes("vendors_cr_number_key")) {
+          setSubmitError(isRtl ? "رقم السجل التجاري مسجل مسبقاً" : "This CR number is already registered");
+          return;
+        }
+        throw vendorError;
+      }
 
       // Insert categories
       if (data.productCategories.length > 0) {
@@ -286,6 +297,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       setIsSubmitted(true);
     } catch {
       setSubmitError(isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.");
+    }
+  }, () => {
+    // عند فشل validation — نرجع لأول خطوة فيها خطأ
+    const errorFields = Object.keys(form.formState.errors) as (keyof FormValues)[];
+    if (errorFields.length > 0) {
+      const firstErrorField = errorFields[0];
+      const errorStep = stepFields.findIndex((fields) => fields.includes(firstErrorField));
+      if (errorStep >= 0) setStep(errorStep);
+      setSubmitError(isRtl ? "يرجى تعبئة جميع الحقول المطلوبة" : "Please fill all required fields");
     }
   });
 
