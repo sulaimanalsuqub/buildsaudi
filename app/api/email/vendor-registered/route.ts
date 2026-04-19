@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendVendorRegistrationConfirmation } from "@/lib/email";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting - forms submit this
+  const clientId = getClientIdentifier(req);
+  const { ok, resetAt } = checkRateLimit(clientId, "forms");
+  if (!ok) return rateLimitError(resetAt, "تسجيل موردين");
+
   try {
     const body = await req.json();
 

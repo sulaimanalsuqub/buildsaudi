@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -16,6 +17,11 @@ const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(req);
+    const { ok, resetAt } = checkRateLimit(clientId, "api");
+    if (!ok) return rateLimitError(resetAt, "upload");
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "general";

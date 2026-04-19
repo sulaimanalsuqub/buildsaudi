@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendClientResponseNotification } from "@/lib/email";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(req);
+    const { ok, resetAt } = checkRateLimit(clientId, "forms");
+    if (!ok) return rateLimitError(resetAt, "رد على عروض");
+
     const { token, action, reason } = await req.json();
     // action: 'accepted' | 'rejected' | 'modification_requested'
 

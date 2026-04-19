@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendRfqToVendor } from "@/lib/email";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const getAdminClient = () =>
   createAdminClient(
@@ -19,6 +20,11 @@ async function authCheck() {
 
 // GET /api/admin/rfq?quoteId=xxx
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "RFQ");
+
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
@@ -45,6 +51,11 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/rfq — إنشاء RFQs وإرسال إيميلات للموردين
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "RFQ");
+
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
@@ -156,6 +167,11 @@ export async function POST(req: NextRequest) {
 const VALID_RFQ_STATUSES = ["sent", "received", "no_response", "rejected"];
 
 export async function PATCH(req: NextRequest) {
+  // Rate limiting
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "RFQ");
+
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 

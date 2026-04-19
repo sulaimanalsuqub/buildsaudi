@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting - forms submit this
+  const clientId = getClientIdentifier(req);
+  const { ok, resetAt } = checkRateLimit(clientId, "forms");
+  if (!ok) return rateLimitError(resetAt, "طلبات تسعير");
+
   try {
     const quote = await req.json();
 

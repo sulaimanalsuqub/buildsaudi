@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendClientOfferEmail } from "@/lib/email";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(req);
+    const { ok, resetAt } = checkRateLimit(clientId, "admin");
+    if (!ok) return rateLimitError(resetAt, "إرسال عروض");
+
     // Auth check
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
