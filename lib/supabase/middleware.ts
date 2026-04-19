@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isUserAdmin } from "@/lib/auth/admin";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -44,6 +45,15 @@ export async function updateSession(request: NextRequest) {
   if (user && isAdminLogin) {
     url.pathname = "/admin";
     return NextResponse.redirect(url);
+  }
+
+  // Check admin role for admin pages (except login)
+  if (user && isAdminPage && !isAdminLogin) {
+    const isAdmin = await isUserAdmin(user.id);
+    if (!isAdmin) {
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

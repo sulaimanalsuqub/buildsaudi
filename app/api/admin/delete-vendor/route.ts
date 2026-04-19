@@ -8,6 +8,13 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
+    // Check admin role
+    const { isUserAdmin } = await import("@/lib/auth/admin");
+    const isAdmin = await isUserAdmin(user.id);
+    if (!isAdmin) {
+      return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+    }
+
     const { vendorId } = await req.json();
     if (!vendorId) return NextResponse.json({ error: "معرّف المورد مطلوب" }, { status: 400 });
 

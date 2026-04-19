@@ -19,6 +19,13 @@ export async function GET(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
+  // Check admin role
+  const { isUserAdmin } = await import("@/lib/auth/admin");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+  }
+
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
 
@@ -37,6 +44,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
+  // Check admin role
+  const { isUserAdmin } = await import("@/lib/auth/admin");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+  }
 
   const { quoteId, name, description, quantity, unit, category } = await req.json();
   if (!quoteId || !name || !quantity || !unit || !category) {
@@ -58,6 +72,13 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
+  // Check admin role
+  const { isUserAdmin } = await import("@/lib/auth/admin");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+  }
 
   const { itemId } = await req.json();
   if (!itemId) return NextResponse.json({ error: "itemId مطلوب" }, { status: 400 });

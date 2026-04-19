@@ -21,6 +21,13 @@ export async function GET(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
+  // Check admin role
+  const { isUserAdmin } = await import("@/lib/auth/admin");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+  }
+
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
 
@@ -39,6 +46,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await authCheck();
   if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+
+  // Check admin role
+  const { isUserAdmin } = await import("@/lib/auth/admin");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
+  }
 
   const { quoteId, companyName, price, currency, deliveryDays, notes } = await req.json();
 
