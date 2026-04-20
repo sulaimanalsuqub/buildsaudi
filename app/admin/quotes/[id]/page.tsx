@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { QuoteActions } from "./quote-actions";
@@ -40,7 +40,6 @@ const FLOW_STEPS = [
   { key: "done", label: "مكتمل" },
 ];
 
-// حالات تُشغّل المراحل المختلفة
 const PHASE1_STATUSES = ["admin_approved", "rfq_sent", "vendor_quotes_received", "freight_sent", "freight_received"];
 const PHASE2_STATUSES = ["admin_approved", "rfq_sent"];
 const PHASE3_STATUSES = ["rfq_sent", "vendor_quotes_received", "freight_sent", "freight_received"];
@@ -48,7 +47,7 @@ const PHASE_FREIGHT_STATUSES = ["vendor_quotes_received", "freight_sent", "freig
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: quote } = await supabase
     .from("quotes")
@@ -58,7 +57,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
   if (!quote) notFound();
 
-  // جلب كل البيانات المطلوبة بشكل متوازٍ
   const [
     { data: clientOffer },
     { data: quoteItems },
@@ -95,7 +93,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       .order("created_at", { ascending: true }),
   ]);
 
-  // جلب vendor_quotes بناءً على rfq_ids
   const rfqIds = (rfqsRaw ?? []).map((r: { id: string }) => r.id);
   const { data: vendorQuotesRaw } =
     rfqIds.length > 0
@@ -106,7 +103,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           .order("created_at", { ascending: true })
       : { data: [] };
 
-  // إضافة اسم المورد لعروض الموردين (لـ OfferBuilder)
   type VendorQuoteRow = {
     id: string; rfq_id: string; vendor_id: string; total_price: number;
     delivery_days: number | null; notes: string | null; vendorName?: string;
@@ -133,7 +129,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-[#1D3F1F]/50">
@@ -156,7 +151,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         <QuoteActions id={quote.id} currentStatus={quote.status} />
       </div>
 
-      {/* Progress Flow */}
       {quote.status !== "cancelled" && (
         <div className="mb-6 overflow-x-auto rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
           <div className="flex min-w-max items-center gap-0">
@@ -194,14 +188,13 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Info Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* Client Info */}
         <div className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
           <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">معلومات العميل</h2>
           <div className="space-y-3">
             <Row label="اسم العميل" value={quote.client_name} />
             <Row label="رقم الجوال" value={quote.phone} dir="ltr" />
+            {quote.client_email && <Row label="البريد الإلكتروني" value={quote.client_email} dir="ltr" />}
             <Row label="عنوان التسليم" value={quote.delivery_address} />
             <Row
               label="تاريخ التسليم المطلوب"
@@ -212,7 +205,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Project Info */}
         <div className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
           <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">تفاصيل المشروع</h2>
           <div className="space-y-3">
@@ -223,13 +215,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             {quote.sheet_link && (
               <div>
                 <p className="text-xs text-[#1D3F1F]/40">رابط جدول الكميات</p>
-                <a
-                  href={quote.sheet_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 block truncate text-sm text-[#09B14B] hover:underline"
-                  dir="ltr"
-                >
+                <a href={quote.sheet_link} target="_blank" rel="noopener noreferrer"
+                  className="mt-1 block truncate text-sm text-[#09B14B] hover:underline" dir="ltr">
                   {quote.sheet_link}
                 </a>
               </div>
@@ -237,12 +224,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             {quote.boq_file_url && (
               <div>
                 <p className="text-xs text-[#1D3F1F]/40">ملف BOQ</p>
-                <a
-                  href={quote.boq_file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-[#1D3F1F]/10 bg-[#F4F3EB] px-3 py-1.5 text-xs font-medium text-[#1D3F1F] hover:bg-[#1D3F1F]/10"
-                >
+                <a href={quote.boq_file_url} target="_blank" rel="noopener noreferrer"
+                  className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-[#1D3F1F]/10 bg-[#F4F3EB] px-3 py-1.5 text-xs font-medium text-[#1D3F1F] hover:bg-[#1D3F1F]/10">
                   📎 تحميل الملف
                 </a>
               </div>
@@ -256,13 +239,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Admin Notes */}
         <div className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 sm:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-[#1D3F1F]/50">ملاحظات الأدمن الداخلية</h2>
           <AdminNotesClient id={quote.id} currentNotes={quote.admin_notes ?? ""} />
         </div>
 
-        {/* المرحلة ١: تفكيك المواد */}
         {showPhase1 && (
           <div className="sm:col-span-2">
             <QuoteItemsEditor
@@ -274,7 +255,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* المرحلة ٢: إرسال RFQ للموردين */}
         {showPhase2 && (
           <div className="sm:col-span-2">
             <RfqManager
@@ -286,7 +266,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* المرحلة ٣: إدخال أسعار الموردين */}
         {showPhase3 && (
           <div className="sm:col-span-2">
             <VendorQuoteEntry
@@ -296,7 +275,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* أسعار الشحن */}
         {showFreightEntry && (
           <div className="sm:col-span-2">
             <FreightQuoteEntry
@@ -306,7 +284,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* المرحلة ٤: بناء العرض النهائي */}
         {showOfferBuilder && (
           <div className="sm:col-span-2">
             <OfferBuilder
@@ -324,7 +301,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* ملخص العرض المُرسَل */}
         {showSentOffer && clientOffer && (
           <div className="sm:col-span-2 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5">
             <h2 className="mb-4 text-sm font-semibold text-[#1D3F1F]/50">
@@ -365,12 +341,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                  clientOffer.status === "rejected" ? "العميل رفض" : "بانتظار رد العميل"}
               </span>
               {clientOffer.offer_token && (
-                <a
-                  href={`/offer/${clientOffer.offer_token}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-[#09B14B] hover:underline"
-                >
+                <a href={`/offer/${clientOffer.offer_token}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-[#09B14B] hover:underline">
                   رابط العرض ↗
                 </a>
               )}
@@ -390,3 +362,4 @@ function Row({ label, value, dir }: { label: string; value: string; dir?: string
     </div>
   );
 }
+
