@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ApproveQuoteButton } from "./approve-button";
 import { DeleteQuoteButton } from "./delete-quote-button";
@@ -24,27 +24,70 @@ const PAGE_SIZE = 20;
 export default async function AdminQuotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; status?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, status: statusFilter } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10));
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const supabase = await createClient();
-  const { data: quotes, count } = await supabase
+  const supabase = createServiceRoleClient();
+
+  let query = supabase
     .from("quotes")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
 
+  if (statusFilter) {
+    query = query.eq("status", statusFilter);
+  }
+
+  const { data: quotes, count } = await query;
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1D3F1F]">طلبات التسعير</h1>
-        <p className="mt-1 text-sm text-[#1D3F1F]/55">جميع الطلبات الواردة من العملاء</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1D3F1F]">طلبات التسعير</h1>
+          <p className="mt-1 text-sm text-[#1D3F1F]/55">
+            {count ?? 0} طلب{statusFilter ? ` — ${STATUS_LABELS[statusFilter]?.label ?? statusFilter}` : ""}
+          </p>
+        </div>
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/quotes"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${!statusFilter ? "bg-[#1D3F1F] text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
+          >
+            الكل
+          </Link>
+          <Link
+            href="/admin/quotes?status=new"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "new" ? "bg-amber-500 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
+          >
+            جديد
+          </Link>
+          <Link
+            href="/admin/quotes?status=admin_approved"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "admin_approved" ? "bg-blue-500 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
+          >
+            معتمد
+          </Link>
+          <Link
+            href="/admin/quotes?status=offer_sent"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "offer_sent" ? "bg-lime-600 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
+          >
+            عرض أُرسل
+          </Link>
+          <Link
+            href="/admin/quotes?status=done"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "done" ? "bg-green-600 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
+          >
+            مكتمل
+          </Link>
+        </div>
       </div>
 
       {/* Desktop Table */}
@@ -142,13 +185,11 @@ export default async function AdminQuotesPage({
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm text-[#1D3F1F]/60">
-          <span>
-            صفحة {page} من {totalPages} ({count} طلب)
-          </span>
+          <span>صفحة {page} من {totalPages} ({count} طلب)</span>
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`/admin/quotes?page=${page - 1}`}
+                href={`/admin/quotes?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
                 className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
               >
                 السابق
@@ -156,7 +197,7 @@ export default async function AdminQuotesPage({
             )}
             {page < totalPages && (
               <Link
-                href={`/admin/quotes?page=${page + 1}`}
+                href={`/admin/quotes?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
                 className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
               >
                 التالي
@@ -168,3 +209,4 @@ export default async function AdminQuotesPage({
     </div>
   );
 }
+
