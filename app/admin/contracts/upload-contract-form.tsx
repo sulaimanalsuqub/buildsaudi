@@ -18,36 +18,33 @@ export function UploadContractForm() {
       setError("يرجى إدخال العنوان واختيار الملف");
       return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("حجم الملف يتجاوز 10 ميجابايت");
+      return;
+    }
     setLoading(true);
     setError("");
 
     try {
+      // 1. Upload PDF to Supabase Storage (client-side, using authenticated session)
       const supabase = createClient();
-
-      // Upload PDF to Supabase Storage
-      const fileName = `contracts/${Date.now()}-${file.name}`;
+      const fileName = `contracts/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(fileName, file, { upsert: false });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("documents")
-        .getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
 
-      // Deactivate old contracts
-      await supabase
-        .from("contracts")
-        .update({ is_active: false })
-        .eq("is_active", true);
-
-      // Insert new contract
-      const { error: insertError } = await supabase
-        .from("contracts")
-        .insert({ title: title.trim(), file_url: urlData.publicUrl, is_active: true });
-
-      if (insertError) throw insertError;
+      // 2. Create contract record via secure API route
+      const res = await fetch("/api/admin/contracts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), fileUrl: urlData.publicUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "فشل حفظ العقد");
 
       setTitle("");
       setFile(null);
@@ -82,7 +79,7 @@ export function UploadContractForm() {
           {file ? (
             <p className="text-xs font-medium text-[#1D3F1F]">📄 {file.name}</p>
           ) : (
-            <p className="text-xs text-[#1D3F1F]/40">اضغط لاختيار ملف PDF</p>
+            <p className="text-xs text-[#1D3F1F]/40">اضغط لاختيار ملف PDF (حد أقصى 10MB)</p>
           )}
         </div>
         <input
@@ -90,7 +87,7 @@ export function UploadContractForm() {
           type="file"
           accept=".pdf"
           className="hidden"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(""); }}
         />
       </div>
 
