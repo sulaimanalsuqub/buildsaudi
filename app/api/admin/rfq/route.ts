@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendRfqToVendor } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { isUserAdmin } from "@/lib/auth/admin";
 
 const getAdminClient = () =>
   createAdminClient(
@@ -10,30 +11,14 @@ const getAdminClient = () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-async function authCheck() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
-
 // GET /api/admin/rfq?quoteId=xxx
 export async function GET(req: NextRequest) {
-  // Rate limiting
   const clientId = getClientIdentifier(req);
   const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
   if (!rlOk) return rateLimitError(resetAt, "RFQ");
 
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
-
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
@@ -51,20 +36,12 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/rfq — إنشاء RFQs وإرسال إيميلات للموردين
 export async function POST(req: NextRequest) {
-  // Rate limiting
   const clientId = getClientIdentifier(req);
   const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
   if (!rlOk) return rateLimitError(resetAt, "RFQ");
 
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
-
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const { quoteId, vendorIds, deadline, notes } = await req.json();
   if (!quoteId || !vendorIds?.length || !deadline) {
@@ -117,11 +94,11 @@ export async function POST(req: NextRequest) {
     entity_id: quoteId,
     stage: "send_rfq",
     action: "approved",
-    actor: user?.email ?? "admin",
+    actor: auth.user?.email ?? "admin",
     notes: `تم إرسال RFQ لـ ${(createdRfqs ?? []).length} مورد`,
   });
 
-  // إرسال الإيميلات (لا تفشل العملية إذا فشل إيميل واحد)
+  // إرسال الإيميلات
   const deliveryDate = new Date(quote.delivery_date).toLocaleDateString("ar-SA", {
     year: "numeric",
     month: "long",
@@ -167,20 +144,12 @@ export async function POST(req: NextRequest) {
 const VALID_RFQ_STATUSES = ["sent", "received", "no_response", "rejected"];
 
 export async function PATCH(req: NextRequest) {
-  // Rate limiting
   const clientId = getClientIdentifier(req);
   const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
   if (!rlOk) return rateLimitError(resetAt, "RFQ");
 
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
-
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const { rfqId, status } = await req.json();
   if (!rfqId || !status) return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
@@ -195,3 +164,4 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
