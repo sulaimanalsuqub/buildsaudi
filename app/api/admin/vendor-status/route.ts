@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendVendorActivatedEmail, sendVendorRejectedEmail } from "@/lib/email";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -17,16 +18,12 @@ const STAGE_MAP: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    const clientId = getClientIdentifier(req);
+    const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+    if (!rlOk) return rateLimitError(resetAt, "تحديث المورد");
 
-    // Check admin role
-    const { isUserAdmin } = await import("@/lib/auth/admin");
-    const isAdmin = await isUserAdmin(user.id);
-    if (!isAdmin) {
-      return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-    }
+    const auth = await checkAdminAuth();
+    if (!auth.ok) return authError(auth.error!, auth.status);
 
     const { vendorId, status } = await req.json();
     if (!vendorId || !status) {
@@ -37,12 +34,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "الحالة غير مسموح بها" }, { status: 400 });
     }
 
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const adminSupabase = createServiceRoleClient();
 
-    // جلب بيانات المورد الحالية
     const { data: vendor } = await adminSupabase
       .from("vendors")
       .select("id, status, establishment_name, manager_name, email")
@@ -60,25 +53,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // تحديث حالة المورد
-    const { error } = await adminSupabase
-      .from("vendors")
-      .update({ status })
-      .eq("id", vendorId);
-
+    const { error } = await adminSupabase.from("vendors").update({ status }).eq("id", vendorId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // تسجيل في سجل الموافقات
     await adminSupabase.from("approvals").insert({
       entity_type: "vendor",
       entity_id: vendorId,
       stage: STAGE_MAP[status],
       action: status === "rejected" ? "rejected" : "approved",
-      actor: user.email ?? "admin",
+      actor: auth.user?.email ?? "admin",
       notes: `${vendor.status} → ${status}`,
     });
 
-    // إرسال إيميل عند التفعيل أو الرفض
     if (vendor.email && (status === "active" || status === "rejected")) {
       try {
         if (status === "active") {
