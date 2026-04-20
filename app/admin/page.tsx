@@ -1,15 +1,31 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { createServiceRoleClient, createClient } from "@/lib/supabase/server";
+import { isUserAdmin } from "@/lib/auth/admin";
 import Link from "next/link";
 
 export default async function AdminHomePage() {
-  const supabase = createServiceRoleClient();
+  // Verify user is authenticated
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  // Verify user is an admin — if not, redirect to homepage (avoids login loop)
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) {
+    redirect("/");
+  }
+
+  const serviceSupabase = createServiceRoleClient();
 
   const [{ count: quotesCount }, { count: vendorsCount }, { count: newQuotesCount }, { count: pendingVendorsCount }] =
     await Promise.all([
-      supabase.from("quotes").select("*", { count: "exact", head: true }),
-      supabase.from("vendors").select("*", { count: "exact", head: true }).eq("status", "active"),
-      supabase.from("quotes").select("*", { count: "exact", head: true }).eq("status", "new"),
-      supabase.from("vendors").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      serviceSupabase.from("quotes").select("*", { count: "exact", head: true }),
+      serviceSupabase.from("vendors").select("*", { count: "exact", head: true }).eq("status", "active"),
+      serviceSupabase.from("quotes").select("*", { count: "exact", head: true }).eq("status", "new"),
+      serviceSupabase.from("vendors").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
 
   const stats = [
