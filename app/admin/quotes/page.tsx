@@ -1,4 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { isUserAdmin } from "@/lib/auth/admin";
 import Link from "next/link";
 import { ApproveQuoteButton } from "./approve-button";
 import { DeleteQuoteButton } from "./delete-quote-button";
@@ -26,6 +29,12 @@ export default async function AdminQuotesPage({
 }: {
   searchParams: Promise<{ page?: string; status?: string }>;
 }) {
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) redirect("/admin/login");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) redirect("/");
+
   const { page: pageParam, status: statusFilter } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10));
   const from = (page - 1) * PAGE_SIZE;
@@ -55,38 +64,19 @@ export default async function AdminQuotesPage({
             {count ?? 0} طلب{statusFilter ? ` — ${STATUS_LABELS[statusFilter]?.label ?? statusFilter}` : ""}
           </p>
         </div>
-        {/* Status Filter */}
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/quotes"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${!statusFilter ? "bg-[#1D3F1F] text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
-          >
-            الكل
-          </Link>
-          <Link
-            href="/admin/quotes?status=new"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "new" ? "bg-amber-500 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
-          >
-            جديد
-          </Link>
-          <Link
-            href="/admin/quotes?status=admin_approved"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "admin_approved" ? "bg-blue-500 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
-          >
-            معتمد
-          </Link>
-          <Link
-            href="/admin/quotes?status=offer_sent"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "offer_sent" ? "bg-lime-600 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
-          >
-            عرض أُرسل
-          </Link>
-          <Link
-            href="/admin/quotes?status=done"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === "done" ? "bg-green-600 text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}
-          >
-            مكتمل
-          </Link>
+          {[
+            { href: "/admin/quotes", label: "الكل", filter: undefined },
+            { href: "/admin/quotes?status=new", label: "جديد", filter: "new" },
+            { href: "/admin/quotes?status=admin_approved", label: "معتمد", filter: "admin_approved" },
+            { href: "/admin/quotes?status=offer_sent", label: "عرض أُرسل", filter: "offer_sent" },
+            { href: "/admin/quotes?status=done", label: "مكتمل", filter: "done" },
+          ].map((f) => (
+            <Link key={f.href} href={f.href}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${statusFilter === f.filter ? "bg-[#1D3F1F] text-white" : "border border-[#1D3F1F]/15 bg-white text-[#1D3F1F]/70 hover:bg-[#F4F3EB]"}`}>
+              {f.label}
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -106,11 +96,7 @@ export default async function AdminQuotesPage({
           </thead>
           <tbody className="divide-y divide-[#1D3F1F]/[0.06]">
             {!quotes || quotes.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-[#1D3F1F]/40">
-                  لا توجد طلبات بعد
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-[#1D3F1F]/40">لا توجد طلبات بعد</td></tr>
             ) : (
               quotes.map((q) => {
                 const status = STATUS_LABELS[q.status] ?? { label: q.status, color: "bg-gray-100 text-gray-600" };
@@ -123,9 +109,7 @@ export default async function AdminQuotesPage({
                     <td className="px-4 py-3 text-[#1D3F1F]/70" dir="ltr">{q.phone}</td>
                     <td className="px-4 py-3 text-[#1D3F1F]/70">{q.delivery_address}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>
-                        {status.label}
-                      </span>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>{status.label}</span>
                     </td>
                     <td className="px-4 py-3 text-[#1D3F1F]/50" dir="ltr">
                       {new Date(q.created_at).toLocaleDateString("ar-SA")}
@@ -147,23 +131,16 @@ export default async function AdminQuotesPage({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {!quotes || quotes.length === 0 ? (
-          <div className="rounded-2xl border border-[#1D3F1F]/10 bg-white px-5 py-12 text-center text-[#1D3F1F]/40">
-            لا توجد طلبات بعد
-          </div>
+          <div className="rounded-2xl border border-[#1D3F1F]/10 bg-white px-5 py-12 text-center text-[#1D3F1F]/40">لا توجد طلبات بعد</div>
         ) : (
           quotes.map((q) => {
             const status = STATUS_LABELS[q.status] ?? { label: q.status, color: "bg-gray-100 text-gray-600" };
             return (
-              <Link
-                key={q.id}
-                href={`/admin/quotes/${q.id}`}
-                className="block rounded-2xl border border-[#1D3F1F]/10 bg-white p-4 transition-colors hover:bg-[#F4F3EB]/40"
-              >
+              <Link key={q.id} href={`/admin/quotes/${q.id}`}
+                className="block rounded-2xl border border-[#1D3F1F]/10 bg-white p-4 transition-colors hover:bg-[#F4F3EB]/40">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-sm font-bold text-[#1D3F1F]">{q.project_name}</h3>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 ${status.color}`}>
-                    {status.label}
-                  </span>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 ${status.color}`}>{status.label}</span>
                 </div>
                 <div className="space-y-1 text-xs text-[#1D3F1F]/60">
                   <p>{q.client_name}</p>
@@ -188,20 +165,12 @@ export default async function AdminQuotesPage({
           <span>صفحة {page} من {totalPages} ({count} طلب)</span>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link
-                href={`/admin/quotes?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
-                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
-              >
-                السابق
-              </Link>
+              <Link href={`/admin/quotes?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
+                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]">السابق</Link>
             )}
             {page < totalPages && (
-              <Link
-                href={`/admin/quotes?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
-                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]"
-              >
-                التالي
-              </Link>
+              <Link href={`/admin/quotes?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}`}
+                className="rounded-lg border border-[#1D3F1F]/15 bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F4F3EB]">التالي</Link>
             )}
           </div>
         </div>
@@ -209,4 +178,3 @@ export default async function AdminQuotesPage({
     </div>
   );
 }
-
