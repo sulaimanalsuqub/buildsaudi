@@ -1,20 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-export function DeleteBrandButton({
-  id,
-  name,
-  vendorCount,
-}: {
-  id: string;
-  name: string;
-  vendorCount: number;
-}) {
+export function DeleteBrandButton({ id, name, vendorCount }: { id: string; name: string; vendorCount: number }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -22,9 +13,12 @@ export function DeleteBrandButton({
   const handleDelete = async () => {
     setLoading(true);
     setOpen(false);
-    const supabase = createClient();
-    const { error } = await supabase.from("brands").delete().eq("id", id);
-    if (error) {
+    const res = await fetch("/api/admin/brands", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
       toast.error("فشل حذف العلامة التجارية");
     } else {
       toast.success(`تم حذف "${name}"`);
@@ -33,10 +27,9 @@ export function DeleteBrandButton({
     setLoading(false);
   };
 
-  const description =
-    vendorCount > 0
-      ? `هذه العلامة مرتبطة بـ ${vendorCount} مورد. هل تريد حذفها؟`
-      : `هل تريد حذف "${name}"؟`;
+  const description = vendorCount > 0
+    ? `هذه العلامة مرتبطة بـ ${vendorCount} مورد. هل تريد حذفها؟`
+    : `هل تريد حذف "${name}"؟`;
 
   return (
     <>
