@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export function AddBrandForm() {
@@ -16,13 +15,15 @@ export function AddBrandForm() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-    const { error: err } = await supabase
-      .from("brands")
-      .insert({ name: name.trim() });
+    const res = await fetch("/api/admin/brands", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
 
-    if (err) {
-      setError(err.code === "23505" ? "هذه العلامة مسجّلة مسبقاً" : err.message);
+    if (!res.ok) {
+      setError(data.error ?? "حدث خطأ، حاول مجدداً");
     } else {
       setName("");
       router.refresh();
