@@ -1,12 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 export type AdminRole = "admin" | "moderator" | "viewer";
 
+/**
+ * يستخدم service role client لتجاوز RLS عند التحقق من صلاحيات الأدمن
+ * آمن لأنه يُستخدم فقط في server-side code
+ */
 export async function isUserAdmin(userId: string | undefined): Promise<boolean> {
   if (!userId) return false;
 
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data, error } = await supabase
       .from("admin_users")
       .select("is_active")
@@ -25,7 +29,7 @@ export async function getUserRole(userId: string | undefined): Promise<AdminRole
   if (!userId) return null;
 
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     const { data, error } = await supabase
       .from("admin_users")
       .select("role")
@@ -55,4 +59,3 @@ export async function checkAdminPermission(userId: string | undefined, requiredR
   const roleHierarchy = { admin: 3, moderator: 2, viewer: 1 };
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
 }
-
