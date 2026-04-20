@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { isUserAdmin } from "@/lib/auth/admin";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const getAdminClient = () =>
   createAdminClient(
@@ -8,23 +11,14 @@ const getAdminClient = () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-async function authCheck() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
-
 // GET /api/admin/quote-items?quoteId=xxx
 export async function GET(req: NextRequest) {
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "quote-items");
 
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
@@ -40,17 +34,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ items });
 }
 
-// POST /api/admin/quote-items — إضافة صنف جديد
+// POST /api/admin/quote-items
 export async function POST(req: NextRequest) {
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "quote-items");
 
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const { quoteId, name, description, quantity, unit, category } = await req.json();
   if (!quoteId || !name || !quantity || !unit || !category) {
@@ -68,17 +59,14 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, item });
 }
 
-// DELETE /api/admin/quote-items — حذف صنف
+// DELETE /api/admin/quote-items
 export async function DELETE(req: NextRequest) {
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "quote-items");
 
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const { itemId } = await req.json();
   if (!itemId) return NextResponse.json({ error: "itemId مطلوب" }, { status: 400 });
@@ -89,3 +77,4 @@ export async function DELETE(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
