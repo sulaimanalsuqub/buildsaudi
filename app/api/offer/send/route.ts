@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendClientOfferEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
     const clientId = getClientIdentifier(req);
-    const { ok, resetAt } = checkRateLimit(clientId, "admin");
-    if (!ok) return rateLimitError(resetAt, "إرسال عروض");
+    const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+    if (!rlOk) return rateLimitError(resetAt, "إرسال عروض");
 
-    // Auth check
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    const auth = await checkAdminAuth();
+    if (!auth.ok) return authError(auth.error!, auth.status);
 
     const {
-      quoteId,
-      clientName,
-      clientEmail,
-      projectName,
-      deliveryAddress,
-      deliveryDate,
-      materialsTotal,
-      freightTotal,
-      platformFee,
-      grandTotal,
-      validityDays,
+      quoteId, clientName, clientEmail, projectName,
+      deliveryAddress, deliveryDate, materialsTotal,
+      freightTotal, platformFee, grandTotal, validityDays,
     } = await req.json();
 
     if (!quoteId || !clientEmail || !materialsTotal || !freightTotal) {
@@ -38,12 +27,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "الأسعار يجب أن تكون أكبر من صفر" }, { status: 400 });
     }
 
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const adminSupabase = createServiceRoleClient();
 
-    // التحقق من أن الطلب في الحالة الصحيحة قبل إرسال العرض
     const { data: currentQuote } = await adminSupabase
       .from("quotes")
       .select("status")
@@ -61,12 +46,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate a unique token for the offer link
     const offerToken = crypto.randomUUID();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (validityDays ?? 7));
 
-    // 1. Insert into client_offers
     const { data: insertedOffer, error: insertError } = await adminSupabase
       .from("client_offers")
       .insert({
@@ -89,7 +72,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // 2. Send email BEFORE updating quote status — rollback if email fails
     try {
       await sendClientOfferEmail({
         client_name: clientName,
@@ -105,28 +87,19 @@ export async function POST(req: NextRequest) {
         delivery_date: deliveryDate,
       });
     } catch (emailError) {
-      // Rollback: حذف العرض إذا فشل الإيميل
       console.error("Offer email failed, rolling back:", emailError);
       await adminSupabase.from("client_offers").delete().eq("id", insertedOffer.id);
-      return NextResponse.json(
-        { error: "فشل إرسال الإيميل — لم يتم تحديث حالة الطلب" },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: "فشل إرسال الإيميل — لم يتم تحديث حالة الطلب" }, { status: 502 });
     }
 
-    // 3. Email succeeded — advance quote status
-    await adminSupabase
-      .from("quotes")
-      .update({ status: "offer_sent" })
-      .eq("id", quoteId);
+    await adminSupabase.from("quotes").update({ status: "offer_sent" }).eq("id", quoteId);
 
-    // 4. تسجيل في سجل الموافقات
     await adminSupabase.from("approvals").insert({
       entity_type: "client_offer",
       entity_id: quoteId,
       stage: "approve_final_offer",
       action: "approved",
-      actor: user.email ?? "admin",
+      actor: auth.user?.email ?? "admin",
       notes: `عرض نهائي بقيمة ${grandTotal} ر.س — مرسل للعميل ${clientEmail}`,
     });
 
