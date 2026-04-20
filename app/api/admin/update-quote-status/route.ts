@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendQuoteStatusToClient, getClientNotifiableStatuses } from "@/lib/email";
 
-// تسلسل الحالات الصحيح — كل حالة تقبل الانتقال إليها من الحالات المدرجة فقط
 const VALID_TRANSITIONS: Record<string, string[]> = {
   admin_approved:          ["new"],
   rfq_sent:               ["admin_approved"],
@@ -25,16 +25,12 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    const clientId = getClientIdentifier(req);
+    const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+    if (!rlOk) return rateLimitError(resetAt, "تحديث الحالة");
 
-    // Check admin role
-    const { isUserAdmin } = await import("@/lib/auth/admin");
-    const isAdmin = await isUserAdmin(user.id);
-    if (!isAdmin) {
-      return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-    }
+    const auth = await checkAdminAuth();
+    if (!auth.ok) return authError(auth.error!, auth.status);
 
     const { quoteId, status } = await req.json();
     if (!quoteId || !status) return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
@@ -43,12 +39,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "الحالة غير مسموح بها" }, { status: 400 });
     }
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const adminSupabase = createServiceRoleClient();
 
-    // التحقق من الحالة الحالية قبل التحديث
     const { data: current } = await adminSupabase
       .from("quotes")
       .select("status, client_name, client_email, project_name")
@@ -67,17 +59,15 @@ export async function POST(req: NextRequest) {
     const { error } = await adminSupabase.from("quotes").update({ status }).eq("id", quoteId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-    // تسجيل في سجل الموافقات
     await adminSupabase.from("approvals").insert({
       entity_type: "quote",
       entity_id: quoteId,
       stage: status,
       action: status === "cancelled" ? "rejected" : "approved",
-      actor: user.email ?? "admin",
+      actor: auth.user?.email ?? "admin",
       notes: `${current.status} → ${status}`,
     });
 
-    // إرسال إشعار للعميل إذا كان عنده إيميل والحالة تستوجب إشعار
     if (current.client_email && getClientNotifiableStatuses().includes(status)) {
       try {
         await sendQuoteStatusToClient({
