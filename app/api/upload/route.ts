@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const ALLOWED_TYPES = [
   "application/pdf",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
-  "application/vnd.ms-excel", // xls
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
-  "application/msword", // doc
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
   "image/png",
   "image/jpeg",
   "text/csv",
@@ -21,6 +22,13 @@ export async function POST(req: NextRequest) {
     const clientId = getClientIdentifier(req);
     const { ok, resetAt } = checkRateLimit(clientId, "api");
     if (!ok) return rateLimitError(resetAt, "upload");
+
+    // Authentication check — must be logged in to upload
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "يجب تسجيل الدخول لرفع الملفات" }, { status: 401 });
+    }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -70,3 +78,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "حدث خطأ" }, { status: 500 });
   }
 }
+
