@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { isUserAdmin } from "@/lib/auth/admin";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-
-const getAdminClient = () =>
-  createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
 
 // GET /api/admin/quote-items?quoteId=xxx
 export async function GET(req: NextRequest) {
@@ -23,7 +15,7 @@ export async function GET(req: NextRequest) {
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
 
-  const adminSupabase = getAdminClient();
+  const adminSupabase = createServiceRoleClient();
   const { data: items, error } = await adminSupabase
     .from("quote_items")
     .select("*")
@@ -48,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
   }
 
-  const adminSupabase = getAdminClient();
+  const adminSupabase = createServiceRoleClient();
   const { data: item, error } = await adminSupabase
     .from("quote_items")
     .insert({ quote_id: quoteId, name, description: description ?? null, quantity, unit, category })
@@ -71,10 +63,9 @@ export async function DELETE(req: NextRequest) {
   const { itemId } = await req.json();
   if (!itemId) return NextResponse.json({ error: "itemId مطلوب" }, { status: 400 });
 
-  const adminSupabase = getAdminClient();
+  const adminSupabase = createServiceRoleClient();
   const { error } = await adminSupabase.from("quote_items").delete().eq("id", itemId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
-
