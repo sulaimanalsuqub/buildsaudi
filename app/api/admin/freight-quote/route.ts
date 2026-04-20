@@ -1,37 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-const getAdminClient = () =>
-  createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-async function authCheck() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 // GET /api/admin/freight-quote?quoteId=xxx
 export async function GET(req: NextRequest) {
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "freight-quote");
 
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const quoteId = req.nextUrl.searchParams.get("quoteId");
   if (!quoteId) return NextResponse.json({ error: "quoteId مطلوب" }, { status: 400 });
 
-  const adminSupabase = getAdminClient();
+  const adminSupabase = createServiceRoleClient();
   const { data: freightQuotes, error } = await adminSupabase
     .from("freight_quotes")
     .select("*")
@@ -42,17 +26,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ freightQuotes });
 }
 
-// POST /api/admin/freight-quote — إضافة عرض شحن
+// POST /api/admin/freight-quote
 export async function POST(req: NextRequest) {
-  const user = await authCheck();
-  if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+  const clientId = getClientIdentifier(req);
+  const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+  if (!rlOk) return rateLimitError(resetAt, "freight-quote");
 
-  // Check admin role
-  const { isUserAdmin } = await import("@/lib/auth/admin");
-  const isAdmin = await isUserAdmin(user.id);
-  if (!isAdmin) {
-    return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-  }
+  const auth = await checkAdminAuth();
+  if (!auth.ok) return authError(auth.error!, auth.status);
 
   const { quoteId, companyName, price, currency, deliveryDays, notes } = await req.json();
 
@@ -64,9 +45,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "السعر يجب أن يكون أكبر من صفر" }, { status: 400 });
   }
 
-  const adminSupabase = getAdminClient();
+  const adminSupabase = createServiceRoleClient();
 
-  // نبني الـ payload ديناميكياً — companyName يُدمج في notes
   const notesText = [companyName ? `شركة: ${companyName}` : null, notes ?? null]
     .filter(Boolean)
     .join("\n");
@@ -88,13 +68,12 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // تسجيل في سجل الموافقات
   await adminSupabase.from("approvals").insert({
     entity_type: "freight_quote",
     entity_id: quoteId,
     stage: "receive_freight_quote",
     action: "approved",
-    actor: user?.email ?? "admin",
+    actor: auth.user?.email ?? "admin",
     notes: `عرض شحن بقيمة ${parseFloat(price)} ${currency ?? "SAR"}${companyName ? ` — ${companyName}` : ""}`,
   });
 
