@@ -1,33 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
+    const clientId = getClientIdentifier(req);
+    const { ok: rlOk, resetAt } = checkRateLimit(clientId, "admin");
+    if (!rlOk) return rateLimitError(resetAt, "دعوة مستخدم");
 
-    // Check admin role
-    const { isUserAdmin } = await import("@/lib/auth/admin");
-    const isAdmin = await isUserAdmin(user.id);
-    if (!isAdmin) {
-      return NextResponse.json({ error: "ليس لديك صلاحيات إدارية" }, { status: 403 });
-    }
+    const auth = await checkAdminAuth();
+    if (!auth.ok) return authError(auth.error!, auth.status);
 
-    const { email } = await req.json();
+    const { email, role = "viewer" } = await req.json();
     if (!email) return NextResponse.json({ error: "البريد مطلوب" }, { status: 400 });
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const validRoles = ["admin", "moderator", "viewer"];
+    if (!validRoles.includes(role)) {
+      return NextResponse.json({ error: "الدور غير مسموح به" }, { status: 400 });
+    }
 
-    const { error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+    const adminSupabase = createServiceRoleClient();
+
+    const { data: invited, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/admin`,
     });
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (inviteError) return NextResponse.json({ error: inviteError.message }, { status: 400 });
+
+    // إضافة المستخدم المدعو إلى admin_users مباشرة
+    if (invited?.user?.id) {
+      await adminSupabase.from("admin_users").upsert({
+        id: invited.user.id,
+        email,
+        role,
+        is_active: true,
+      }, { onConflict: "id" });
+    }
 
     return NextResponse.json({ ok: true });
   } catch {
