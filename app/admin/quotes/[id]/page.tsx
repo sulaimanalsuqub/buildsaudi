@@ -1,5 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { isUserAdmin } from "@/lib/auth/admin";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { QuoteActions } from "./quote-actions";
 import { AdminNotesClient } from "./admin-notes-client";
@@ -47,6 +49,12 @@ const PHASE_FREIGHT_STATUSES = ["vendor_quotes_received", "freight_sent", "freig
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) redirect("/admin/login");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) redirect("/");
+
   const supabase = createServiceRoleClient();
 
   const { data: quote } = await supabase
@@ -362,4 +370,3 @@ function Row({ label, value, dir }: { label: string; value: string; dir?: string
     </div>
   );
 }
-

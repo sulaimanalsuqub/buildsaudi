@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 export function AdminNotesClient({ id, currentNotes }: { id: string; currentNotes: string }) {
   const [notes, setNotes] = useState(currentNotes);
@@ -13,9 +12,13 @@ export function AdminNotesClient({ id, currentNotes }: { id: string; currentNote
     setSaving(true);
     setSaveError("");
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("quotes").update({ admin_notes: notes }).eq("id", id);
-      if (error) throw error;
+      const res = await fetch("/api/admin/quote-notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: id, notes }),
+      });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "فشل الحفظ");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export function UploadContractForm() {
@@ -26,22 +25,20 @@ export function UploadContractForm() {
     setError("");
 
     try {
-      // 1. Upload PDF to Supabase Storage (client-side, using authenticated session)
-      const supabase = createClient();
-      const fileName = `contracts/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(fileName, file, { upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
+      uploadForm.append("folder", "contracts");
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
+      const uploadData = await uploadRes.json().catch(() => null) as { url?: string; error?: string } | null;
+      if (!uploadRes.ok || !uploadData?.url) {
+        throw new Error(uploadData?.error ?? "فشل رفع ملف العقد");
+      }
 
       // 2. Create contract record via secure API route
       const res = await fetch("/api/admin/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), fileUrl: urlData.publicUrl }),
+        body: JSON.stringify({ title: title.trim(), fileUrl: uploadData.url }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "فشل حفظ العقد");

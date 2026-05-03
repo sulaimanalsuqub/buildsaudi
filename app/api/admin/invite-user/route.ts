@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { siteConfig } from "@/lib/site";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const adminSupabase = createServiceRoleClient();
 
     const { data: invited, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/admin`,
+      redirectTo: `${siteConfig.url}/admin`,
     });
 
     if (inviteError) return NextResponse.json({ error: inviteError.message }, { status: 400 });

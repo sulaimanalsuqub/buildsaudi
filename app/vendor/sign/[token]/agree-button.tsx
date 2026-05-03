@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export function AgreeButton({ token }: { token: string }) {
@@ -19,14 +18,13 @@ export function AgreeButton({ token }: { token: string }) {
     setError("");
 
     try {
-      const supabase = createClient();
-
-      const { error: updateError } = await supabase
-        .from("vendor_contract_signatures")
-        .update({ signed_at: new Date().toISOString() })
-        .eq("token", token);
-
-      if (updateError) throw updateError;
+      const res = await fetch("/api/vendor/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "تعذر تسجيل الموافقة");
 
       router.refresh();
     } catch (err) {

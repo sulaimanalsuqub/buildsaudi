@@ -22,6 +22,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  webpack(config) {
+    config.infrastructureLogging = {
+      ...config.infrastructureLogging,
+      level: "error",
+    };
+
+    return config;
+  },
   async headers() {
     return [
       {
@@ -33,4 +41,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

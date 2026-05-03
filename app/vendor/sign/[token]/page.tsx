@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { AgreeButton } from "./agree-button";
 
@@ -8,7 +8,7 @@ export default async function VendorSignPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch signature record by token
   const { data: sig } = await supabase

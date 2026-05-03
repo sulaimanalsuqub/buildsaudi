@@ -31,7 +31,6 @@ create table if not exists public.vendors (
 
 alter table public.vendors enable row level security;
 create policy "Service role manages vendors" on public.vendors using (false);
-create policy "Anyone can register as vendor" on public.vendors for insert with check (true);
 
 -- ──────────────────────────────────────────────
 --  2. VENDOR_CATEGORIES  (فئات المورد)
@@ -44,7 +43,6 @@ create table if not exists public.vendor_categories (
 
 alter table public.vendor_categories enable row level security;
 create policy "Service role manages vendor_categories" on public.vendor_categories using (false);
-create policy "Anyone can insert vendor_categories" on public.vendor_categories for insert with check (true);
 
 -- ──────────────────────────────────────────────
 --  3. VENDOR_REGIONS  (مناطق تغطية المورد)
@@ -57,7 +55,6 @@ create table if not exists public.vendor_regions (
 
 alter table public.vendor_regions enable row level security;
 create policy "Service role manages vendor_regions" on public.vendor_regions using (false);
-create policy "Anyone can insert vendor_regions" on public.vendor_regions for insert with check (true);
 
 -- ──────────────────────────────────────────────
 --  4. FREIGHT_AGENTS  (وكلاء الشحن)
@@ -103,7 +100,6 @@ create table if not exists public.quotes (
 );
 
 alter table public.quotes enable row level security;
-create policy "Anyone can submit a quote" on public.quotes for insert with check (true);
 create policy "Service role reads quotes" on public.quotes for select using (false);
 
 -- ──────────────────────────────────────────────
@@ -116,7 +112,8 @@ create table if not exists public.quote_items (
   description text,
   quantity    numeric,
   unit        text,
-  category    text
+  category    text,
+  created_at  timestamptz default now()
 );
 
 alter table public.quote_items enable row level security;
@@ -134,7 +131,8 @@ create table if not exists public.rfqs (
   status          text        not null default 'sent',
   -- 'sent' | 'received' | 'no_response' | 'rejected'
   email_message_id text,
-  notes           text
+  notes           text,
+  created_at      timestamptz default now()
 );
 
 alter table public.rfqs enable row level security;
@@ -228,8 +226,6 @@ create table if not exists public.client_offers (
 
 alter table public.client_offers enable row level security;
 create policy "Service role manages client_offers" on public.client_offers using (false);
-create policy "Public can read offer by token" on public.client_offers for select
-  using (offer_token is not null);
 
 -- ──────────────────────────────────────────────
 --  12. PAYMENTS  (الحوالات البنكية)
@@ -285,7 +281,7 @@ create table if not exists public.brands (
 );
 
 alter table public.brands enable row level security;
-create policy "Admin manages brands" on public.brands using (auth.role() = 'authenticated');
+create policy "Admin manages brands" on public.brands using (false);
 create policy "Public can read brands" on public.brands for select using (true);
 
 -- ربط المورد بالعلامات التجارية التي يمثلها
@@ -297,7 +293,7 @@ create table if not exists public.vendor_brands (
 );
 
 alter table public.vendor_brands enable row level security;
-create policy "Admin manages vendor_brands" on public.vendor_brands using (auth.role() = 'authenticated');
+create policy "Admin manages vendor_brands" on public.vendor_brands using (false);
 create policy "Public can read vendor_brands" on public.vendor_brands for select using (true);
 
 -- ──────────────────────────────────────────────
@@ -315,8 +311,7 @@ create table if not exists public.contracts (
 );
 
 alter table public.contracts enable row level security;
-create policy "Admin manages contracts" on public.contracts using (auth.role() = 'authenticated');
-create policy "Public can read active contracts" on public.contracts for select using (is_active = true);
+create policy "Admin manages contracts" on public.contracts using (false);
 
 -- توقيعات الموردين على العقد
 create table if not exists public.vendor_contract_signatures (
@@ -331,9 +326,7 @@ create table if not exists public.vendor_contract_signatures (
 );
 
 alter table public.vendor_contract_signatures enable row level security;
-create policy "Admin manages signatures" on public.vendor_contract_signatures using (auth.role() = 'authenticated');
-create policy "Public can sign via token" on public.vendor_contract_signatures for update using (true) with check (true);
-create policy "Public can read via token" on public.vendor_contract_signatures for select using (true);
+create policy "Admin manages signatures" on public.vendor_contract_signatures using (false);
 
 -- ──────────────────────────────────────────────
 --  16. AGENT_LOGS  (سجل عمليات AI Agent)

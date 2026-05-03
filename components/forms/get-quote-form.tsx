@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
@@ -230,8 +229,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
     setLoading(true);
     try {
-      const supabase = createClient();
-
       // رفع ملف BOQ إذا وجد — عبر API server-side لتجاوز RLS
       let boqFileUrl: string | null = null;
       if (selectedFile) {
@@ -248,11 +245,10 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         boqFileUrl = uploadData.url;
       }
 
-      // توليد ID من جانب العميل لتجاوز قيود RLS على SELECT
-      const quoteId = crypto.randomUUID();
-
-      const { error } = await supabase.from("quotes").insert({
-        id: quoteId,
+      const quoteRes = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
         project_name: form.projectName,
         client_name: form.clientName,
         phone: form.phone,
@@ -263,37 +259,23 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         boq_file_url: boqFileUrl,
+        }),
       });
-      if (error) throw error;
+      const quoteData = await quoteRes.json().catch(() => null) as { id?: string; error?: string } | null;
+      if (!quoteRes.ok || !quoteData?.id) {
+        throw new Error(quoteData?.error ?? "تعذر إرسال الطلب");
+      }
 
       // حفظ الرقم المرجعي
-      const refId = quoteId.split("-")[0].toUpperCase();
+      const refId = quoteData.id.split("-")[0].toUpperCase();
       setQuoteRef(refId);
-
-      // إرسال إشعار للأدمن + تأكيد للعميل
-      try {
-        await fetch("/api/email/new-quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: quoteId,
-            project_name: form.projectName,
-            client_name: form.clientName,
-            phone: form.phone,
-            client_email: form.email,
-            delivery_address: form.deliveryAddress,
-            materials: form.materials,
-          }),
-        });
-      } catch {
-        console.error("Email notification failed for quote", quoteId);
-      }
 
       // مسح المسودة بعد النجاح
       localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
-    } catch {
-      setErrors({ submit: isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again." });
+    } catch (error) {
+      const fallback = isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.";
+      setErrors({ submit: error instanceof Error ? error.message : fallback });
     } finally {
       setLoading(false);
     }

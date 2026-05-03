@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { isUserAdmin } from "@/lib/auth/admin";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { VendorStatusButton } from "../status-button";
 import { VendorBrandsEditor } from "./vendor-brands-editor";
@@ -22,7 +23,13 @@ const VENDOR_TYPE_LABELS: Record<string, string> = {
 
 export default async function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) redirect("/admin/login");
+  const isAdmin = await isUserAdmin(user.id);
+  if (!isAdmin) redirect("/");
+
+  const supabase = createServiceRoleClient();
 
   const { data: vendor } = await supabase
     .from("vendors")

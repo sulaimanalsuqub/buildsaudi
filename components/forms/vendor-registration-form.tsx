@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -232,71 +231,33 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const onSubmit = form.handleSubmit(async (data) => {
     setSubmitError("");
     try {
-      const supabase = createClient();
-      const vendorId = crypto.randomUUID();
-
-      const { error: vendorError } = await supabase
-        .from("vendors")
-        .insert({
-          id: vendorId,
+      const res = await fetch("/api/vendors/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           establishment_name: data.establishmentName,
           manager_name: data.managerName,
           contact_number: data.contactNumber,
           email: data.email,
           cr_number: data.crNumber,
           vendor_type: data.vendorType,
-          represented_brands: data.representedBrands || null,
+          represented_brands: data.representedBrands || "",
+          product_categories: data.productCategories,
+          coverage_regions: data.coverageRegions,
           has_warehouse: data.hasWarehouseInKsa === "yes",
           offers_credit: data.offersCredit === "yes",
           credit_limit: data.creditLimit ? Number(data.creditLimit) : null,
           payment_terms: data.paymentTerms,
           worked_on_gov_projects: data.workedOnGovProjects === "yes",
-        });
-      if (vendorError) {
-        // رسائل خطأ مخصصة للقيود الفريدة
-        if (vendorError.message?.includes("vendors_email_key")) {
-          setSubmitError(isRtl ? "البريد الإلكتروني مسجل مسبقاً" : "This email is already registered");
-          return;
-        }
-        if (vendorError.message?.includes("vendors_cr_number_key")) {
-          setSubmitError(isRtl ? "رقم السجل التجاري مسجل مسبقاً" : "This CR number is already registered");
-          return;
-        }
-        throw vendorError;
-      }
-
-      // Insert categories
-      if (data.productCategories.length > 0) {
-        await supabase.from("vendor_categories").insert(
-          data.productCategories.map((c) => ({ vendor_id: vendorId, category: c }))
-        );
-      }
-
-      // Insert regions
-      if (data.coverageRegions.length > 0) {
-        await supabase.from("vendor_regions").insert(
-          data.coverageRegions.map((r) => ({ vendor_id: vendorId, region: r }))
-        );
-      }
-
-      // إرسال إيميل تأكيد للمورد
-      try {
-        await fetch("/api/email/vendor-registered", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            establishment_name: data.establishmentName,
-            manager_name: data.managerName,
-            email: data.email,
-          }),
-        });
-      } catch {
-        console.error("Vendor registration email failed");
-      }
+        }),
+      });
+      const result = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) throw new Error(result?.error ?? "تعذر إرسال طلب التوريد");
 
       setIsSubmitted(true);
-    } catch {
-      setSubmitError(isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.");
+    } catch (error) {
+      const fallback = isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.";
+      setSubmitError(error instanceof Error ? error.message : fallback);
     }
   }, () => {
     // عند فشل validation — نرجع لأول خطوة فيها خطأ

@@ -1,3 +1,9 @@
+const appUrl = (
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://www.build.sa"
+).replace(/\/$/, "");
+
 export const siteConfig = {
   name: "Build",
   nameAr: "بيلد",
@@ -5,7 +11,7 @@ export const siteConfig = {
     "Build is a Saudi B2B platform that sources and delivers construction materials DDP to your project site — faster, cheaper, and hassle-free.",
   descriptionAr:
     "بيلد منصة سعودية B2B لتوريد مواد البناء بتوصيل DDP مباشرة لموقع المشروع — أسرع، أوفر، وبدون تعقيد.",
-  url: "https://www.build.sa",
+  url: appUrl,
   keywords: [
     "توريد مواد بناء السعودية",
     "مواد بناء بالجملة",

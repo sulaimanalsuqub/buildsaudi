@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 interface Brand {
@@ -18,32 +17,59 @@ interface Props {
 export function VendorBrandsEditor({ vendorId, assignedBrands, allBrands }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const assignedIds = new Set(assignedBrands.map((b) => b.id));
   const unassigned = allBrands.filter((b) => !assignedIds.has(b.id));
 
   const addBrand = async (brandId: string) => {
     setLoading(brandId);
-    const supabase = createClient();
-    await supabase.from("vendor_brands").insert({ vendor_id: vendorId, brand_id: brandId });
-    router.refresh();
-    setLoading(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/vendor-brands", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId, brandId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.error ?? "تعذر إضافة العلامة");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setLoading(null);
+    }
   };
 
   const removeBrand = async (brandId: string) => {
     setLoading(brandId);
-    const supabase = createClient();
-    await supabase
-      .from("vendor_brands")
-      .delete()
-      .eq("vendor_id", vendorId)
-      .eq("brand_id", brandId);
-    router.refresh();
-    setLoading(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/vendor-brands", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId, brandId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.error ?? "تعذر حذف العلامة");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
     <div className="space-y-4">
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {error}
+        </p>
+      )}
+
       {/* Assigned brands */}
       {assignedBrands.length > 0 ? (
         <div className="flex flex-wrap gap-2">

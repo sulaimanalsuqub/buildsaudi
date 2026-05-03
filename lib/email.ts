@@ -6,7 +6,11 @@ function getResend() {
 
 const FROM = "Build Saudi <noreply@mail.build.com.sa>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL!;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.build.sa";
+const BASE_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://www.build.sa"
+).replace(/\/$/, "");
 
 // تحصين HTML لمنع XSS
 function esc(str: string | null | undefined): string {

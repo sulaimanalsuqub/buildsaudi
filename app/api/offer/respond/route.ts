@@ -46,17 +46,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "انتهت صلاحية العرض" }, { status: 410 });
     }
 
-    // Update offer status
-    const offerStatus = action === "modification_requested" ? "sent" : action;
-    const updateData: Record<string, string> = { status: offerStatus };
-    if (action !== "modification_requested") {
-      updateData.client_response_at = new Date().toISOString();
-    }
-    await adminSupabase
-      .from("client_offers")
-      .update(updateData)
-      .eq("id", offer.id);
-
     // التحقق من حالة الطلب قبل التحديث
     const { data: currentQuote } = await adminSupabase
       .from("quotes")
@@ -70,6 +59,17 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
+
+    // Update offer status only after the parent quote is valid
+    const offerStatus = action === "modification_requested" ? "sent" : action;
+    const updateData: Record<string, string> = { status: offerStatus };
+    if (action !== "modification_requested") {
+      updateData.client_response_at = new Date().toISOString();
+    }
+    await adminSupabase
+      .from("client_offers")
+      .update(updateData)
+      .eq("id", offer.id);
 
     // Update quote status (only for accept/reject, not modification requests)
     if (action !== "modification_requested") {
