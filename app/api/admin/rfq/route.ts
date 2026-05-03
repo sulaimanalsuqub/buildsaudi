@@ -3,7 +3,6 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { sendRfqToVendor } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
-import { isUserAdmin } from "@/lib/auth/admin";
 
 const getAdminClient = () =>
   createAdminClient(
@@ -164,4 +163,3 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
-

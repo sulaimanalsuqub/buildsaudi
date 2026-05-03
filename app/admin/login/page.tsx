@@ -26,7 +26,16 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push("/admin");
+    const adminCheck = await fetch("/api/admin/me", { cache: "no-store" });
+    if (!adminCheck.ok) {
+      const data = await adminCheck.json().catch(() => null) as { error?: string } | null;
+      await supabase.auth.signOut();
+      setError(data?.error ?? "تم تسجيل الدخول، لكن هذا الحساب غير مصرح له بالدخول للوحة الإدارة");
+      setLoading(false);
+      return;
+    }
+
+    router.replace("/admin");
     router.refresh();
   };
 

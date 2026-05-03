@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isUserAdmin, requireAdminRole } from "@/lib/auth/admin";
+import { isUserAdmin } from "@/lib/auth/admin";
 
 export async function checkAdminAuth() {
   try {

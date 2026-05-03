@@ -58,7 +58,7 @@ export function checkRateLimit(identifier: string, type: LimitType = "api"): { o
 export function rateLimitError(resetAt: number, type: string = "متكرر") {
   const resetDate = new Date(resetAt);
   return NextResponse.json(
-    { error: `تم تجاوز حد الطلبات. حاول مجدداً في ${resetDate.toLocaleTimeString("ar-SA")}` },
+    { error: `تم تجاوز حد طلبات ${type}. حاول مجدداً في ${resetDate.toLocaleTimeString("ar-SA")}` },
     {
       status: 429,
       headers: {

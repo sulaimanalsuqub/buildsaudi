@@ -25,11 +25,11 @@ export default async function AdminContractsPage() {
   const [signaturesResult, vendorsResult] = await Promise.all([
     contract
       ? db.from("vendor_contract_signatures")
-          .select("*, vendors(establishment_name, email, contact_number)")
+          .select("*, vendors(establishment_name, manager_name, email, contact_number)")
           .eq("contract_id", contract.id)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
-    db.from("vendors").select("id, establishment_name, email").eq("status", "active").order("establishment_name"),
+    db.from("vendors").select("id, establishment_name, manager_name, email").eq("status", "active").order("establishment_name"),
   ]);
 
   const signatures = signaturesResult.data ?? [];
@@ -115,7 +115,7 @@ export default async function AdminContractsPage() {
                 </thead>
                 <tbody className="divide-y divide-[#1D3F1F]/[0.06]">
                   {signatures.map((sig) => {
-                    const vendor = sig.vendors as { establishment_name: string; email: string; contact_number: string } | null;
+                    const vendor = sig.vendors as { establishment_name: string; manager_name: string | null; email: string; contact_number: string } | null;
                     return (
                       <tr key={sig.id} className="hover:bg-[#F4F3EB]/30">
                         <td className="px-4 py-3 font-medium text-[#1D3F1F]">{vendor?.establishment_name ?? "—"}</td>
@@ -132,7 +132,12 @@ export default async function AdminContractsPage() {
                           {!sig.signed_at && (
                             <SendContractButton
                               contractId={sig.contract_id}
-                              vendors={vendor ? [{ id: sig.vendor_id, establishment_name: vendor.establishment_name, email: vendor.email }] : []}
+                              vendors={vendor ? [{
+                                id: sig.vendor_id,
+                                establishment_name: vendor.establishment_name,
+                                manager_name: vendor.manager_name,
+                                email: vendor.email,
+                              }] : []}
                               label="إعادة إرسال"
                               small
                             />

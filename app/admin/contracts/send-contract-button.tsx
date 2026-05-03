@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 interface Vendor {
   id: string;
   establishment_name: string;
+  manager_name?: string | null;
   email: string;
 }
 
