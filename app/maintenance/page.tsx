@@ -25,6 +25,20 @@ export default function MaintenancePage() {
           </p>
         </div>
 
+        {/* الشعار */}
+        <div className="flex flex-col items-center justify-center gap-3">
+          <img
+            src="/brand/logo-ar.svg"
+            alt="Build Saudi"
+            className="h-10 w-auto"
+          />
+          <img
+            src="/brand/logo-en.svg"
+            alt="Build Saudi"
+            className="h-8 w-auto opacity-70"
+          />
+        </div>
+
         <div className="flex items-center justify-center gap-2 text-slate-500">
           <Clock className="w-5 h-5" />
           <span>سنعود قريباً</span>
