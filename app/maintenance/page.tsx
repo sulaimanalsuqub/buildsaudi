@@ -1,35 +1,39 @@
 export default function MaintenancePage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-6">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:64px_64px]" />
+    <main className="min-h-screen bg-black flex flex-col">
+      {/* Top bar */}
+      <header className="px-8 py-6 border-b border-white/[0.06]">
+        <img src="/brand/logo-ar.svg" alt="Build Saudi" className="h-8 w-auto" />
+      </header>
 
-      <div className="relative z-10 flex flex-col items-center text-center max-w-lg">
-        {/* Logo */}
-        <img
-          src="/brand/logo-ar.svg"
-          alt="Build Saudi"
-          className="h-16 w-auto mb-16 opacity-90"
-        />
+      {/* Center content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+        {/* Status dot */}
+        <div className="flex items-center gap-2 mb-10">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-emerald-400 text-xs font-medium tracking-widest uppercase">
+            Under Maintenance
+          </span>
+        </div>
 
-        {/* Divider line */}
-        <div className="w-12 h-px bg-emerald-500 mb-10" />
-
-        <h1 className="text-3xl font-semibold text-white mb-4 tracking-tight">
-          نعمل على تحسين المنصة
+        {/* Headline */}
+        <h1 className="text-white font-bold tracking-tight mb-4" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", lineHeight: 1.1 }}>
+          نعود قريباً
         </h1>
 
-        <p className="text-white/50 text-base leading-relaxed">
-          سنعود قريباً بتجربة أفضل.
-        </p>
-
-        {/* Divider line */}
-        <div className="w-12 h-px bg-white/10 mt-12" />
-
-        <p className="mt-6 text-[11px] text-white/20 tracking-widest uppercase">
-          Under Maintenance
+        <p className="text-white/40 text-lg max-w-sm leading-relaxed">
+          نعمل على تحسينات ستجعل تجربتك أفضل بكثير
         </p>
       </div>
+
+      {/* Bottom bar */}
+      <footer className="px-8 py-5 border-t border-white/[0.06] flex items-center justify-between">
+        <span className="text-white/20 text-xs">© {new Date().getFullYear()} Build Saudi</span>
+        <span className="text-white/20 text-xs">build.sa</span>
+      </footer>
     </main>
   );
 }
