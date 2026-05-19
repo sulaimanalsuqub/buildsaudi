@@ -3,10 +3,6 @@
 import { Wrench, Clock, Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-export const metadata = {
-  title: "تحت الصيانة | Build Saudi",
-  robots: "noindex, nofollow",
-};
 
 export default function MaintenancePage() {
   const [email, setEmail] = useState("");
