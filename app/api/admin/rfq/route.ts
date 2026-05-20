@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendRfqToVendor } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
 
-const getAdminClient = () =>
-  createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+const getAdminClient = () => createServiceRoleClient();
 
 // GET /api/admin/rfq?quoteId=xxx
 export async function GET(req: NextRequest) {

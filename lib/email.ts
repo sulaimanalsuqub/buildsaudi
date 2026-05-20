@@ -24,11 +24,11 @@ function esc(str: string | null | undefined): string {
     .replace(/\//g, "&#x2F;");
 }
 
-// تحصين الروابط — منع javascript: و data: protocols
+// تحصين الروابط — يسمح فقط بـ https: و mailto:
 function safeUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+    if (!["https:", "mailto:"].includes(parsed.protocol)) {
       return "#";
     }
     return url;

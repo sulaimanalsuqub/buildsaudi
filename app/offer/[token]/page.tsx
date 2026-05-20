@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { OfferResponse } from "./offer-response";
 
@@ -11,10 +11,7 @@ function fmt(n: number) {
 export default async function OfferPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
-  const adminSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  const adminSupabase = createServiceRoleClient();
 
   const { data: offer } = await adminSupabase
     .from("client_offers")

@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // ====== تفعيل / إيقاف وضع الصيانة ======
-// غيّر إلى true لإيقاف الموقع مؤقتاً
-const MAINTENANCE_MODE = true;
+// اضبط NEXT_PUBLIC_MAINTENANCE_MODE=true في .env.local أو Vercel لتفعيله
+const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

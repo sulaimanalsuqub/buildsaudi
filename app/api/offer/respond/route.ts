@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendClientResponseNotification } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
@@ -17,10 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "بيانات غير صحيحة" }, { status: 400 });
     }
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    const adminSupabase = createServiceRoleClient();
 
     // Find offer by token
     const { data: offer, error: fetchError } = await adminSupabase

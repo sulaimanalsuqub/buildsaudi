@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function MaintenancePage() {
   return (
     <>
@@ -60,7 +62,7 @@ export default function MaintenancePage() {
 
         {/* Top bar */}
         <header className="relative z-10 px-8 py-6 border-b border-black/[0.06]">
-          <img src="/brand/logo-ar.svg" alt="Build Saudi" className="h-8 w-auto" />
+          <Image src="/brand/logo-ar.svg" alt="Build Saudi" width={120} height={32} className="h-8 w-auto" />
         </header>
 
         {/* Center content */}
