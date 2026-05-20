@@ -52,7 +52,14 @@ export default async function AdminQuotesPage({
     query = query.eq("status", statusFilter);
   }
 
-  const { data: quotes, count } = await query;
+  const { data: quotes, count, error: quotesError } = await query;
+  if (quotesError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-red-700">
+        تعذّر تحميل الطلبات — يرجى تحديث الصفحة
+      </div>
+    );
+  }
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
   return (

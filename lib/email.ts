@@ -509,7 +509,7 @@ export async function sendClientResponseNotification(data: {
     subject: `رد العميل: ${actionInfo.label} — ${data.project_name}`,
     html: `
       <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: ${esc(actionInfo.color)}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+        <div style="background: ${actionInfo.color}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
           <h1 style="color: white; margin: 0; font-size: 20px;">رد العميل على العرض</h1>
         </div>
         <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
@@ -525,7 +525,7 @@ export async function sendClientResponseNotification(data: {
             <tr>
               <td style="padding: 8px 0; color: #6b7280;">الرد:</td>
               <td style="padding: 8px 0;">
-                <span style="background: ${esc(actionInfo.color)}20; color: ${esc(actionInfo.color)}; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+                <span style="background: ${actionInfo.color}20; color: ${actionInfo.color}; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
                   ${esc(actionInfo.label)}
                 </span>
               </td>

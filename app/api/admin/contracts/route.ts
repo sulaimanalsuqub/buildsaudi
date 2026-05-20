@@ -24,10 +24,7 @@ export async function POST(req: NextRequest) {
 
   const db = createServiceRoleClient();
 
-  // Deactivate old contracts
-  await db.from("contracts").update({ is_active: false }).eq("is_active", true);
-
-  // Insert new active contract
+  // أنشئ العقد الجديد أولاً — ثم عطّل القديم لمنع فقدان العقود عند فشل الإدراج
   const { data, error } = await db
     .from("contracts")
     .insert({ title: title.trim(), file_url: fileUrl.trim(), is_active: true })
@@ -35,5 +32,12 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // عطّل العقود القديمة فقط بعد نجاح إنشاء الجديد
+  await db.from("contracts")
+    .update({ is_active: false })
+    .eq("is_active", true)
+    .neq("id", data.id);
+
   return NextResponse.json({ ok: true, contract: data });
 }
