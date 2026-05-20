@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { EDITABLE_QUOTE_STATUSES } from "@/lib/constants";
 
 // GET /api/admin/quote-items?quoteId=xxx
 export async function GET(req: NextRequest) {
@@ -41,6 +42,22 @@ export async function POST(req: NextRequest) {
   }
 
   const adminSupabase = createServiceRoleClient();
+
+  // تحقق من أن الطلب في مرحلة قابلة للتعديل
+  const { data: quote } = await adminSupabase
+    .from("quotes")
+    .select("status")
+    .eq("id", quoteId)
+    .single();
+
+  if (!quote) return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
+  if (!(EDITABLE_QUOTE_STATUSES as readonly string[]).includes(quote.status)) {
+    return NextResponse.json(
+      { error: `لا يمكن تعديل الأصناف في مرحلة "${quote.status}"` },
+      { status: 409 }
+    );
+  }
+
   const { data: item, error } = await adminSupabase
     .from("quote_items")
     .insert({ quote_id: quoteId, name, description: description ?? null, quantity, unit, category })

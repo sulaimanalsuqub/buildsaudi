@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { getUserRole } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
@@ -11,6 +12,9 @@ export async function POST(req: NextRequest) {
 
     const auth = await checkAdminAuth();
     if (!auth.ok) return authError(auth.error!, auth.status);
+
+    const role = await getUserRole(auth.user?.id);
+    if (role !== "admin") return authError("صلاحيات غير كافية — يتطلب دور admin", 403);
 
     const { vendorId } = await req.json();
     if (!vendorId) return NextResponse.json({ error: "معرّف المورد مطلوب" }, { status: 400 });

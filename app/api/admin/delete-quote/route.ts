@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
+import { getUserRole } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { PROTECTED_QUOTE_STATUSES } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +13,10 @@ export async function POST(req: NextRequest) {
 
     const auth = await checkAdminAuth();
     if (!auth.ok) return authError(auth.error!, auth.status);
+
+    // RBAC: الحذف للـ admin فقط وليس moderator أو viewer
+    const role = await getUserRole(auth.user?.id);
+    if (role !== "admin") return authError("صلاحيات غير كافية — يتطلب دور admin", 403);
 
     const { quoteId } = await req.json();
     if (!quoteId) return NextResponse.json({ error: "معرّف الطلب مطلوب" }, { status: 400 });
@@ -27,8 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
     }
 
-    const protectedStatuses = ["client_approved", "payment_pending", "payment_confirmed", "in_delivery", "done"];
-    if (protectedStatuses.includes(quote.status)) {
+    if ((PROTECTED_QUOTE_STATUSES as readonly string[]).includes(quote.status)) {
       return NextResponse.json(
         { error: `لا يمكن حذف طلب في حالة "${quote.status}" — يمكنك إلغاؤه بدلاً من حذفه` },
         { status: 409 }

@@ -57,16 +57,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update offer status only after the parent quote is valid
+    // Optimistic locking: تحديث بشرط أن الحالة لا تزال "sent" — يمنع race condition
     const offerStatus = action === "modification_requested" ? "sent" : action;
     const updateData: Record<string, string> = { status: offerStatus };
     if (action !== "modification_requested") {
       updateData.client_response_at = new Date().toISOString();
     }
-    await adminSupabase
+    const { data: updatedRows } = await adminSupabase
       .from("client_offers")
       .update(updateData)
-      .eq("id", offer.id);
+      .eq("id", offer.id)
+      .eq("status", "sent")  // يفشل إذا غيّر طلب آخر الحالة في نفس الوقت
+      .select("id");
+
+    if (!updatedRows || updatedRows.length === 0) {
+      return NextResponse.json({ error: "تم الرد على هذا العرض مسبقاً" }, { status: 409 });
+    }
 
     // Update quote status (only for accept/reject, not modification requests)
     if (action !== "modification_requested") {

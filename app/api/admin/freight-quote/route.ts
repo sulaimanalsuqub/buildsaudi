@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkAdminAuth, authError } from "@/lib/api-auth";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { MAX_PRICE } from "@/lib/constants";
 
 // GET /api/admin/freight-quote?quoteId=xxx
 export async function GET(req: NextRequest) {
@@ -41,8 +42,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
   }
 
-  if (parseFloat(price) <= 0) {
-    return NextResponse.json({ error: "السعر يجب أن يكون أكبر من صفر" }, { status: 400 });
+  const parsedPrice = parseFloat(price);
+  if (parsedPrice <= 0 || parsedPrice > MAX_PRICE) {
+    return NextResponse.json(
+      { error: `السعر يجب أن يكون بين 0.01 و ${MAX_PRICE.toLocaleString("ar-SA")} ر.س` },
+      { status: 400 }
+    );
   }
 
   const adminSupabase = createServiceRoleClient();
@@ -53,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const payload: Record<string, unknown> = {
     quote_id: quoteId,
-    price: parseFloat(price),
+    price: parsedPrice,
     currency: currency ?? "SAR",
     status: "received",
   };
@@ -74,7 +79,7 @@ export async function POST(req: NextRequest) {
     stage: "receive_freight_quote",
     action: "approved",
     actor: auth.user?.email ?? "admin",
-    notes: `عرض شحن بقيمة ${parseFloat(price)} ${currency ?? "SAR"}${companyName ? ` — ${companyName}` : ""}`,
+    notes: `عرض شحن بقيمة ${parsedPrice} ${currency ?? "SAR"}${companyName ? ` — ${companyName}` : ""}`,
   });
 
   return NextResponse.json({ ok: true, freightQuote: fq });

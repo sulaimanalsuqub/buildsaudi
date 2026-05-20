@@ -10,22 +10,7 @@ import { RfqManager } from "./rfq-manager";
 import { VendorQuoteEntry } from "./vendor-quote-entry";
 import { FreightQuoteEntry } from "./freight-quote-entry";
 import { OfferBuilder } from "./offer-builder";
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  new:                    { label: "جديد", color: "bg-amber-100 text-amber-700" },
-  admin_approved:         { label: "معتمد", color: "bg-blue-100 text-blue-700" },
-  rfq_sent:               { label: "RFQ أُرسل", color: "bg-purple-100 text-purple-700" },
-  vendor_quotes_received: { label: "استُلمت عروض", color: "bg-indigo-100 text-indigo-700" },
-  freight_sent:           { label: "أُرسل للشحن", color: "bg-cyan-100 text-cyan-700" },
-  freight_received:       { label: "استُلم سعر الشحن", color: "bg-teal-100 text-teal-700" },
-  offer_sent:             { label: "عرض أُرسل للعميل", color: "bg-lime-100 text-lime-700" },
-  client_approved:        { label: "العميل وافق", color: "bg-green-100 text-green-700" },
-  payment_pending:        { label: "بانتظار الدفع", color: "bg-orange-100 text-orange-700" },
-  payment_confirmed:      { label: "الدفع مؤكد", color: "bg-emerald-100 text-emerald-700" },
-  in_delivery:            { label: "قيد التوصيل", color: "bg-sky-100 text-sky-700" },
-  done:                   { label: "مكتمل", color: "bg-green-100 text-green-800" },
-  cancelled:              { label: "ملغي", color: "bg-red-100 text-red-700" },
-};
+import { STATUS_LABELS } from "@/lib/constants";
 
 const FLOW_STEPS = [
   { key: "new", label: "طلب جديد" },
@@ -115,8 +100,10 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
     id: string; rfq_id: string; vendor_id: string; total_price: number;
     delivery_days: number | null; notes: string | null; vendorName?: string;
   };
+  // استخدام Map بدلاً من find() لتجنب O(n²)
+  const rfqMap = new Map((rfqsRaw ?? []).map((r) => [r.id, r]));
   const vendorQuotes: VendorQuoteRow[] = (vendorQuotesRaw ?? []).map((vq) => {
-    const rfq = (rfqsRaw ?? []).find((r) => r.id === (vq as { rfq_id: string }).rfq_id);
+    const rfq = rfqMap.get((vq as { rfq_id: string }).rfq_id);
     const vendor = rfq?.vendors as { establishment_name: string } | null;
     return { ...(vq as VendorQuoteRow), vendorName: vendor?.establishment_name ?? undefined };
   });

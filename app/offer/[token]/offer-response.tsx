@@ -103,9 +103,9 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Overlay className="fixed inset-0 bg-black/40 z-50" />
-            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl">
-              <AlertDialog.Title className="text-lg font-bold text-[#1D3F1F]">تأكيد قبول العرض</AlertDialog.Title>
-              <AlertDialog.Description className="mt-3 text-sm text-[#1D3F1F]/70 leading-relaxed">
+            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl" aria-labelledby="accept-title" aria-describedby="accept-desc">
+              <AlertDialog.Title id="accept-title" className="text-lg font-bold text-[#1D3F1F]">تأكيد قبول العرض</AlertDialog.Title>
+              <AlertDialog.Description id="accept-desc" className="mt-3 text-sm text-[#1D3F1F]/70 leading-relaxed">
                 بالقبول تؤكد موافقتك على السعر والشروط المذكورة.
                 {grandTotal && (
                   <span className="block mt-2 text-base font-bold text-[#09B14B]">
@@ -122,6 +122,7 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
                 <button
                   onClick={() => { setShowAcceptDialog(false); respond("accepted"); }}
                   disabled={loading === "accepted"}
+                  aria-busy={loading === "accepted"}
                   className="rounded-full bg-[#09B14B] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#1D3F1F] disabled:opacity-50"
                 >
                   {loading === "accepted" ? "جارٍ القبول..." : "تأكيد القبول"}
@@ -143,9 +144,9 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Overlay className="fixed inset-0 bg-black/40 z-50" />
-            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl">
-              <AlertDialog.Title className="text-lg font-bold text-[#1D3F1F]">طلب تعديل على العرض</AlertDialog.Title>
-              <AlertDialog.Description className="mt-2 text-sm text-[#1D3F1F]/70">
+            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl" aria-labelledby="modify-title" aria-describedby="modify-desc">
+              <AlertDialog.Title id="modify-title" className="text-lg font-bold text-[#1D3F1F]">طلب تعديل على العرض</AlertDialog.Title>
+              <AlertDialog.Description id="modify-desc" className="mt-2 text-sm text-[#1D3F1F]/70">
                 اكتب ملاحظاتك أو التعديلات المطلوبة وسنراجعها
               </AlertDialog.Description>
               <textarea
@@ -164,6 +165,7 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
                 <button
                   onClick={requestModification}
                   disabled={!modificationNote.trim() || loading === "modification"}
+                  aria-busy={loading === "modification"}
                   className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {loading === "modification" ? "جارٍ الإرسال..." : "إرسال الطلب"}
@@ -185,9 +187,9 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Overlay className="fixed inset-0 bg-black/40 z-50" />
-            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl">
-              <AlertDialog.Title className="text-lg font-bold text-[#1D3F1F]">تأكيد رفض العرض</AlertDialog.Title>
-              <AlertDialog.Description className="mt-2 text-sm text-[#1D3F1F]/70">
+            <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl" aria-labelledby="reject-title" aria-describedby="reject-desc">
+              <AlertDialog.Title id="reject-title" className="text-lg font-bold text-[#1D3F1F]">تأكيد رفض العرض</AlertDialog.Title>
+              <AlertDialog.Description id="reject-desc" className="mt-2 text-sm text-[#1D3F1F]/70">
                 هل أنت متأكد من رفض هذا العرض؟
               </AlertDialog.Description>
               <div className="mt-3">
@@ -209,9 +211,10 @@ export function OfferResponse({ token, grandTotal }: { token: string; grandTotal
                 <button
                   onClick={() => { setShowRejectDialog(false); respond("rejected", rejectionReason); }}
                   disabled={loading === "rejected"}
+                  aria-busy={loading === "rejected"}
                   className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  {loading === "rejected" ? "..." : "تأكيد الرفض"}
+                  {loading === "rejected" ? "جارٍ الرفض..." : "تأكيد الرفض"}
                 </button>
               </div>
             </AlertDialog.Content>

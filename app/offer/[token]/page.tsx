@@ -20,6 +20,7 @@ export default async function OfferPage({ params }: { params: Promise<{ token: s
     .single();
 
   if (!offer) notFound();
+  if (!offer.quotes) notFound();
 
   const quote = offer.quotes as {
     project_name: string;

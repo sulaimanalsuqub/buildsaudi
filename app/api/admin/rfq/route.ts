@@ -105,11 +105,12 @@ export async function POST(req: NextRequest) {
     day: "numeric",
   });
 
-  for (const rfq of createdRfqs ?? []) {
-    const vendor = (vendors ?? []).find((v) => v.id === rfq.vendor_id);
-    if (!vendor?.email) continue;
-    try {
-      await sendRfqToVendor({
+  const vendorMap = new Map((vendors ?? []).map((v) => [v.id, v]));
+  const emailResults = await Promise.allSettled(
+    (createdRfqs ?? []).map((rfq) => {
+      const vendor = vendorMap.get(rfq.vendor_id);
+      if (!vendor?.email) return Promise.resolve();
+      return sendRfqToVendor({
         vendorName: vendor.establishment_name,
         managerName: vendor.manager_name,
         vendorEmail: vendor.email,
@@ -127,12 +128,21 @@ export async function POST(req: NextRequest) {
         })),
         notes,
       });
-    } catch (e) {
-      console.error("RFQ email failed for vendor", vendor.email, e);
-    }
+    })
+  );
+
+  const failedCount = emailResults.filter((r) => r.status === "rejected").length;
+  const rfqIds = (createdRfqs ?? []).map((r) => r.id);
+
+  if (failedCount > 0) {
+    return NextResponse.json({
+      ok: true,
+      rfqIds,
+      warning: `تم إنشاء الـ RFQ لكن فشل إرسال ${failedCount} من ${emailResults.length} إيميل — تحقق من بريد الموردين`,
+    }, { status: 207 });
   }
 
-  return NextResponse.json({ ok: true, rfqIds: (createdRfqs ?? []).map((r) => r.id) });
+  return NextResponse.json({ ok: true, rfqIds });
 }
 
 // PATCH /api/admin/rfq — تحديث حالة RFQ
