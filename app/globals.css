@@ -42,7 +42,7 @@ body {
     font-size: 32px;
     font-weight: 700;
     line-height: 1.14;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     max-width: 60ch;
   }
 
@@ -50,7 +50,7 @@ body {
     font-size: 28px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     max-width: 55ch;
   }
 

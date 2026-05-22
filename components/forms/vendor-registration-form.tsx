@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Search, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -158,6 +159,19 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     stepLabels: isRtl
       ? ["البيانات الأساسية", "فئات ونوع المورد", "التغطية والمالية", "المراجعة"]
       : ["Basic Information", "Categories & Supplier Type", "Coverage & Finance", "Review"],
+    stepDescriptions: isRtl
+      ? [
+          "بيانات التواصل والسجل التجاري حتى نتحقق من المنشأة بسرعة.",
+          "حدد المنتجات وطبيعة نشاطكم لتوجيه فرص التوريد المناسبة.",
+          "أخبرنا أين يمكنكم التوريد وما هي شروطكم التجارية.",
+          "راجع البيانات قبل إرسال طلب التأهيل إلى فريق بيلد.",
+        ]
+      : [
+          "Contact and CR details so we can verify the company quickly.",
+          "Select your products and supplier type to route relevant opportunities.",
+          "Tell us where you can supply and your commercial terms.",
+          "Review the profile before sending it to the Build team.",
+        ],
     stepText: textByLang(isRtl, "Step", "الخطوة"),
     ofText: textByLang(isRtl, "of", "من"),
     submitStateTitle: textByLang(isRtl, "Supply Request Submitted", "تم إرسال طلب التوريد"),
@@ -167,6 +181,16 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       "تم استلام طلبكم بنجاح. سيتواصل فريق بيلد معكم بخصوص فرص التوريد المناسبة."
     ),
     searchRegions: textByLang(isRtl, "Search region...", "ابحث عن منطقة..."),
+    formEyebrow: textByLang(isRtl, "Supplier qualification", "تأهيل الموردين"),
+    formTitle: textByLang(isRtl, "Tell us what you can supply", "عرّفنا بما يمكنكم توريده"),
+    formBody: textByLang(
+      isRtl,
+      "Complete the short profile below. Accurate details help us match your company with the right RFQs.",
+      "أكمل الملف المختصر أدناه. دقة البيانات تساعدنا على مطابقة منشأتكم مع طلبات التسعير المناسبة."
+    ),
+    secureNote: textByLang(isRtl, "Reviewed by Build operations", "تتم المراجعة من فريق عمليات بيلد"),
+    selectedText: textByLang(isRtl, "selected", "محدد"),
+    noRegions: textByLang(isRtl, "No matching regions", "لا توجد مناطق مطابقة"),
     labels: {
       establishmentName: textByLang(isRtl, "Establishment Name", "اسم المنشأة"),
       managerName: textByLang(isRtl, "Responsible Person", "المسؤول"),
@@ -189,7 +213,13 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       submit: textByLang(isRtl, "Submit Supply Request", "إرسال طلب التوريد")
     },
     review: textByLang(isRtl, "Review Details", "مراجعة البيانات"),
-    notProvided: textByLang(isRtl, "Not provided", "غير محدد")
+    notProvided: textByLang(isRtl, "Not provided", "غير محدد"),
+    helpers: {
+      establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
+      productCategories: textByLang(isRtl, "Choose every category you can price reliably.", "اختر كل الفئات التي تستطيعون تسعيرها بثقة."),
+      coverageRegions: textByLang(isRtl, "Select the regions you can supply directly or through logistics partners.", "حدد المناطق التي تستطيعون تغطيتها مباشرة أو عبر شركاء لوجستيين."),
+      paymentTerms: textByLang(isRtl, "Choose the payment options your team can support for projects.", "اختر خيارات الدفع التي يمكنكم دعمها للمشاريع.")
+    }
   };
 
   const [step, setStep] = useState(0);
@@ -272,22 +302,36 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   if (isSubmitted) {
     return (
-      <section className="surface-card mx-auto max-w-5xl p-8 text-center md:p-10">
-        <h2 className="type-section-title mx-auto text-brand-dark">{t.submitStateTitle}</h2>
+      <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center shadow-premium md:p-10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{t.submitStateTitle}</h2>
         <p className="type-body mx-auto mt-4 text-brand-dark/80">{t.submitStateBody}</p>
       </section>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="surface-card mx-auto max-w-5xl p-6 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="mb-8 content-stack">
-        <div className="flex items-center justify-between gap-4">
-          <p className="type-small font-semibold text-brand-dark/65">
-            {t.stepText} {step + 1} {t.ofText} {t.stepLabels.length}
-          </p>
-          <p className="type-small font-semibold text-brand-dark">{t.stepLabels[step]}</p>
+    <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 shadow-premium md:p-8" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="mb-8 space-y-6">
+        <div className="flex flex-col gap-5 border-b border-brand-dark/10 pb-6 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 text-sm font-bold text-brand-primary">
+              <ClipboardCheck className="h-4 w-4" />
+              {t.formEyebrow}
+            </p>
+            <h2 className="mt-2 text-2xl font-bold leading-tight text-brand-dark md:text-3xl">{t.formTitle}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-brand-dark/65">{t.formBody}</p>
+          </div>
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-light px-4 py-2 text-sm font-semibold text-brand-dark/70">
+            <ShieldCheck className="h-4 w-4 text-brand-primary" />
+            {t.secureNote}
+          </div>
         </div>
+
+        <StepTabs labels={t.stepLabels} currentStep={step} />
+
         <div className="h-1.5 w-full rounded-full bg-brand-dark/10" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
           <motion.div
             initial={{ width: 0 }}
@@ -296,29 +340,35 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             className="h-full rounded-full bg-brand-primary"
           />
         </div>
+        <div className="rounded-xl bg-brand-light/60 p-4">
+          <p className="text-sm font-bold text-brand-dark">
+            {t.stepText} {step + 1} {t.ofText} {t.stepLabels.length}: {t.stepLabels[step]}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-brand-dark/65">{t.stepDescriptions[step]}</p>
+        </div>
       </div>
 
       <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-6">
         {step === 0 && (
           <div className="grid gap-6 md:grid-cols-2">
-            <Field label={t.labels.establishmentName}>
-              <Input {...form.register("establishmentName")} className="h-11 text-base" />
+            <Field label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
+              <Input {...form.register("establishmentName")} autoComplete="organization" className="h-12 text-base" />
               <ErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.managerName}>
-              <Input {...form.register("managerName")} className="h-11 text-base" />
+              <Input {...form.register("managerName")} autoComplete="name" className="h-12 text-base" />
               <ErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.contactNumber}>
-              <Input {...form.register("contactNumber")} className="h-11 text-base" dir="ltr" placeholder="05xxxxxxxx" />
+              <Input {...form.register("contactNumber")} autoComplete="tel" className="h-12 text-base" dir="ltr" placeholder="05xxxxxxxx" />
               <ErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.email}>
-              <Input type="email" {...form.register("email")} className="h-11 text-base" dir="ltr" placeholder="example@company.com" />
+              <Input type="email" {...form.register("email")} autoComplete="email" className="h-12 text-base" dir="ltr" placeholder="example@company.com" />
               <ErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
             </Field>
             <Field label={t.labels.crNumber} className="md:col-span-2">
-              <Input {...form.register("crNumber")} className="h-11 text-base" dir="ltr" placeholder="1234567890" />
+              <Input {...form.register("crNumber")} inputMode="numeric" className="h-12 text-base" dir="ltr" placeholder="1234567890" />
               <ErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
             </Field>
           </div>
@@ -326,8 +376,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
         {step === 1 && (
           <div className="content-stack">
-            <Field label={t.labels.productCategories}>
-              <OptionGrid>
+            <Field label={t.labels.productCategories} helper={`${t.helpers.productCategories} ${values.productCategories.length} ${t.selectedText}.`}>
+              <OptionGrid className="lg:grid-cols-3">
                 {productCategories.map((option) => {
                   const checked = values.productCategories.includes(option.value);
                   return (
@@ -342,7 +392,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             </Field>
 
             <Field label={t.labels.vendorType}>
-              <RadioGroup value={values.vendorType} onValueChange={(value) => form.setValue("vendorType", value, { shouldValidate: true })} className="grid gap-3 md:grid-cols-2">
+              <RadioGroup value={values.vendorType} onValueChange={(value) => form.setValue("vendorType", value, { shouldValidate: true, shouldDirty: true })} className="grid gap-3 md:grid-cols-2">
                 {vendorTypes.map((option) => (
                   <label
                     key={option.value}
@@ -363,7 +413,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               <Field label={t.labels.representedBrands}>
                 <Input
                   {...form.register("representedBrands")}
-                  className="h-11 text-base"
+                  className="h-12 text-base"
                   placeholder={textByLang(isRtl, "Example: Brand A, Brand B", "مثال: علامة أ، علامة ب")}
                 />
                 <ErrorText text={form.formState.errors.representedBrands?.message} isRtl={isRtl} />
@@ -374,9 +424,17 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
         {step === 2 && (
           <div className="content-stack">
-            <Field label={t.labels.coverageRegions}>
-              <Input value={regionSearch} onChange={(event) => setRegionSearch(event.target.value)} placeholder={t.searchRegions} className="h-11 text-base" />
-              <OptionGrid>
+            <Field label={t.labels.coverageRegions} helper={`${t.helpers.coverageRegions} ${values.coverageRegions.length} ${t.selectedText}.`}>
+              <div className="relative">
+                <Search className={cn("pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/38", isRtl ? "right-4" : "left-4")} />
+                <Input
+                  value={regionSearch}
+                  onChange={(event) => setRegionSearch(event.target.value)}
+                  placeholder={t.searchRegions}
+                  className={cn("h-12 text-base", isRtl ? "pr-11" : "pl-11")}
+                />
+              </div>
+              <OptionGrid className="lg:grid-cols-3">
                 {visibleRegions.map((option) => {
                   const checked = values.coverageRegions.includes(option.value);
                   return (
@@ -387,6 +445,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                   );
                 })}
               </OptionGrid>
+              {visibleRegions.length === 0 && <p className="rounded-xl bg-brand-light p-4 text-sm font-semibold text-brand-dark/60">{t.noRegions}</p>}
               <ErrorText text={form.formState.errors.coverageRegions?.message} isRtl={isRtl} />
             </Field>
 
@@ -406,7 +465,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               isRtl={isRtl}
             />
 
-            <Field label={t.labels.paymentTerms}>
+            <Field label={t.labels.paymentTerms} helper={t.helpers.paymentTerms}>
               <OptionGrid>
                 {paymentTerms.map((option) => {
                   const checked = values.paymentTerms.includes(option.value);
@@ -421,14 +480,17 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               <ErrorText text={form.formState.errors.paymentTerms?.message} isRtl={isRtl} />
             </Field>
 
-            <Field label={t.labels.creditLimit}>
-              <Input
-                {...form.register("creditLimit")}
-                className="h-11 text-base"
-                placeholder={textByLang(isRtl, "Example: 250,000 SAR", "مثال: 250,000 ريال")}
-              />
-              <ErrorText text={form.formState.errors.creditLimit?.message} isRtl={isRtl} />
-            </Field>
+            {values.offersCredit === "yes" && (
+              <Field label={t.labels.creditLimit}>
+                <Input
+                  {...form.register("creditLimit")}
+                  inputMode="decimal"
+                  className="h-12 text-base"
+                  placeholder={textByLang(isRtl, "Example: 250,000 SAR", "مثال: 250,000 ريال")}
+                />
+                <ErrorText text={form.formState.errors.creditLimit?.message} isRtl={isRtl} />
+              </Field>
+            )}
 
             <BinaryField
               label={t.labels.workedOnGovProjects}
@@ -441,7 +503,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         )}
 
         {step === 3 && (
-          <section className="rounded-xl border border-brand-dark/12 bg-brand-light/45 p-5 md:p-6">
+          <section className="rounded-2xl border border-brand-dark/12 bg-brand-light/55 p-5 md:p-6">
             <h3 className="type-card-title text-brand-dark">{t.review}</h3>
             <dl className="mt-5 grid gap-3 text-sm text-brand-dark/85 md:grid-cols-2">
               <ReviewRow label={t.labels.establishmentName} value={values.establishmentName || t.notProvided} />
@@ -472,18 +534,21 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         )}
       </motion.div>
 
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <Button type="button" variant="outline" size="lg" onClick={handleBack} disabled={step === 0} className="type-button rounded-full px-6">
+      <div className="mt-8 flex items-center justify-between gap-4 border-t border-brand-dark/10 pt-6">
+        <Button type="button" variant="outline" size="lg" onClick={handleBack} disabled={step === 0} className="type-button gap-2 rounded-full px-6">
+          {isRtl ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
           {t.actions.back}
         </Button>
 
         {step < t.stepLabels.length - 1 ? (
-          <Button type="button" size="lg" onClick={handleNext} className="type-button rounded-full px-7">
+          <Button type="button" size="lg" onClick={handleNext} className="type-button gap-2 rounded-full bg-brand-primary px-7 hover:bg-brand-dark">
             {t.actions.next}
+            {isRtl ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
           </Button>
         ) : (
-          <Button type="submit" size="lg" className="type-button rounded-full px-7">
+          <Button type="submit" size="lg" className="type-button gap-2 rounded-full bg-brand-primary px-7 hover:bg-brand-dark">
             {t.actions.submit}
+            <CheckCircle2 className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -494,10 +559,43 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   );
 }
 
-function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function StepTabs({ labels, currentStep }: { labels: string[]; currentStep: number }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {labels.map((label, index) => {
+        const active = index === currentStep;
+        const completed = index < currentStep;
+        return (
+          <div
+            key={label}
+            className={cn(
+              "flex min-h-[58px] items-center gap-3 rounded-xl border px-3 py-2",
+              active || completed ? "border-brand-primary/35 bg-brand-primary/5" : "border-brand-dark/10 bg-white"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                active || completed ? "bg-brand-primary text-white" : "bg-brand-light text-brand-dark/65"
+              )}
+            >
+              {completed ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+            </span>
+            <span className={cn("text-sm font-semibold leading-5", active ? "text-brand-dark" : "text-brand-dark/62")}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Field({ label, helper, children, className }: { label: string; helper?: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("space-y-2", className)}>
       <Label>{label}</Label>
+      {helper && <p className="text-sm leading-6 text-brand-dark/58">{helper}</p>}
       {children}
     </div>
   );
@@ -508,16 +606,16 @@ function ErrorText({ text, isRtl }: { text?: string; isRtl: boolean }) {
   return <p className="type-small text-red-600">{localizeError(text, isRtl)}</p>;
 }
 
-function OptionGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-3 md:grid-cols-2">{children}</div>;
+function OptionGrid({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("grid gap-3 md:grid-cols-2", className)}>{children}</div>;
 }
 
 function OptionCard({ checked, children }: { checked: boolean; children: React.ReactNode }) {
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 type-small transition",
-        checked ? "border-brand-primary bg-brand-primary/5" : "border-brand-dark/15 bg-white hover:border-brand-dark/30"
+        "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 type-small font-semibold transition",
+        checked ? "border-brand-primary bg-brand-primary/10 text-brand-dark shadow-soft" : "border-brand-dark/15 bg-white text-brand-dark/78 hover:border-brand-dark/30"
       )}
     >
       {children}
@@ -545,8 +643,8 @@ function BinaryField({
           <label
             key={option.value}
             className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition",
-              value === option.value ? "border-brand-primary bg-brand-primary/5" : "border-brand-dark/15 hover:border-brand-dark/30"
+              "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition",
+              value === option.value ? "border-brand-primary bg-brand-primary/10 shadow-soft" : "border-brand-dark/15 hover:border-brand-dark/30"
             )}
           >
             <RadioGroupItem value={option.value} />
