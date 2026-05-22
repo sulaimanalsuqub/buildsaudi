@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Languages, LayoutDashboard, ShoppingBag, Store } from "lucide-react";
+import { Languages } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
 
@@ -22,13 +22,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
 
   const homeHref = isRtl ? "/ar" : "/";
   const languageHref = isRtl ? "/" : "/ar";
-  const quoteHref = isRtl ? "/ar/get-quote" : "/get-quote";
   const registerHref = isRtl ? "/ar/register" : "/register";
-  const nav = [
-    { href: quoteHref, label: isRtl ? "اطلب المنتجات" : "Order Products", icon: ShoppingBag },
-    { href: registerHref, label: isRtl ? "كُن موردًا" : "Become a Supplier", icon: Store },
-    { href: "/admin", label: isRtl ? "لوحة الإدارة" : "Admin", icon: LayoutDashboard },
-  ];
 
   return (
     <header
@@ -52,22 +46,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-brand-dark/10 bg-white/[0.78] p-1 shadow-soft md:flex">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
-              >
-                <Icon className="h-4 w-4 text-brand-primary" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
         <div className="flex items-center gap-2">
           <Link
             href={languageHref}
@@ -78,7 +56,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           </Link>
           <Link
             href={registerHref}
-            className="hidden h-10 items-center justify-center rounded-full bg-brand-dark px-5 text-sm font-bold text-white transition hover:bg-brand-primary sm:inline-flex"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-brand-dark px-5 text-sm font-bold text-white transition hover:bg-brand-primary"
           >
             {isRtl ? "انضم كمورد" : "Join as Supplier"}
           </Link>

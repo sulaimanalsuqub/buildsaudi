@@ -103,22 +103,41 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
-      <section className="relative overflow-hidden bg-white">
-        <Container className="relative min-h-[620px] py-10 md:min-h-[690px] md:py-14">
+      <section className="relative overflow-hidden bg-brand-dark text-white">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:44px_44px]" />
+        <div
+          className={cn(
+            "absolute inset-y-0 hidden w-[68%] md:block",
+            isRtl ? "left-0" : "right-0"
+          )}
+        >
           <Image
-            src="/images/build-truck-hero.png"
-            alt={isRtl ? "شاحنة بيلد لتوريد مواد البناء" : "Build supply truck"}
+            src="/images/build-truck.png"
+            alt={isRtl ? "تطبيق بيلد لتوريد مواد البناء" : "Build construction supply app"}
             fill
             priority
             sizes="100vw"
-            className="absolute inset-0 object-cover object-center opacity-95"
+            className={cn(
+              "object-cover opacity-88",
+              isRtl ? "object-left" : "object-right"
+            )}
           />
           <div
             className={cn(
               "absolute inset-0",
               isRtl
-                ? "bg-[linear-gradient(270deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.86)_38%,rgba(255,255,255,0.34)_74%,rgba(255,255,255,0.12)_100%)]"
-                : "bg-[linear-gradient(90deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.86)_38%,rgba(255,255,255,0.34)_74%,rgba(255,255,255,0.12)_100%)]"
+                ? "bg-[linear-gradient(90deg,rgba(29,63,31,0.04)_0%,rgba(29,63,31,0.3)_38%,rgba(29,63,31,0.78)_74%,#1D3F1F_100%)]"
+                : "bg-[linear-gradient(270deg,rgba(29,63,31,0.04)_0%,rgba(29,63,31,0.3)_38%,rgba(29,63,31,0.78)_74%,#1D3F1F_100%)]"
+            )}
+          />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(29,63,31,0)_0%,#1D3F1F_92%)]" />
+
+        <Container className="relative min-h-[620px] py-10 md:min-h-[690px] md:py-14">
+          <div
+            className={cn(
+              "absolute inset-y-10 hidden w-[42%] rounded-[36px] border border-white/10 bg-white/[0.04] backdrop-blur-[1px] lg:block",
+              isRtl ? "left-8" : "right-8"
             )}
           />
 
@@ -128,31 +147,31 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             transition={{ duration: 0.5 }}
             className="relative z-10 flex min-h-[560px] max-w-2xl flex-col justify-center md:min-h-[610px]"
           >
-            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-brand-dark/10 bg-white/88 px-3 py-1.5 text-sm font-bold text-brand-dark shadow-soft">
-              <BadgeCheck className="h-4 w-4 text-brand-primary" />
+            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/14 bg-white/10 px-3 py-1.5 text-sm font-bold text-white shadow-soft backdrop-blur-md">
+              <BadgeCheck className="h-4 w-4 text-brand-accent" />
               {t.badge}
             </p>
-            <h1 className="type-hero mt-5 text-brand-dark">{t.heroTitle}</h1>
-            <p className="type-subheading mt-5 text-brand-dark/68">{t.heroSub}</p>
+            <h1 className="type-hero mt-5 text-white">{t.heroTitle}</h1>
+            <p className="type-subheading mt-5 text-white/72">{t.heroSub}</p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-primary px-7 text-base font-bold text-white transition hover:bg-brand-dark"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-primary px-7 text-base font-bold text-white transition hover:bg-white hover:text-brand-dark"
               >
                 {t.primaryCta}
                 <ArrowIcon className="h-4 w-4" />
               </Link>
               <Link
                 href={isRtl ? "/ar/register" : "/register"}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-brand-dark/16 bg-white px-7 text-base font-bold text-brand-dark transition hover:border-brand-dark/30"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/18 bg-white/10 px-7 text-base font-bold text-white backdrop-blur-md transition hover:bg-white hover:text-brand-dark"
               >
-                <Factory className="h-4 w-4 text-brand-primary" />
+                <Factory className="h-4 w-4 text-brand-accent" />
                 {t.supplierCta}
               </Link>
             </div>
 
-            <div className="mt-10 grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-brand-dark/10 bg-white/88 shadow-soft">
+            <div className="mt-10 grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-white/12 bg-white/10 shadow-soft backdrop-blur-md">
               <Stat value="12+" label={t.statOne} />
               <Stat value="340" label={t.statTwo} />
               <Stat value="DDP" label={t.statThree} />

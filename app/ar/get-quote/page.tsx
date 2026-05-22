@@ -1,12 +1,5 @@
-import { Metadata } from "next";
-
-import { QuotePageContent } from "@/components/sections/quote-page-content";
-
-export const metadata: Metadata = {
-  title: "اطلب عرض سعر",
-  description: "أرسل تفاصيل مشروعك واستلم عرض سعر شامل من بيلد خلال 24 ساعة.",
-};
+import { redirect } from "next/navigation";
 
 export default function ArabicGetQuotePage() {
-  return <QuotePageContent isRtl />;
+  redirect("/ar/register");
 }
