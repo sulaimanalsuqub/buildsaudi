@@ -12,14 +12,24 @@ type HomeContentProps = {
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
+  const catalog = [
+    { en: "Building Materials", ar: "مواد بناء وإنشاء", icon: Building2 },
+    { en: "Safety Tools", ar: "أدوات السلامة", icon: ShieldCheck },
+    { en: "Electrical & Lighting", ar: "كهرباء وإنارة", icon: FileText },
+    { en: "Plumbing", ar: "سباكة", icon: Store },
+    { en: "Sanitary Ware", ar: "أدوات صحية", icon: Building2 },
+    { en: "HVAC", ar: "تكييف وتبريد", icon: ShieldCheck },
+    { en: "Paint & Decor", ar: "دهانات وديكور", icon: FileText },
+    { en: "Piping Systems", ar: "أنظمة الأنابيب", icon: Store },
+  ];
   const t = {
-    eyebrow: isRtl ? "بيلد مورد مواد البناء" : "Build Construction Supplier",
-    title: isRtl ? "صفحة بسيطة ومباشرة للموردين والطلبات" : "A simple entry point for suppliers and product requests",
+    eyebrow: isRtl ? "توريد مواد البناء" : "Construction Material Supply",
+    title: isRtl ? "اطلب مواد مشروعك بسهولة" : "Order materials for your project with less friction",
     body: isRtl
-      ? "الموقع الآن يركز على 3 صفحات أساسية فقط: الصفحة الرئيسية، أطلب المنتجات، كُن موردًا، مع السياسات المطلوبة."
-      : "The site now focuses on three core pages: Home, Order Products, Become a Supplier, plus the required policies.",
-    primary: isRtl ? "سجّل كمورد" : "Register as Supplier",
-    secondary: isRtl ? "أطلب المنتجات" : "Order Products",
+      ? "استعرض الفئات وابدأ الطلب مباشرة، أو سجّل منشأتك إذا كنت موردًا."
+      : "Browse categories and start a request right away, or register your company if you are a supplier.",
+    primary: isRtl ? "أطلب المنتجات" : "Order Products",
+    secondary: isRtl ? "سجّل كمورد" : "Register as Supplier",
     privacy: isRtl ? "سياسة الخصوصية" : "Privacy Policy",
     terms: isRtl ? "الشروط والأحكام" : "Terms & Conditions",
   };
@@ -89,6 +99,39 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 </div>
               </div>
             </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="py-2 pb-10 md:py-4 md:pb-16">
+        <Container>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-brand-primary">{isRtl ? "الكتالوج" : "Catalog"}</p>
+              <h2 className="mt-2 text-2xl font-bold text-brand-dark">{isRtl ? "الفئات المتوفرة" : "Available Categories"}</h2>
+            </div>
+            <p className="hidden max-w-md text-sm leading-6 text-brand-dark/58 md:block">
+              {isRtl
+                ? "استعرض الفئات المتوفرة ثم انتقل مباشرة إلى طلب المنتجات أو تسجيل المورد."
+                : "Browse the available categories, then move directly to product requests or supplier registration."}
+            </p>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {catalog.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article
+                  key={item.en}
+                  className="rounded-2xl border border-brand-dark/10 bg-white p-4 transition hover:border-brand-primary/30 hover:shadow-soft"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-brand-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="mt-4 text-sm font-bold leading-6 text-brand-dark">{isRtl ? item.ar : item.en}</p>
+                </article>
+              );
+            })}
           </div>
         </Container>
       </section>
