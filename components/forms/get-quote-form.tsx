@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, CheckCircle2, FileUp, MailCheck, SearchCheck, Send, Truck } from "lucide-react";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
 function isValidSaudiPhone(phone: string): boolean {
@@ -294,14 +295,16 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   };
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
+  const DirectionArrow = isRtl ? ArrowLeft : ArrowRight;
+  const BackArrow = isRtl ? ArrowRight : ArrowLeft;
 
   /* ── شاشة النجاح مع Timeline ── */
   if (submitted) {
-    const timelineIcons = ["✅", "🔍", "📩", "✅", "🚚"];
+    const timelineIcons = [CheckCircle2, SearchCheck, MailCheck, CheckCircle2, Truck];
     return (
       <div className="flex flex-col items-center gap-8 py-10" dir={isRtl ? "rtl" : "ltr"}>
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-primary/[0.10] text-4xl">
-          ✅
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-primary/[0.10] text-brand-primary">
+          <CheckCircle2 className="h-10 w-10" />
         </div>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-brand-dark">{copy.successTitle}</h2>
@@ -320,8 +323,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             {copy.timelineSteps.map((label, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="flex flex-col items-center">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm shrink-0 ${i === 0 ? "bg-brand-primary text-white" : "bg-brand-dark/8 text-brand-dark/60"}`}>
-                    {timelineIcons[i]}
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm shrink-0 ${i === 0 ? "bg-brand-primary text-white" : "bg-brand-dark/[0.08] text-brand-dark/60"}`}>
+                    {(() => {
+                      const Icon = timelineIcons[i];
+                      return <Icon className="h-4 w-4" />;
+                    })()}
                   </div>
                   {i < copy.timelineSteps.length - 1 && (
                     <div className="w-0.5 h-6 bg-brand-dark/10" />
@@ -367,6 +373,18 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             transition={{ duration: 0.28 }}
             className="h-full rounded-full bg-brand-primary"
           />
+        </div>
+        <div className="grid gap-2 pt-2 sm:grid-cols-4">
+          {copy.steps.map((label, index) => (
+            <div
+              key={label}
+              className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold leading-5 ${
+                index <= step ? "border-brand-primary/30 bg-brand-primary/10 text-brand-dark" : "border-brand-dark/10 bg-brand-light/50 text-brand-dark/46"
+              }`}
+            >
+              {label}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -435,7 +453,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                 className="flex cursor-pointer items-center gap-3 rounded-xl border border-brand-dark/15 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <span className="text-xl">📎</span>
+                <FileUp className="h-5 w-5 shrink-0 text-brand-primary" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-brand-dark truncate">
                     {fileName || copy.chooseFile}
@@ -541,8 +559,9 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           type="button"
           onClick={handleBack}
           disabled={step === 0}
-          className="rounded-full border border-brand-dark/20 px-6 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04] disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-full border border-brand-dark/20 px-6 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04] disabled:opacity-40"
         >
+          <BackArrow className="h-4 w-4" />
           {copy.back}
         </button>
 
@@ -550,17 +569,19 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           <button
             type="button"
             onClick={handleNext}
-            className="rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
           >
             {copy.next}
+            <DirectionArrow className="h-4 w-4" />
           </button>
         ) : (
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-primary px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-dark disabled:opacity-60"
           >
             {loading ? copy.submitting : copy.submit}
+            <Send className="h-4 w-4" />
           </button>
         )}
       </div>
