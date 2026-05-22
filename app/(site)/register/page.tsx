@@ -3,8 +3,8 @@ import { Metadata } from "next";
 import { VendorRegisterContent } from "@/components/sections/vendor-register-content";
 
 export const metadata: Metadata = {
-  title: "Start Supplying",
-  description: "Join Build to supply your building materials to active projects faster."
+  title: "Become a Supplier",
+  description: "Register your company with Build to receive qualified project RFQs."
 };
 
 export default function RegisterPage() {

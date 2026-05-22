@@ -23,6 +23,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const homeHref = isRtl ? "/ar" : "/";
   const languageHref = isRtl ? "/" : "/ar";
   const registerHref = isRtl ? "/ar/register" : "/register";
+  const quoteHref = isRtl ? "/ar/get-quote" : "/get-quote";
 
   return (
     <header
@@ -45,6 +46,27 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             className="h-[38px] w-auto"
           />
         </Link>
+
+        <nav className="hidden items-center gap-1 rounded-full border border-brand-dark/10 bg-white/[0.8] p-1 shadow-soft md:flex">
+          <Link
+            href={homeHref}
+            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+          >
+            {isRtl ? "الرئيسية" : "Home"}
+          </Link>
+          <Link
+            href={quoteHref}
+            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+          >
+            {isRtl ? "أطلب المنتجات" : "Order Products"}
+          </Link>
+          <Link
+            href={registerHref}
+            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+          >
+            {isRtl ? "كُن موردًا" : "Become a Supplier"}
+          </Link>
+        </nav>
 
         <div className="flex items-center gap-2">
           <Link

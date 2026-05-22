@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
   title: "Cookies Policy",
-  description: "Cookies policy for Build website and supply workflow."
+  description: "Cookies policy for Build supplier and request workflows."
 };
 
 export default function CookiesPolicyPage() {
@@ -15,10 +15,10 @@ export default function CookiesPolicyPage() {
           <h1 className="type-section-title text-brand-dark">Cookies Policy</h1>
           <div className="content-stack mt-8">
             <p className="type-body text-brand-dark/80">
-              Build uses essential cookies for session continuity, security controls, and performance analytics. We do not use non-essential trackers without transparent notice.
+              Build uses essential cookies to keep sessions active, protect forms, and remember basic preferences. We may also use analytics cookies to understand usage and improve the service when such use is disclosed.
             </p>
             <p className="type-body text-brand-dark/80">
-              Users can manage browser cookie preferences, but disabling required cookies may affect platform functionality and account access.
+              You can manage cookies through your browser settings. Disabling essential cookies may affect form submission, login, or other core site functions.
             </p>
           </div>
         </article>

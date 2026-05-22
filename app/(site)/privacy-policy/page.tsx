@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Privacy policy for Build construction material supply platform."
+  description: "Privacy policy for Build supplier and project request workflows."
 };
 
 export default function PrivacyPolicyPage() {
@@ -15,10 +15,16 @@ export default function PrivacyPolicyPage() {
           <h1 className="type-section-title text-brand-dark">Privacy Policy</h1>
           <div className="content-stack mt-8">
             <p className="type-body text-brand-dark/80">
-              Build processes business data to connect suppliers with project supply opportunities and manage delivery workflows. We collect only necessary information, store it securely, and use it for platform operations.
+              Build collects only the information needed to register suppliers, receive project requests, review eligibility, and manage communications. This follows the Saudi data privacy principle of collecting the minimum data required for a defined purpose.
             </p>
             <p className="type-body text-brand-dark/80">
-              Companies may request corrections to inaccurate information. Build applies technical and organizational safeguards aligned with Saudi market expectations for secure B2B data handling.
+              We may collect company name, contact details, commercial registration details, product categories, delivery information, uploaded files, and basic website usage data. We use this data to operate the service, improve response quality, and maintain security.
+            </p>
+            <p className="type-body text-brand-dark/80">
+              We do not disclose personal or business data except where needed to deliver the service, comply with law, or with appropriate notice and authority. You may request access, correction, or updates to inaccurate information by contacting us.
+            </p>
+            <p className="type-body text-brand-dark/80">
+              We retain data only for as long as needed for the stated purpose, apply reasonable technical and organizational safeguards, and may update this notice when our processing practices change.
             </p>
           </div>
         </article>

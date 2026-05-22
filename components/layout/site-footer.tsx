@@ -22,7 +22,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             className="h-[28px] w-auto"
           />
           <p className="text-sm text-brand-dark/55">
-            {isRtl ? "تسجيل الموردين فقط" : "Supplier registration only"}
+            {isRtl ? "موقع بيلد للموردين" : "Build supplier site"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-brand-dark/65">
