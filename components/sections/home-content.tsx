@@ -47,7 +47,7 @@ const categories = [
 export function HomeContent({ isRtl = false }: HomeContentProps) {
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
   const t = {
-    badge: isRtl ? "منصة توريد مواد البناء" : "Construction Supply Platform",
+    badge: isRtl ? "شبكة موردي مواد البناء" : "Construction Supplier Network",
     heroTitle: isRtl ? "توريد أسرع لمشاريع البناء في السعودية" : "Faster Material Supply for Construction Projects",
     heroSub: isRtl
       ? "بيلد تربط طلبات المشاريع بالموردين المناسبين، وتختصر دورة التسعير من الطلب إلى العرض النهائي والتوصيل."
