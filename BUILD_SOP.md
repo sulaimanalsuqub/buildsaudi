@@ -188,12 +188,12 @@ Done:
 - Build costing and service fee fields on Quotation
 - Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 - Email Templates: `Build RFQ Supplier Request`, `Build Customer Quotation`
+- Email Account: `Build Resend` for ERPNext outgoing SMTP through Resend
 
 Started:
 
 - ERPNext catalog structure through Item Groups
 - Manual RFQ and quote flow using ERPNext standard documents
-- ERPNext email flow preparation
 
 Not implemented yet:
 
@@ -201,7 +201,6 @@ Not implemented yet:
 - Supplier to Item linking
 - Automated supplier matching
 - Virtual warehouse `Build`
-- ERPNext Email Account / SMTP sending
 - RFQ reply automation
 - WhatsApp integration
 - Supplier portal
