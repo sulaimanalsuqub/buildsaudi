@@ -154,7 +154,6 @@ export async function createERPNextProductOpportunity(quote: {
     mobile_no: quote.phone,
     status: "Lead",
     source: "Website",
-    notes: quote.notes || "",
   });
 
   return createERPNextDocument<{ name: string }>("Opportunity", {
@@ -172,7 +171,7 @@ export async function createERPNextProductOpportunity(quote: {
     build_required_materials: quote.materials,
     build_sheet_link: quote.sheet_link || "",
     build_boq_file_url: quote.boq_file_url || "",
-    notes: [
+    build_customer_notes: [
       quote.materials,
       quote.notes ? `Notes: ${quote.notes}` : "",
       quote.sheet_link ? `Sheet Link: ${quote.sheet_link}` : "",
