@@ -24,21 +24,22 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer className="mt-12 border-t border-brand-dark/10 bg-[#f8faf7] md:mt-16">
-      <Container className="py-10 md:py-12">
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1.5fr)_minmax(150px,0.7fr)_minmax(190px,0.8fr)]">
-          <div className="max-w-md">
+    <footer className="border-t border-brand-dark/8 bg-[#f7f9f6]">
+      <Container className="py-12 md:py-16">
+        <div className="grid gap-10 md:grid-cols-[minmax(0,1.6fr)_minmax(140px,0.7fr)_minmax(180px,0.8fr)]">
+          {/* Brand column */}
+          <div className="max-w-xs">
             <Image
               src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
               alt={isRtl ? "شعار بيلد" : "Build logo"}
               width={4302}
               height={1500}
-              className="h-[34px] w-auto"
+              className="h-8 w-auto"
             />
-            <p className="mt-4 text-sm leading-7 text-brand-dark/62">
+            <p className="mt-4 text-sm leading-[1.8] text-brand-dark/58">
               {isRtl
-                ? "بيلد شريك توريد لمواد البناء، يستقبل طلبات المشاريع ويدير علاقات الموردين ودورة الشراء من خلال ERPNext."
-                : "Build is a procurement partner for construction materials, managing project requests, supplier relationships, and the purchasing cycle through ERPNext."}
+                ? "بيلد شريك توريد لمواد البناء، يستقبل طلبات المشاريع ويدير علاقات الموردين ودورة الشراء."
+                : "Build is a procurement partner for construction materials, managing project requests and supplier relationships."}
             </p>
           </div>
 
@@ -46,9 +47,9 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
           <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
         </div>
 
-        <div className="mt-9 flex flex-col gap-3 border-t border-brand-dark/10 pt-5 text-sm text-brand-dark/55 md:flex-row md:items-center md:justify-between">
+        <div className="mt-10 flex flex-col gap-2 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45 md:flex-row md:items-center md:justify-between">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <p>{isRtl ? "تشغيل وتوريد مشاريع البناء" : "Construction procurement operations"}</p>
+          <p>{isRtl ? "توريد مشاريع البناء في المملكة العربية السعودية" : "Construction procurement · Saudi Arabia"}</p>
         </div>
       </Container>
     </footer>
