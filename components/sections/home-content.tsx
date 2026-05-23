@@ -86,7 +86,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
   const t = {
     eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
-    title: isRtl ? "مواد البناء لمشروعك\nمن مورد واحد" : "Construction materials\nfrom one supplier",
+    title: isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project",
     body: isRtl
       ? "اطلب احتياج المشروع، أرفق جدول الكميات، وحدد موقع التسليم."
       : "Submit your BOQ, set the delivery location, and we handle the rest.",
@@ -128,11 +128,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               {t.eyebrow}
             </span>
             <h1 className="type-hero mt-6 text-brand-dark">
-              {isRtl ? (
-                <>مواد البناء لمشروعك<br />من مورد واحد</>
-              ) : (
-                <>Construction materials<br />from one supplier</>
-              )}
+              {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
             </h1>
             <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62">{t.body}</p>
           </div>
