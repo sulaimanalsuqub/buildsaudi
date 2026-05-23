@@ -2,98 +2,51 @@ import Image from "next/image";
 
 export default function MaintenancePage() {
   return (
-    <>
-      <style>{`
-        @keyframes meteor {
-          0%   { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
-          100% { transform: translateX(600px) translateY(600px) rotate(-45deg); opacity: 0; }
-        }
-        .meteor {
-          position: absolute;
-          width: 2px;
-          border-radius: 9999px;
-          background: linear-gradient(to bottom, #000, transparent);
-          animation: meteor linear infinite;
-          opacity: 0;
-        }
-        .meteor::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0;
-          width: 4px; height: 4px;
-          border-radius: 50%;
-          background: #000;
-          transform: translate(-1px, -1px);
-        }
-      `}</style>
-
-      <main className="min-h-screen flex flex-col relative overflow-hidden"
-        style={{
-          backgroundColor: "#fff",
-          backgroundImage: `
-            radial-gradient(circle, #00000012 1px, transparent 1px),
-            radial-gradient(circle, #00000008 1px, transparent 1px)
-          `,
-          backgroundSize: "40px 40px, 80px 80px",
-          backgroundPosition: "0 0, 20px 20px",
-        }}
-      >
-        {/* Shooting stars */}
-        {[
-          { top: "5%",  left: "10%", height: 120, delay: "0s",    duration: "3.5s" },
-          { top: "15%", left: "55%", height: 80,  delay: "1.2s",  duration: "2.8s" },
-          { top: "2%",  left: "75%", height: 150, delay: "2.5s",  duration: "4s"   },
-          { top: "30%", left: "30%", height: 60,  delay: "3.8s",  duration: "3s"   },
-          { top: "8%",  left: "88%", height: 100, delay: "0.8s",  duration: "3.2s" },
-          { top: "20%", left: "5%",  height: 90,  delay: "4.5s",  duration: "2.6s" },
-        ].map((m, i) => (
-          <div
-            key={i}
-            className="meteor"
-            style={{
-              top: m.top,
-              left: m.left,
-              height: `${m.height}px`,
-              animationDelay: m.delay,
-              animationDuration: m.duration,
-            }}
-          />
-        ))}
-
-        {/* Top bar */}
-        <header className="relative z-10 px-8 py-6 border-b border-black/[0.06]">
-          <Image src="/brand/logo-ar.svg" alt="Build Saudi" width={120} height={32} className="h-8 w-auto" />
-        </header>
-
-        {/* Center content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
-          {/* Status dot */}
-          <div className="flex items-center gap-2 mb-10">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-emerald-600 text-xs font-medium tracking-widest uppercase">
-              Under Maintenance
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-black font-bold tracking-tight mb-4" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", lineHeight: 1.1 }}>
-            نعود قريباً
-          </h1>
-
-          <p className="text-black/40 text-lg max-w-sm leading-relaxed">
-            نعمل على تحسينات ستجعل تجربتك أفضل بكثير
-          </p>
+    <main className="flex min-h-screen flex-col bg-[#F8FAF7] text-[#1D3F1F]" dir="rtl">
+      <header className="border-b border-[#1D3F1F]/10 bg-white">
+        <div className="mx-auto flex h-20 w-full max-w-[1120px] items-center justify-between px-5">
+          <Image src="/brand/logo-ar.svg" alt="بيلد" width={4302} height={1500} className="h-9 w-auto" priority />
+          <span className="rounded-full border border-[#1D3F1F]/10 bg-[#F4F3EB] px-3 py-1 text-xs font-semibold text-[#1D3F1F]/65">
+            صيانة مؤقتة
+          </span>
         </div>
+      </header>
 
-        {/* Bottom bar */}
-        <footer className="relative z-10 px-8 py-5 border-t border-black/[0.06] flex items-center justify-between">
-          <span className="text-black/20 text-xs">© {new Date().getFullYear()} Build Saudi</span>
-          <span className="text-black/20 text-xs">build.sa</span>
-        </footer>
-      </main>
-    </>
+      <section className="flex flex-1 items-center">
+        <div className="mx-auto w-full max-w-[1120px] px-5 py-16">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold text-[#09B14B]">تحديث النظام</p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-normal md:text-6xl">
+              نعمل على تجهيز تجربة بيلد الجديدة
+            </h1>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-[#1D3F1F]/62">
+              الموقع متوقف مؤقتًا أثناء ربط العمليات مع ERPNext. سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
+            </p>
+
+            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-[#1D3F1F]/10 bg-white p-4">
+                <p className="text-sm font-bold">ERPNext</p>
+                <p className="mt-1 text-sm text-[#1D3F1F]/55">ربط العمليات</p>
+              </div>
+              <div className="rounded-xl border border-[#1D3F1F]/10 bg-white p-4">
+                <p className="text-sm font-bold">RFQ</p>
+                <p className="mt-1 text-sm text-[#1D3F1F]/55">تجهيز الطلبات</p>
+              </div>
+              <div className="rounded-xl border border-[#1D3F1F]/10 bg-white p-4">
+                <p className="text-sm font-bold">KSA</p>
+                <p className="mt-1 text-sm text-[#1D3F1F]/55">توريد داخل المملكة</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#1D3F1F]/10 bg-white">
+        <div className="mx-auto flex w-full max-w-[1120px] items-center justify-between px-5 py-5 text-xs text-[#1D3F1F]/45">
+          <span>© {new Date().getFullYear()} بيلد</span>
+          <span dir="ltr">build.sa</span>
+        </div>
+      </footer>
+    </main>
   );
 }
