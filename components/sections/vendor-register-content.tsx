@@ -1,3 +1,5 @@
+import { Store } from "lucide-react";
+
 import { VendorRegistrationForm } from "@/components/forms/vendor-registration-form";
 import { Container } from "@/components/ui/container";
 
@@ -9,26 +11,37 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
   const t = {
     badge: isRtl ? "تسجيل الموردين" : "Supplier Registration",
     title: isRtl ? "سجّل منشأتك كمورد" : "Register your company as a supplier",
+    body: isRtl
+      ? "أضف بيانات منشأتك وفئات توريدك لتلقي طلبات RFQ المناسبة لنشاطك."
+      : "Add your company details and supply categories to receive matching project RFQs.",
   };
 
   return (
-    <main className="section-pad" dir={isRtl ? "rtl" : "ltr"}>
-      <Container className="space-y-6 md:space-y-8">
-        <section className="overflow-hidden rounded-xl border border-brand-dark/10 bg-white shadow-soft">
-          <div className="p-6 md:p-8">
-            <div className="max-w-2xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand-primary/15 bg-brand-light px-3 py-1.5 text-sm font-semibold text-brand-primary">
-                {t.badge}
-              </p>
-              <h1 className="type-section-title mt-5 text-brand-dark">{t.title}</h1>
-            </div>
-          </div>
-        </section>
+    <main dir={isRtl ? "rtl" : "ltr"}>
 
-        <div id="supplier-registration-form" className="scroll-mt-28">
-          <VendorRegistrationForm isRtl={isRtl} />
-        </div>
-      </Container>
+      {/* Page hero */}
+      <section className="bg-white py-12 md:py-16">
+        <Container>
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
+              <Store className="h-4 w-4" />
+              {t.badge}
+            </span>
+            <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
+            <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
+          </div>
+        </Container>
+      </section>
+
+      {/* Form section */}
+      <section className="bg-[#f7f9f6] py-10 md:py-14">
+        <Container>
+          <div id="supplier-registration-form" className="scroll-mt-28">
+            <VendorRegistrationForm isRtl={isRtl} />
+          </div>
+        </Container>
+      </section>
+
     </main>
   );
 }

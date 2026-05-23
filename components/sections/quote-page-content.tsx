@@ -14,6 +14,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
     body: isRtl
       ? "أدخل المواد المطلوبة، موقع التسليم، والموعد المستهدف. يمكنك إضافة ملف BOQ لتسريع المراجعة."
       : "Enter the required materials, delivery location, and target date. You can attach a BOQ to speed up review.",
+    sideTitle: isRtl ? "ما تحتاج تجهّزه" : "What to prepare",
   };
 
   const points = [
@@ -36,37 +37,52 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
   ];
 
   return (
-    <main className="section-pad" dir={isRtl ? "rtl" : "ltr"}>
-      <Container className="space-y-6 md:space-y-8">
-        <div className="max-w-2xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-brand-primary/15 bg-white px-3 py-1.5 text-sm font-semibold text-brand-primary shadow-soft">
-            <ClipboardList className="h-4 w-4" />
-            {t.badge}
-          </p>
-          <h1 className="type-section-title mt-5 text-brand-dark">{t.title}</h1>
-          <p className="type-subheading mt-4 text-brand-dark/68">{t.body}</p>
-        </div>
+    <main dir={isRtl ? "rtl" : "ltr"}>
 
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
-          <aside className="rounded-xl border border-brand-dark/10 bg-white p-5 shadow-soft">
-            <div className="space-y-3">
-              {points.map((point) => {
-                const Icon = point.icon;
-                return (
-                  <div key={point.text} className="flex items-center gap-3 rounded-lg bg-brand-light/60 p-3">
-                    <Icon className="h-4 w-4 shrink-0 text-brand-primary" />
-                    <span className="text-sm font-semibold text-brand-dark/72">{point.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </aside>
+      {/* Page hero */}
+      <section className="bg-white py-12 md:py-16">
+        <Container>
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
+              <ClipboardList className="h-4 w-4" />
+              {t.badge}
+            </span>
+            <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
+            <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
+          </div>
+        </Container>
+      </section>
 
-          <section>
-            <GetQuoteForm isRtl={isRtl} />
-          </section>
-        </div>
-      </Container>
+      {/* Form section */}
+      <section className="bg-[#f7f9f6] py-10 md:py-14">
+        <Container>
+          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+
+            <aside className="rounded-2xl border border-brand-dark/8 bg-white p-6 shadow-soft">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-brand-primary">{t.sideTitle}</p>
+              <div className="mt-4 space-y-3">
+                {points.map((point) => {
+                  const Icon = point.icon;
+                  return (
+                    <div key={point.text} className="flex items-center gap-3 rounded-xl bg-brand-light p-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-semibold text-brand-dark/72">{point.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <section>
+              <GetQuoteForm isRtl={isRtl} />
+            </section>
+
+          </div>
+        </Container>
+      </section>
+
     </main>
   );
 }
