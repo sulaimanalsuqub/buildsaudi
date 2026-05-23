@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createERPNextSupplierRegistration } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendVendorRegistrationConfirmation } from "@/lib/email";
 
@@ -31,48 +31,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات المورد غير مكتملة أو غير صحيحة" }, { status: 400 });
   }
 
-  const vendorId = crypto.randomUUID();
   const vendor = parsed.data;
-  const db = createServiceRoleClient();
 
-  const { error: vendorError } = await db.from("vendors").insert({
-    id: vendorId,
-    establishment_name: vendor.establishment_name,
-    manager_name: vendor.manager_name,
-    contact_number: vendor.contact_number,
-    email: vendor.email,
-    cr_number: vendor.cr_number,
-    vendor_type: vendor.vendor_type,
-    represented_brands: vendor.represented_brands || null,
-    has_warehouse: vendor.has_warehouse,
-    offers_credit: vendor.offers_credit,
-    credit_limit: vendor.credit_limit ?? null,
-    payment_terms: vendor.payment_terms,
-    worked_on_gov_projects: vendor.worked_on_gov_projects,
-  });
-
-  if (vendorError) {
-    if (vendorError.code === "23505") {
-      const message = vendorError.message.includes("email")
-        ? "البريد الإلكتروني مسجل مسبقاً"
-        : "رقم السجل التجاري مسجل مسبقاً";
-      return NextResponse.json({ error: message }, { status: 409 });
+  let createdSupplier: { name: string };
+  try {
+    createdSupplier = await createERPNextSupplierRegistration(vendor);
+  } catch (error) {
+    if (error instanceof Error && error.name === "DuplicateSupplier") {
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
-    return NextResponse.json({ error: "تعذر حفظ بيانات المورد" }, { status: 500 });
-  }
-
-  const [{ error: categoryError }, { error: regionError }] = await Promise.all([
-    db.from("vendor_categories").insert(
-      vendor.product_categories.map((category) => ({ vendor_id: vendorId, category }))
-    ),
-    db.from("vendor_regions").insert(
-      vendor.coverage_regions.map((region) => ({ vendor_id: vendorId, region }))
-    ),
-  ]);
-
-  if (categoryError || regionError) {
-    await db.from("vendors").delete().eq("id", vendorId);
-    return NextResponse.json({ error: "تعذر حفظ فئات أو مناطق المورد" }, { status: 500 });
+    console.error("ERPNext supplier registration failed:", error);
+    return NextResponse.json({ error: "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: 500 });
   }
 
   try {
@@ -85,5 +54,5 @@ export async function POST(req: NextRequest) {
     console.error("Vendor registration email failed:", emailError);
   }
 
-  return NextResponse.json({ ok: true, id: vendorId });
+  return NextResponse.json({ ok: true, id: createdSupplier.name });
 }

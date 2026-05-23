@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createERPNextProductOpportunity } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
 
@@ -27,29 +27,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات الطلب غير مكتملة أو غير صحيحة" }, { status: 400 });
   }
 
-  const quoteId = crypto.randomUUID();
   const quote = parsed.data;
-  const db = createServiceRoleClient();
 
-  const { error } = await db.from("quotes").insert({
-    id: quoteId,
-    project_name: quote.project_name,
-    client_name: quote.client_name,
-    phone: quote.phone,
-    client_email: quote.client_email || null,
-    materials: quote.materials,
-    sheet_link: quote.sheet_link || null,
-    delivery_address: quote.delivery_address,
-    delivery_date: quote.delivery_date,
-    notes: quote.notes || null,
-    boq_file_url: quote.boq_file_url || null,
-  });
-
-  if (error) return NextResponse.json({ error: "تعذر حفظ طلب التسعير" }, { status: 500 });
+  let opportunity: { name: string };
+  try {
+    opportunity = await createERPNextProductOpportunity(quote);
+  } catch (error) {
+    console.error("ERPNext opportunity creation failed:", error);
+    return NextResponse.json({ error: "تعذر حفظ طلب المنتجات في نظام العمليات" }, { status: 500 });
+  }
 
   try {
     await sendNewQuoteNotification({
-      id: quoteId,
+      id: opportunity.name,
       project_name: quote.project_name,
       client_name: quote.client_name,
       phone: quote.phone,
@@ -67,5 +57,5 @@ export async function POST(req: NextRequest) {
     console.error("Quote notification failed:", emailError);
   }
 
-  return NextResponse.json({ ok: true, id: quoteId });
+  return NextResponse.json({ ok: true, id: opportunity.name });
 }
