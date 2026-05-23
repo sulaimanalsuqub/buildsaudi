@@ -136,6 +136,17 @@ Do not use `/request` or `/become-supplier`.
 - `build_supplier_delivery_status`: Select, `Pending`, `Confirmed`, `In Progress`, `Shipped`, `Delivered`, `Cancelled`
 - `build_delivery_notes`: Long Text
 
+### Item
+
+- `build_catalog_section`: Section Break
+- `build_catalog_status`: Select, `Draft`, `Active`, `Inactive`, `Discontinued`
+- `build_product_category`: Select matching website supplier categories
+- `build_primary_supplier`: Link to Supplier
+- `build_brand`: Data
+- `build_origin_country`: Data
+- `build_keywords`: Small Text
+- `build_catalog_notes`: Long Text
+
 ## Workflow 1: Customer Product Request
 
 Website route: `/ar/get-quote`
@@ -209,6 +220,7 @@ Done:
 - Build supplier response fields on Supplier Quotation
 - Build costing and service fee fields on Quotation
 - Build fulfillment fields on Sales Order and Purchase Order
+- Build catalog fields on Item
 - Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 - Email Templates: `Build RFQ Supplier Request`, `Build Customer Quotation`
 - Email Account: `Build Resend` for ERPNext outgoing SMTP through Resend
@@ -217,6 +229,7 @@ Started:
 
 - ERPNext catalog structure through Item Groups
 - Manual RFQ and quote flow using ERPNext standard documents
+- Catalog import template: `docs/build-catalog-import-template.csv`
 
 Not implemented yet:
 
