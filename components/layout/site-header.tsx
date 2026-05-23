@@ -23,7 +23,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const homeHref = isRtl ? "/ar" : "/";
   const languageHref = isRtl ? "/" : "/ar";
   const registerHref = isRtl ? "/ar/register" : "/register";
-  const quoteHref = isRtl ? "/ar/get-quote" : "/get-quote";
 
   return (
     <header
@@ -50,18 +49,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
           >
             {isRtl ? "الرئيسية" : "Home"}
-          </Link>
-          <Link
-            href={quoteHref}
-            className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
-          >
-            {isRtl ? "أطلب المنتجات" : "Order Products"}
-          </Link>
-          <Link
-            href={registerHref}
-            className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
-          >
-            {isRtl ? "كُن موردًا" : "Become a Supplier"}
           </Link>
         </nav>
 

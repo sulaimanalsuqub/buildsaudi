@@ -52,25 +52,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
     secondary: isRtl ? "كُن موردًا" : "Become a Supplier",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
-    catalogBody: isRtl
-      ? "ابدأ من الفئة المناسبة، ثم أرسل تفاصيل المشروع والكميات المطلوبة."
-      : "Start with the right category, then send the project details and quantities.",
   };
-
-  const metrics = [
-    {
-      value: isRtl ? "BOQ" : "BOQ",
-      label: isRtl ? "رفع جدول الكميات" : "Quantity schedule",
-    },
-    {
-      value: isRtl ? "RFQ" : "RFQ",
-      label: isRtl ? "مراجعة طلب التوريد" : "Supply review",
-    },
-    {
-      value: isRtl ? "KSA" : "KSA",
-      label: isRtl ? "توصيل للموقع" : "Site delivery",
-    },
-  ];
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
@@ -108,15 +90,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               </Link>
             </div>
 
-            <div className="mt-9 grid gap-3 sm:grid-cols-3">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-brand-dark/10 bg-white/90 px-4 py-4 shadow-soft backdrop-blur">
-                  <p className="text-lg font-black tracking-tight text-brand-dark">{metric.value}</p>
-                  <p className="mt-1 text-sm text-brand-dark/58">{metric.label}</p>
-                </div>
-              ))}
-            </div>
-
             <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-2">
               <Link
                 href={isRtl ? "/ar/get-quote" : "/get-quote"}
@@ -146,12 +119,11 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
       <section className="py-10 md:py-14">
         <Container>
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
             <div>
               <p className="text-sm font-semibold text-brand-primary">{isRtl ? "الكتالوج" : "Catalog"}</p>
               <h2 className="mt-2 text-2xl font-bold text-brand-dark">{t.catalogTitle}</h2>
             </div>
-            <p className="max-w-xl text-sm leading-6 text-brand-dark/58">{t.catalogBody}</p>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

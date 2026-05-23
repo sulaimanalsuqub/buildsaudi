@@ -34,7 +34,7 @@ const t = {
     emailPlaceholder: "example@company.com",
     materials: "المواد المطلوبة",
     materialsPlaceholder: "صف المواد التي يحتاجها مشروعك (نوع المادة، الكميات التقريبية...)",
-    boqFile: "ملف BOQ أو جدول الكميات",
+    boqFile: "ملف الكميات أو قائمة المواد",
     boqFilePlaceholder: "ارفع ملف Excel أو PDF",
     boqFileHint: "Excel, PDF — حجم أقصى 10MB",
     sheetLink: "أو رابط Google Sheet / جدول أونلاين",

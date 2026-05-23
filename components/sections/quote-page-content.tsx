@@ -19,7 +19,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
   const points = [
     {
       icon: FileSpreadsheet,
-      text: isRtl ? "ملف BOQ أو قائمة المواد" : "BOQ or material list",
+      text: isRtl ? "ملف الكميات أو قائمة المواد" : "BOQ or material list",
     },
     {
       icon: CalendarClock,
