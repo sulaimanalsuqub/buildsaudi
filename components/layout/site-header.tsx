@@ -28,11 +28,8 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
-        scrolled
-          ? "border-brand-dark/10 bg-white/[0.88] shadow-soft backdrop-blur-2xl"
-          : "border-transparent bg-white/[0.74] backdrop-blur-xl",
-        "border-b",
+        "fixed inset-x-0 top-0 z-50 border-b border-brand-dark/10 bg-white/90 transition-all duration-300 backdrop-blur-xl",
+        scrolled ? "shadow-[0_8px_30px_rgba(29,63,31,0.06)]" : "",
       ].join(" ")}
     >
       <Container className="flex h-[72px] items-center justify-between gap-4">
@@ -47,22 +44,22 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-brand-dark/10 bg-white/[0.8] p-1 shadow-soft md:flex">
+        <nav className="hidden items-center gap-7 md:flex">
           <Link
             href={homeHref}
-            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+            className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
           >
             {isRtl ? "الرئيسية" : "Home"}
           </Link>
           <Link
             href={quoteHref}
-            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+            className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
           >
             {isRtl ? "أطلب المنتجات" : "Order Products"}
           </Link>
           <Link
             href={registerHref}
-            className="inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold text-brand-dark/72 transition hover:bg-brand-light hover:text-brand-dark"
+            className="text-sm font-semibold text-brand-dark/70 transition hover:text-brand-dark"
           >
             {isRtl ? "كُن موردًا" : "Become a Supplier"}
           </Link>
