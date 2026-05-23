@@ -163,6 +163,7 @@ export async function createERPNextProductOpportunity(quote: {
     opportunity_type: "Build Product Request",
     status: "Open",
     build_request_source: "Build Website",
+    build_request_stage: "New Product Request",
     build_project_name: quote.project_name,
     build_contact_phone: quote.phone,
     build_contact_email: quote.client_email || "",
