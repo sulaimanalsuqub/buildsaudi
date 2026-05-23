@@ -114,6 +114,28 @@ Do not use `/request` or `/become-supplier`.
 - `build_service_fee_amount`: Currency
 - `build_final_notes`: Long Text
 
+### Sales Order
+
+- `build_order_section`: Section Break
+- `build_opportunity`: Link to Opportunity
+- `build_customer_quotation`: Link to Quotation
+- `build_supplier_quotation`: Link to Supplier Quotation
+- `build_fulfillment_method`: Select, `Drop Ship`, `Build Warehouse`, `To Be Decided`
+- `build_delivery_status`: Select, `Pending`, `PO Created`, `In Fulfillment`, `Delivered`, `Closed`, `Cancelled`
+- `build_customer_approval_date`: Date
+- `build_purchase_order`: Link to Purchase Order
+
+### Purchase Order
+
+- `build_order_section`: Section Break
+- `build_opportunity`: Link to Opportunity
+- `build_sales_order`: Link to Sales Order
+- `build_customer_quotation`: Link to Quotation
+- `build_supplier_quotation`: Link to Supplier Quotation
+- `build_fulfillment_method`: Select, `Drop Ship`, `Build Warehouse`, `To Be Decided`
+- `build_supplier_delivery_status`: Select, `Pending`, `Confirmed`, `In Progress`, `Shipped`, `Delivered`, `Cancelled`
+- `build_delivery_notes`: Long Text
+
 ## Workflow 1: Customer Product Request
 
 Website route: `/ar/get-quote`
@@ -186,6 +208,7 @@ Done:
 - Build RFQ fields on Request for Quotation
 - Build supplier response fields on Supplier Quotation
 - Build costing and service fee fields on Quotation
+- Build fulfillment fields on Sales Order and Purchase Order
 - Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 - Email Templates: `Build RFQ Supplier Request`, `Build Customer Quotation`
 - Email Account: `Build Resend` for ERPNext outgoing SMTP through Resend
@@ -231,7 +254,9 @@ The intended operations flow is:
 6. Build compares supplier responses.
 7. Build adds service fee or margin.
 8. Build sends final Quotation to the customer.
-9. After customer approval, Build creates Sales Order and Purchase Order.
+9. After customer approval, Build creates Sales Order.
+10. Build creates Purchase Order for the selected supplier.
+11. Build links Sales Order and Purchase Order through `build_purchase_order` and `build_sales_order`.
 
 The first manual version of this flow is now configured with ERPNext standard
 documents and Build linking fields. Do not automate supplier matching, WhatsApp,
