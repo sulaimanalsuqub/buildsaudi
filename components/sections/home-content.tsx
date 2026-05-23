@@ -90,11 +90,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     { en: "Verified suppliers", ar: "موردون موثَّقون" },
   ];
 
-  const stats = [
-    { value: "8+", en: "Supply Categories", ar: "فئات التوريد" },
-    { value: "100%", en: "BOQ-Driven", ar: "قائم على الكميات" },
-    { value: "KSA", en: "Coverage", ar: "تغطية المملكة" },
-  ];
 
   const t = {
     eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
@@ -128,18 +123,18 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="relative min-h-[700px] overflow-hidden bg-white">
         {/* Truck image */}
         <div
-          className="absolute inset-y-0 hidden w-[54%] bg-cover bg-center lg:block"
+          className="absolute inset-y-0 hidden w-[56%] bg-contain bg-center bg-no-repeat opacity-95 lg:block"
           style={{
             backgroundImage: "url('/images/build-truck.png')",
             [isRtl ? "left" : "right"]: 0,
           }}
         />
-        {/* Desktop gradient */}
+        {/* Desktop gradient — white covers the text side, transparent on image side */}
         <div
           className={[
             "absolute inset-0 hidden lg:block",
             isRtl
-              ? "bg-[linear-gradient(270deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.82)_40%,rgba(255,255,255,1)_60%)]"
+              ? "bg-[linear-gradient(270deg,rgba(255,255,255,1)_42%,rgba(255,255,255,0.82)_62%,rgba(255,255,255,0.06)_100%)]"
               : "bg-[linear-gradient(90deg,rgba(255,255,255,1)_42%,rgba(255,255,255,0.82)_62%,rgba(255,255,255,0.06)_100%)]",
           ].join(" ")}
         />
@@ -195,19 +190,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      {/* ── Stats bar ────────────────────────────────── */}
-      <div className="border-y border-brand-dark/8 bg-brand-light/50">
-        <Container className="py-0">
-          <div className="grid grid-cols-3 divide-x divide-brand-dark/8 rtl:divide-x-reverse">
-            {stats.map((s) => (
-              <div key={s.value} className="px-4 py-6 text-center">
-                <p className="text-2xl font-black text-brand-dark">{s.value}</p>
-                <p className="mt-1 text-xs font-medium text-brand-dark/55">{isRtl ? s.ar : s.en}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </div>
 
       {/* ── How it works ─────────────────────────────── */}
       <section className="py-16 md:py-24">

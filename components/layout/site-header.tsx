@@ -31,7 +31,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
         scrolled ? "shadow-[0_4px_24px_rgba(29,63,31,0.07)]" : "",
       ].join(" ")}
     >
-      <Container className="flex h-[68px] items-center justify-between gap-4">
+      <Container className="flex h-[72px] items-center justify-between gap-4">
         <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
           <Image
             src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
