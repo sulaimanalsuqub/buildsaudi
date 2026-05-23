@@ -72,6 +72,14 @@ Do not use `/request` or `/become-supplier`.
 - `build_payment_terms`: Text / comma-separated website values
 - `build_credit_limit`: Currency / numeric value
 - `build_gov_projects`: Check
+- `build_review_section`: Section Break
+- `build_verification_status`: Select, `Pending`, `Verified`, `Needs More Information`, `Failed`
+- `build_preferred_for_rfq`: Check
+- `build_rfq_priority`: Select, `Standard`, `Preferred`, `Do Not Use`
+- `build_review_date`: Date
+- `build_reviewed_by`: Data
+- `build_review_notes`: Long Text
+- `build_rejection_reason`: Long Text
 
 ### Request for Quotation
 
@@ -172,6 +180,8 @@ Done:
 - Build custom fields with `build_` prefix
 - Product request workflow on Opportunity
 - Supplier onboarding workflow on Supplier
+- Supplier review fields for verification, RFQ priority, and rejection notes
+- Supplier Groups: `Build Pre-Registered Suppliers`, `Build Approved Suppliers`, `Build Rejected Suppliers`
 - Initial Item Group structure in ERPNext
 - Build RFQ fields on Request for Quotation
 - Build supplier response fields on Supplier Quotation
