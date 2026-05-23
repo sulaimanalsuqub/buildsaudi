@@ -73,6 +73,39 @@ Do not use `/request` or `/become-supplier`.
 - `build_credit_limit`: Currency / numeric value
 - `build_gov_projects`: Check
 
+### Request for Quotation
+
+- `build_request_section`: Section Break
+- `build_opportunity`: Link to Opportunity
+- `build_project_name`: Data
+- `build_customer_name`: Data
+- `build_contact_phone`: Data
+- `build_delivery_address`: Small Text
+- `build_delivery_date`: Date
+- `build_required_materials`: Long Text
+- `build_boq_file_url`: Data, URL only
+- `build_internal_notes`: Long Text
+
+### Supplier Quotation
+
+- `build_request_section`: Section Break
+- `build_opportunity`: Link to Opportunity
+- `build_rfq`: Link to Request for Quotation
+- `build_supplier_response_notes`: Long Text
+- `build_delivery_lead_time`: Data
+
+### Quotation
+
+- `build_request_section`: Section Break
+- `build_opportunity`: Link to Opportunity
+- `build_supplier_quotation`: Link to Supplier Quotation
+- `build_costing_section`: Section Break
+- `build_supplier_cost`: Currency
+- `build_service_fee_type`: Select, `Percentage` or `Fixed Amount`
+- `build_service_fee_percent`: Percent
+- `build_service_fee_amount`: Currency
+- `build_final_notes`: Long Text
+
 ## Workflow 1: Customer Product Request
 
 Website route: `/ar/get-quote`
@@ -140,10 +173,15 @@ Done:
 - Product request workflow on Opportunity
 - Supplier onboarding workflow on Supplier
 - Initial Item Group structure in ERPNext
+- Build RFQ fields on Request for Quotation
+- Build supplier response fields on Supplier Quotation
+- Build costing and service fee fields on Quotation
+- Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 
 Started:
 
 - ERPNext catalog structure through Item Groups
+- Manual RFQ and quote flow using ERPNext standard documents
 
 Not implemented yet:
 
@@ -158,7 +196,12 @@ Not implemented yet:
 
 ## Catalog and Matching
 
-Build currently maintains only an initial category structure in ERPNext.
+Build currently maintains an initial category structure in ERPNext and one operational
+placeholder Item named `BUILD-MATERIALS-REQUEST`.
+
+Use `BUILD-MATERIALS-REQUEST` for RFQs and quotes when the customer request is still
+free-text and not mapped to detailed catalog Items.
+
 Actual catalog Items and supplier-item relationships are not complete.
 
 Supplier matching is currently a manual Build team operation. Do not automate matching
@@ -178,4 +221,6 @@ The intended operations flow is:
 8. Build sends final Quotation to the customer.
 9. After customer approval, Build creates Sales Order and Purchase Order.
 
-Do not implement this full flow until instructed. Treat it as planned operating direction.
+The first manual version of this flow is now configured with ERPNext standard
+documents and Build linking fields. Do not automate supplier matching, WhatsApp,
+or portal behavior until instructed.
