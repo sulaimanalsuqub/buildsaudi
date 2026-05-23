@@ -87,7 +87,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   const trustBadges = [
     { en: "BOQ-based ordering", ar: "طلب قائم على جدول الكميات" },
     { en: "KSA-wide delivery", ar: "توصيل في أنحاء المملكة" },
-    { en: "Verified suppliers", ar: "موردون موثَّقون" },
   ];
 
 
@@ -120,28 +119,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative min-h-[700px] overflow-hidden bg-white">
-        {/* Truck image */}
-        <div
-          className="absolute inset-y-0 hidden w-[56%] bg-contain bg-center bg-no-repeat opacity-95 lg:block"
-          style={{
-            backgroundImage: "url('/images/build-truck.png')",
-            [isRtl ? "left" : "right"]: 0,
-          }}
-        />
-        {/* Desktop gradient — white covers the text side, transparent on image side */}
-        <div
-          className={[
-            "absolute inset-0 hidden lg:block",
-            isRtl
-              ? "bg-[linear-gradient(270deg,rgba(255,255,255,1)_42%,rgba(255,255,255,0.82)_62%,rgba(255,255,255,0.06)_100%)]"
-              : "bg-[linear-gradient(90deg,rgba(255,255,255,1)_42%,rgba(255,255,255,0.82)_62%,rgba(255,255,255,0.06)_100%)]",
-          ].join(" ")}
-        />
-        {/* Mobile overlay */}
-        <div className="absolute inset-0 bg-white/92 lg:hidden" />
+      <section className="bg-white">
 
-        <Container className="relative py-20 md:py-24 lg:py-28">
+        <Container className="py-16 md:py-20 lg:py-24">
           <div className="max-w-[540px]">
             {/* Eyebrow */}
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
