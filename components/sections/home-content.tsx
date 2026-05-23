@@ -6,10 +6,10 @@ import {
   ArrowRight,
   Box,
   Cable,
-  CheckCircle,
   ClipboardList,
   Droplets,
   Fan,
+  FileText,
   HardHat,
   LampCeiling,
   Package,
@@ -70,7 +70,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       en: "We Coordinate Supply",
       ar: "نرتب التوريد",
       descEn: "We review your request and match it with the right approved suppliers.",
-      descAr: "نراجع الطلب ونختار الموردين المناسبين المعتمدين لتنفيذه.",
+      descAr: "نراجع الطلب ونختار الموردين المناسبين لتنفيذه.",
       icon: Package,
       step: "02",
     },
@@ -84,127 +84,123 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     },
   ];
 
-  const trustBadges = [
-    { en: "BOQ-based ordering", ar: "طلب قائم على جدول الكميات" },
-    { en: "KSA-wide delivery", ar: "توصيل في أنحاء المملكة" },
-  ];
-
-
   const t = {
     eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
-    titleLine1: isRtl ? "مواد البناء لمشروعك" : "Construction materials",
-    titleLine2: isRtl ? "من مورد واحد" : "from one supplier",
+    title: isRtl ? "مواد البناء لمشروعك\nمن مورد واحد" : "Construction materials\nfrom one supplier",
     body: isRtl
-      ? "اطلب احتياج المشروع، أرفق جدول الكميات، وحدد موقع التسليم. نراجع الطلب ونرتب التوريد حسب الفئات المطلوبة."
-      : "Submit your project requirements, attach the BOQ, and set the delivery location. We review the request and coordinate supply by category.",
-    primary: isRtl ? "أطلب المنتجات" : "Order Products",
-    secondary: isRtl ? "كُن موردًا" : "Become a Supplier",
+      ? "اطلب احتياج المشروع، أرفق جدول الكميات، وحدد موقع التسليم."
+      : "Submit your BOQ, set the delivery location, and we handle the rest.",
+    // Action cards
+    card1Title: isRtl ? "أطلب المنتجات" : "Order Products",
+    card1Sub: isRtl ? "أرسل احتياج مشروعك وجدول الكميات" : "Send your project requirements and BOQ",
+    card1Cta: isRtl ? "ابدأ الآن" : "Get Started",
+    card2Title: isRtl ? "كُن موردًا" : "Become a Supplier",
+    card2Sub: isRtl ? "سجّل منشأتك وابدأ التوريد" : "Register your company as a supplier",
+    card2Cta: isRtl ? "سجّل الآن" : "Register Now",
+    // Sections
+    catalogLabel: isRtl ? "الكتالوج" : "Catalog",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
     catalogSub: isRtl
-      ? "نوفر مواد البناء عبر ثماني فئات رئيسية لجميع احتياجات مشاريعك الإنشائية"
+      ? "نوفر مواد البناء عبر ثماني فئات رئيسية لجميع احتياجات مشاريعك"
       : "We supply construction materials across eight major categories for all your project needs",
+    processLabel: isRtl ? "العملية" : "Process",
     howTitle: isRtl ? "كيف يعمل بيلد؟" : "How Build Works",
     howSub: isRtl
-      ? "ثلاث خطوات بسيطة لتأمين مواد مشروعك من الموردين المعتمدين"
-      : "Three simple steps to secure your project materials from approved suppliers",
+      ? "ثلاث خطوات بسيطة لتأمين مواد مشروعك"
+      : "Three simple steps to secure your project materials",
     ctaTitle: isRtl ? "جاهز لتوريد مشروعك؟" : "Ready to supply your project?",
     ctaBody: isRtl
-      ? "أرسل احتياجاتك اليوم وسنتولى ترتيب التوريد من الموردين المعتمدين."
-      : "Submit your requirements today and we'll coordinate supply from approved vendors.",
-    processLabel: isRtl ? "العملية" : "Process",
-    catalogLabel: isRtl ? "الكتالوج" : "Catalog",
+      ? "أرسل احتياجاتك اليوم وسنتولى ترتيب التوريد."
+      : "Submit your requirements today and we'll coordinate supply.",
+    primary: isRtl ? "أطلب المنتجات" : "Order Products",
+    secondary: isRtl ? "كُن موردًا" : "Become a Supplier",
   };
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="bg-white">
-
-        <Container className="py-16 md:py-20 lg:py-24">
-          <div className="max-w-[540px]">
-            {/* Eyebrow */}
+      <section className="bg-white py-16 md:py-20 lg:py-24">
+        <Container>
+          <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
               <span className="h-2 w-2 rounded-full bg-brand-primary" />
               {t.eyebrow}
             </span>
-
-            {/* Heading */}
             <h1 className="type-hero mt-6 text-brand-dark">
-              {t.titleLine1}
-              <br />
-              {t.titleLine2}
+              {isRtl ? (
+                <>مواد البناء لمشروعك<br />من مورد واحد</>
+              ) : (
+                <>Construction materials<br />from one supplier</>
+              )}
             </h1>
-
-            {/* Body */}
-            <p className="type-subheading mt-5 max-w-[480px] text-brand-dark/62">{t.body}</p>
-
-            {/* CTAs */}
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link
-                href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-brand-dark px-7 text-[15px] font-bold text-white shadow-soft transition hover:bg-brand-primary"
-              >
-                {t.primary}
-                <ArrowIcon className="h-4 w-4" />
-              </Link>
-              <Link
-                href={isRtl ? "/ar/register" : "/register"}
-                className="inline-flex h-12 items-center gap-2 rounded-full border-2 border-brand-dark/12 bg-white px-7 text-[15px] font-bold text-brand-dark transition hover:border-brand-dark/22 hover:bg-brand-dark/[0.03]"
-              >
-                <Store className="h-4 w-4 opacity-70" />
-                {t.secondary}
-              </Link>
-            </div>
-
-            {/* Trust badges */}
-            <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2">
-              {trustBadges.map((b) => (
-                <span key={b.en} className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/55">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0 text-brand-primary" />
-                  {isRtl ? b.ar : b.en}
-                </span>
-              ))}
-            </div>
+            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62">{t.body}</p>
           </div>
         </Container>
       </section>
 
-
-      {/* ── How it works ─────────────────────────────── */}
-      <section className="py-16 md:py-24">
+      {/* ── Action cards ─────────────────────────────── */}
+      <section className="pb-16 md:pb-20">
         <Container>
-          <div className="text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-primary">{t.processLabel}</p>
-            <h2 className="type-section-title mx-auto mt-3 text-brand-dark">{t.howTitle}</h2>
-            <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.howSub}</p>
-          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
 
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {steps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.en}
-                  className="relative rounded-2xl border border-brand-dark/8 bg-white p-7 shadow-soft"
-                >
-                  <span className="absolute top-6 end-7 text-5xl font-black leading-none text-brand-dark/[0.06]">
-                    {step.step}
-                  </span>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mt-5 text-[17px] font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
-                  <p className="mt-2 text-sm leading-6 text-brand-dark/58">{isRtl ? step.descAr : step.descEn}</p>
+            {/* Card 1 — Order Products */}
+            <Link
+              href={isRtl ? "/ar/get-quote" : "/get-quote"}
+              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl p-8 md:min-h-[340px] md:p-10"
+              style={{ background: "linear-gradient(135deg, #1D3F1F 0%, #09B14B 100%)" }}
+            >
+              {/* Background decoration */}
+              <div className="pointer-events-none absolute -end-12 -top-12 h-48 w-48 rounded-full bg-white/5" />
+              <div className="pointer-events-none absolute -bottom-8 -start-8 h-32 w-32 rounded-full bg-white/5" />
+
+              <div className="relative">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
+                  <FileText className="h-7 w-7" />
                 </div>
-              );
-            })}
+                <h2 className="mt-6 text-2xl font-bold text-white md:text-3xl">{t.card1Title}</h2>
+                <p className="mt-2 text-base text-white/70">{t.card1Sub}</p>
+              </div>
+
+              <div className="relative mt-8 flex items-center justify-between">
+                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-brand-dark transition group-hover:bg-brand-light">
+                  {t.card1Cta}
+                  <ArrowIcon className="h-4 w-4" />
+                </span>
+              </div>
+            </Link>
+
+            {/* Card 2 — Become a Supplier */}
+            <Link
+              href={isRtl ? "/ar/register" : "/register"}
+              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10"
+            >
+              {/* Background decoration */}
+              <div className="pointer-events-none absolute -end-12 -top-12 h-48 w-48 rounded-full bg-brand-dark/3" />
+              <div className="pointer-events-none absolute -bottom-8 -start-8 h-32 w-32 rounded-full bg-brand-primary/5" />
+
+              <div className="relative">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark">
+                  <Store className="h-7 w-7" />
+                </div>
+                <h2 className="mt-6 text-2xl font-bold text-brand-dark md:text-3xl">{t.card2Title}</h2>
+                <p className="mt-2 text-base text-brand-dark/60">{t.card2Sub}</p>
+              </div>
+
+              <div className="relative mt-8 flex items-center justify-between">
+                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-dark px-6 text-sm font-bold text-white transition group-hover:bg-brand-primary">
+                  {t.card2Cta}
+                  <ArrowIcon className="h-4 w-4" />
+                </span>
+              </div>
+            </Link>
+
           </div>
         </Container>
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
-      <section className="bg-[#f7f9f6] py-16 md:py-24">
+      <section className="bg-[#f7f9f6] py-16 md:py-20">
         <Container>
           <div className="text-center">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-primary">{t.catalogLabel}</p>
@@ -232,8 +228,40 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
+      {/* ── How it works ─────────────────────────────── */}
+      <section className="py-16 md:py-20">
+        <Container>
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-primary">{t.processLabel}</p>
+            <h2 className="type-section-title mx-auto mt-3 text-brand-dark">{t.howTitle}</h2>
+            <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.howSub}</p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {steps.map((step) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.en}
+                  className="relative rounded-2xl border border-brand-dark/8 bg-white p-7 shadow-soft"
+                >
+                  <span className="absolute top-6 end-7 text-5xl font-black leading-none text-brand-dark/[0.06]">
+                    {step.step}
+                  </span>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 text-[17px] font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
+                  <p className="mt-2 text-sm leading-6 text-brand-dark/58">{isRtl ? step.descAr : step.descEn}</p>
+                </div>
+              );
+            })}
+          </div>
+        </Container>
+      </section>
+
       {/* ── CTA banner ───────────────────────────────── */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-20">
         <Container>
           <div className="overflow-hidden rounded-3xl bg-cta-gradient px-8 py-14 text-center md:px-14 md:py-16">
             <h2 className="text-3xl font-bold text-white md:text-[38px] md:leading-tight">
