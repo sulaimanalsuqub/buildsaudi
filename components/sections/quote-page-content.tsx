@@ -10,10 +10,10 @@ type QuotePageContentProps = {
 export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
   const t = {
     badge: isRtl ? "أطلب المنتجات" : "Order Products",
-    title: isRtl ? "أرسل احتياج مشروعك" : "Send your project request",
+    title: isRtl ? "أرسل احتياج مشروعك" : "Send Your Project Request",
     body: isRtl
-      ? "أدخل المواد المطلوبة وموقع التسليم والموعد، ثم أكمل الطلب."
-      : "Enter the required materials, delivery location, and date, then submit the request.",
+      ? "أدخل المواد المطلوبة، موقع التسليم، والموعد المستهدف. يمكنك إضافة ملف BOQ لتسريع المراجعة."
+      : "Enter the required materials, delivery location, and target date. You can attach a BOQ to speed up review.",
   };
 
   const points = [
@@ -47,13 +47,13 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
           <p className="type-subheading mt-4 text-brand-dark/68">{t.body}</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-          <aside className="rounded-2xl border border-brand-dark/10 bg-white p-5 shadow-soft">
+        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+          <aside className="rounded-xl border border-brand-dark/10 bg-white p-5 shadow-soft">
             <div className="space-y-3">
               {points.map((point) => {
                 const Icon = point.icon;
                 return (
-                  <div key={point.text} className="flex items-center gap-3 rounded-xl bg-brand-light/60 p-3">
+                  <div key={point.text} className="flex items-center gap-3 rounded-lg bg-brand-light/60 p-3">
                     <Icon className="h-4 w-4 shrink-0 text-brand-primary" />
                     <span className="text-sm font-semibold text-brand-dark/72">{point.text}</span>
                   </div>
@@ -62,7 +62,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
             </div>
           </aside>
 
-          <section className="rounded-2xl border border-brand-dark/10 bg-white p-5 shadow-premium md:p-8">
+          <section>
             <GetQuoteForm isRtl={isRtl} />
           </section>
         </div>

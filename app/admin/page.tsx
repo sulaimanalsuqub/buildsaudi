@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createServiceRoleClient, createClient } from "@/lib/supabase/server";
 import { isUserAdmin } from "@/lib/auth/admin";
 import Link from "next/link";
+import { ClipboardList, FileText, PackageCheck, Tags, Timer } from "lucide-react";
 
 export default async function AdminHomePage() {
   // Verify user is authenticated
@@ -29,79 +30,87 @@ export default async function AdminHomePage() {
     ]);
 
   const stats = [
-    { label: "إجمالي الطلبات", value: quotesCount ?? 0, icon: "📋", color: "bg-blue-50 text-blue-700" },
-    { label: "طلبات جديدة", value: newQuotesCount ?? 0, icon: "🆕", color: "bg-amber-50 text-amber-700" },
-    { label: "موردون نشطون", value: vendorsCount ?? 0, icon: "🏭", color: "bg-green-50 text-green-700" },
-    { label: "موردون بانتظار المراجعة", value: pendingVendorsCount ?? 0, icon: "⏳", color: "bg-orange-50 text-orange-700" },
+    { label: "إجمالي الطلبات", value: quotesCount ?? 0, icon: ClipboardList, color: "bg-blue-50 text-blue-700" },
+    { label: "طلبات جديدة", value: newQuotesCount ?? 0, icon: Timer, color: "bg-amber-50 text-amber-700" },
+    { label: "موردون نشطون", value: vendorsCount ?? 0, icon: PackageCheck, color: "bg-emerald-50 text-emerald-700" },
+    { label: "موردون بانتظار المراجعة", value: pendingVendorsCount ?? 0, icon: Timer, color: "bg-orange-50 text-orange-700" },
+  ];
+
+  const quickLinks = [
+    {
+      href: "/admin/quotes",
+      icon: ClipboardList,
+      title: "إدارة طلبات التسعير",
+      body: "مراجعة الطلبات وإرسال RFQ للموردين",
+    },
+    {
+      href: "/admin/vendors",
+      icon: PackageCheck,
+      title: "إدارة الموردين",
+      body: "تفعيل الموردين ومراجعة بيانات التأهيل",
+    },
+    {
+      href: "/admin/contracts",
+      icon: FileText,
+      title: "العقود",
+      body: "إدارة عقد الموردين وتتبع التوقيعات",
+    },
+    {
+      href: "/admin/brands",
+      icon: Tags,
+      title: "العلامات التجارية",
+      body: "إدارة العلامات التجارية المتاحة",
+    },
   ];
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#1D3F1F]">لوحة الإدارة</h1>
-        <p className="mt-1 text-sm text-[#1D3F1F]/55">مرحباً، هذه نظرة عامة على النظام</p>
+        <p className="text-sm font-semibold text-brand-primary">نظرة عامة</p>
+        <h1 className="mt-2 text-2xl font-bold text-brand-dark">لوحة الإدارة</h1>
+        <p className="mt-1 text-sm text-brand-dark/55">متابعة الطلبات والموردين والعقود من مكان واحد.</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {stats.map((stat) => (
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
           <div
             key={stat.label}
-            className="rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5"
+            className="rounded-xl border border-brand-dark/10 bg-white p-5 shadow-[0_12px_34px_rgba(29,63,31,0.05)]"
           >
-            <div className={`w-fit rounded-xl px-2.5 py-1.5 text-lg ${stat.color}`}>
-              {stat.icon}
+            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.color}`}>
+              <Icon className="h-5 w-5" />
             </div>
-            <p className="mt-3 text-3xl font-bold text-[#1D3F1F]">{stat.value}</p>
-            <p className="mt-1 text-sm text-[#1D3F1F]/55">{stat.label}</p>
+            <p className="mt-4 text-3xl font-bold text-brand-dark">{stat.value}</p>
+            <p className="mt-1 text-sm text-brand-dark/55">{stat.label}</p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Quick links */}
       <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link
-          href="/admin/quotes"
-          className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
-        >
-          <span className="text-2xl">📋</span>
-          <div>
-            <p className="font-semibold text-[#1D3F1F]">إدارة طلبات التسعير</p>
-            <p className="text-sm text-[#1D3F1F]/55">راجع الطلبات وأرسل RFQ للموردين</p>
-          </div>
-        </Link>
-        <Link
-          href="/admin/vendors"
-          className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
-        >
-          <span className="text-2xl">🏭</span>
-          <div>
-            <p className="font-semibold text-[#1D3F1F]">إدارة الموردين</p>
-            <p className="text-sm text-[#1D3F1F]/55">فعّل أو أوقف الموردين المسجلين</p>
-          </div>
-        </Link>
-        <Link
-          href="/admin/contracts"
-          className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
-        >
-          <span className="text-2xl">📝</span>
-          <div>
-            <p className="font-semibold text-[#1D3F1F]">العقود</p>
-            <p className="text-sm text-[#1D3F1F]/55">إدارة عقود الموردين وطلبات التوقيع</p>
-          </div>
-        </Link>
-        <Link
-          href="/admin/brands"
-          className="flex items-center gap-4 rounded-[16px] border border-[#1D3F1F]/10 bg-white p-5 transition-all hover:border-[#09B14B]/30"
-        >
-          <span className="text-2xl">🏷️</span>
-          <div>
-            <p className="font-semibold text-[#1D3F1F]">العلامات التجارية</p>
-            <p className="text-sm text-[#1D3F1F]/55">إدارة العلامات التجارية المتاحة</p>
-          </div>
-        </Link>
+        {quickLinks.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-4 rounded-xl border border-brand-dark/10 bg-white p-5 transition-all hover:border-brand-primary/30 hover:shadow-soft"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand-primary">
+                <Icon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-brand-dark">{item.title}</p>
+                <p className="text-sm text-brand-dark/55">{item.body}</p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
 }
-

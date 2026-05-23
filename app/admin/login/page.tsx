@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { LockKeyhole } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -40,7 +41,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F3EB] p-4" dir="rtl">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8FAF7] p-4" dir="rtl">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Image
@@ -50,16 +51,26 @@ export default function AdminLoginPage() {
             height={1500}
             className="mx-auto h-[36px] w-auto"
           />
-          <p className="mt-3 text-sm text-[#1D3F1F]/60">لوحة إدارة بيلد</p>
+          <p className="mt-3 text-sm text-brand-dark/60">لوحة إدارة بيلد</p>
         </div>
 
         <form
           onSubmit={handleLogin}
-          className="rounded-[20px] border border-[#1D3F1F]/10 bg-white p-6"
+          className="rounded-xl border border-brand-dark/10 bg-white p-6 shadow-[0_18px_54px_rgba(29,63,31,0.08)]"
         >
+          <div className="mb-5 flex items-center gap-3 border-b border-brand-dark/10 pb-5">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-light text-brand-primary">
+              <LockKeyhole className="h-5 w-5" />
+            </span>
+            <div>
+              <h1 className="text-base font-bold text-brand-dark">تسجيل الدخول</h1>
+              <p className="text-sm text-brand-dark/55">للمستخدمين المصرح لهم فقط</p>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-[#1D3F1F]">
+              <label className="mb-1.5 block text-sm font-semibold text-brand-dark">
                 البريد الإلكتروني
               </label>
               <input
@@ -68,12 +79,12 @@ export default function AdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="admin@buildsaudi.com"
-                className="w-full rounded-xl border border-[#1D3F1F]/15 bg-[#F4F3EB]/60 px-4 py-3 text-sm text-[#1D3F1F] outline-none transition-all placeholder:text-[#1D3F1F]/35 focus:border-[#09B14B]/50 focus:ring-2 focus:ring-[#09B14B]/15"
+                className="w-full rounded-lg border border-brand-dark/15 bg-white px-4 py-3 text-sm text-brand-dark outline-none transition-all placeholder:text-brand-dark/35 focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/15"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-[#1D3F1F]">
+              <label className="mb-1.5 block text-sm font-semibold text-brand-dark">
                 كلمة المرور
               </label>
               <input
@@ -82,7 +93,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-[#1D3F1F]/15 bg-[#F4F3EB]/60 px-4 py-3 text-sm text-[#1D3F1F] outline-none transition-all placeholder:text-[#1D3F1F]/35 focus:border-[#09B14B]/50 focus:ring-2 focus:ring-[#09B14B]/15"
+                className="w-full rounded-lg border border-brand-dark/15 bg-white px-4 py-3 text-sm text-brand-dark outline-none transition-all placeholder:text-brand-dark/35 focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/15"
               />
             </div>
 
@@ -95,7 +106,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#09B14B] py-3 text-sm font-semibold text-white transition-all hover:bg-[#1D3F1F] disabled:opacity-60"
+              className="w-full rounded-lg bg-brand-dark py-3 text-sm font-semibold text-white transition-all hover:bg-brand-primary disabled:opacity-60"
             >
               {loading ? "جارٍ الدخول..." : "دخول"}
             </button>

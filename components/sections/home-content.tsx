@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -45,122 +44,101 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   ];
 
   const t = {
-    eyebrow: isRtl ? "توريد مواد البناء" : "Construction Material Supply",
-    title: isRtl ? "واجهة واضحة لطلب المنتجات وتسجيل الموردين" : "A focused home for product requests and supplier registration",
+    eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
+    title: isRtl ? "مواد البناء لمشروعك من مورد واحد" : "Construction materials for your project, from one supplier",
     body: isRtl
-      ? "واجهة مختصرة ومباشرة للمشاريع والموردين، مع الكتالوج في المقدمة وصفحات الشروط والخصوصية جاهزة."
-      : "A concise entry point for projects and suppliers, with the catalog up front and policy pages in place.",
+      ? "اطلب احتياج المشروع، أرفق جدول الكميات، وحدد موقع التسليم. نراجع الطلب ونرتب التوريد حسب الفئات المطلوبة."
+      : "Submit your project requirements, attach the BOQ, and set the delivery location. We review the request and coordinate supply by category.",
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
     secondary: isRtl ? "كُن موردًا" : "Become a Supplier",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
     catalogBody: isRtl
-      ? "فئات مختارة بصياغة أبسط، لتصل مباشرة إلى الصفحة المناسبة."
-      : "Selected categories with a cleaner presentation so users can move directly to the right page.",
+      ? "ابدأ من الفئة المناسبة، ثم أرسل تفاصيل المشروع والكميات المطلوبة."
+      : "Start with the right category, then send the project details and quantities.",
   };
 
   const metrics = [
     {
-      value: isRtl ? "3" : "3",
-      label: isRtl ? "صفحات رئيسية" : "Core pages",
+      value: isRtl ? "BOQ" : "BOQ",
+      label: isRtl ? "رفع جدول الكميات" : "Quantity schedule",
     },
     {
-      value: isRtl ? "PDPL" : "PDPL",
-      label: isRtl ? "سياسات واضحة" : "Policy pages",
+      value: isRtl ? "RFQ" : "RFQ",
+      label: isRtl ? "مراجعة طلب التوريد" : "Supply review",
     },
     {
       value: isRtl ? "KSA" : "KSA",
-      label: isRtl ? "تغطية المملكة" : "Saudi coverage",
+      label: isRtl ? "توصيل للموقع" : "Site delivery",
     },
   ];
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
-      <section className="border-b border-brand-dark/10 bg-gradient-to-b from-white to-brand-light/40">
-        <Container className="py-12 md:py-16 lg:py-20">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand-dark/10 bg-white px-3 py-1.5 text-sm font-semibold text-brand-primary shadow-soft">
+      <section className="relative min-h-[620px] overflow-hidden border-b border-brand-dark/10 bg-white">
+        <div
+          className="absolute inset-y-0 hidden w-[56%] bg-contain bg-center bg-no-repeat opacity-95 lg:block"
+          style={{
+            backgroundImage: "url('/images/build-truck.png')",
+            [isRtl ? "left" : "right"]: 0,
+          }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(248,250,247,0.96))] lg:bg-[linear-gradient(90deg,rgba(255,255,255,1)_0%,rgba(255,255,255,0.97)_42%,rgba(255,255,255,0.68)_100%)]" />
+        <Container className="relative py-12 md:py-16 lg:py-20">
+          <div className="max-w-[690px]">
+            <p className="inline-flex items-center gap-2 rounded-full border border-brand-dark/10 bg-white px-3 py-1.5 text-sm font-semibold text-brand-primary shadow-soft">
                 {t.eyebrow}
-              </p>
+            </p>
 
-              <h1 className="type-hero mt-6 text-brand-dark">{t.title}</h1>
-              <p className="type-subheading mt-4 text-brand-dark/68">{t.body}</p>
+            <h1 className="type-hero mt-6 text-brand-dark">{t.title}</h1>
+            <p className="type-subheading mt-4 text-brand-dark/68">{t.body}</p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-dark px-7 text-base font-bold text-white transition hover:bg-brand-primary"
-                >
-                  {t.primary}
-                  <ArrowIcon className="h-4 w-4" />
-                </Link>
-                <Link
-                  href={isRtl ? "/ar/register" : "/register"}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-brand-dark/15 bg-white px-7 text-base font-bold text-brand-dark transition hover:border-brand-dark/30"
-                >
-                  {t.secondary}
-                </Link>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                {metrics.map((metric) => (
-                  <div key={metric.label} className="rounded-2xl border border-brand-dark/10 bg-white px-4 py-4 shadow-soft">
-                    <p className="text-lg font-black tracking-tight text-brand-dark">{metric.value}</p>
-                    <p className="mt-1 text-sm text-brand-dark/58">{metric.label}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-dark px-7 text-base font-bold text-white transition hover:bg-brand-primary"
+              >
+                {t.primary}
+                <ArrowIcon className="h-4 w-4" />
+              </Link>
+              <Link
+                href={isRtl ? "/ar/register" : "/register"}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-brand-dark/15 bg-white px-7 text-base font-bold text-brand-dark transition hover:border-brand-dark/30"
+              >
+                {t.secondary}
+              </Link>
             </div>
 
-            <div className="rounded-[28px] border border-brand-dark/10 bg-white p-5 shadow-soft md:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-brand-dark">{isRtl ? "تجربة مختصرة" : "Focused experience"}</p>
-                  <p className="mt-1 text-sm leading-6 text-brand-dark/55">
-                    {isRtl
-                      ? "صفحة رئيسية، طلب منتجات، تسجيل مورد، وسياسات."
-                      : "Home, product requests, supplier registration, and policies."}
-                  </p>
+            <div className="mt-9 grid gap-3 sm:grid-cols-3">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="rounded-2xl border border-brand-dark/10 bg-white/90 px-4 py-4 shadow-soft backdrop-blur">
+                  <p className="text-lg font-black tracking-tight text-brand-dark">{metric.value}</p>
+                  <p className="mt-1 text-sm text-brand-dark/58">{metric.label}</p>
                 </div>
-                <span className="rounded-full border border-brand-dark/10 bg-brand-light px-3 py-1 text-xs font-semibold text-brand-dark/65">
-                  {isRtl ? "جاهز" : "Ready"}
-                </span>
-              </div>
+              ))}
+            </div>
 
-              <div className="mt-5 overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light/45">
-                <Image
-                  src="/images/build-truck.png"
-                  alt={isRtl ? "واجهة بيلد" : "Build interface preview"}
-                  width={1200}
-                  height={1600}
-                  className="h-auto w-full object-contain"
-                  priority
-                />
-              </div>
+            <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-2">
+              <Link
+                href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                className="rounded-2xl border border-brand-dark/10 bg-white/92 p-4 shadow-soft backdrop-blur transition hover:border-brand-primary/30"
+              >
+                <FileText className="h-5 w-5 text-brand-primary" />
+                <p className="mt-3 text-sm font-bold text-brand-dark">{isRtl ? "أطلب المنتجات" : "Order Products"}</p>
+                <p className="mt-1 text-sm leading-6 text-brand-dark/55">
+                  {isRtl ? "أرسل احتياج مشروعك وجدول الكميات" : "Send your project requirements and BOQ"}
+                </p>
+              </Link>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Link
-                  href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                  className="rounded-2xl border border-brand-dark/10 bg-white p-4 transition hover:border-brand-primary/30 hover:shadow-soft"
-                >
-                  <FileText className="h-5 w-5 text-brand-primary" />
-                  <p className="mt-3 text-sm font-bold text-brand-dark">{isRtl ? "أطلب المنتجات" : "Order Products"}</p>
-                  <p className="mt-1 text-sm leading-6 text-brand-dark/55">
-                    {isRtl ? "أرسل طلبك مباشرة" : "Send a request directly"}
-                  </p>
-                </Link>
-
-                <Link
-                  href={isRtl ? "/ar/register" : "/register"}
-                  className="rounded-2xl border border-brand-dark/10 bg-white p-4 transition hover:border-brand-primary/30 hover:shadow-soft"
-                >
-                  <Store className="h-5 w-5 text-brand-primary" />
-                  <p className="mt-3 text-sm font-bold text-brand-dark">{isRtl ? "كُن موردًا" : "Become a Supplier"}</p>
-                  <p className="mt-1 text-sm leading-6 text-brand-dark/55">
-                    {isRtl ? "سجّل منشأتك" : "Register your company"}
-                  </p>
-                </Link>
-              </div>
+              <Link
+                href={isRtl ? "/ar/register" : "/register"}
+                className="rounded-2xl border border-brand-dark/10 bg-white/92 p-4 shadow-soft backdrop-blur transition hover:border-brand-primary/30"
+              >
+                <Store className="h-5 w-5 text-brand-primary" />
+                <p className="mt-3 text-sm font-bold text-brand-dark">{isRtl ? "كُن موردًا" : "Become a Supplier"}</p>
+                <p className="mt-1 text-sm leading-6 text-brand-dark/55">
+                  {isRtl ? "سجّل منشأتك ضمن قائمة الموردين" : "Register your company as a supplier"}
+                </p>
+              </Link>
             </div>
           </div>
         </Container>
