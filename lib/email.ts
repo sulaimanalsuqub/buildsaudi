@@ -11,6 +11,7 @@ const BASE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ??
   "https://www.build.sa"
 ).replace(/\/$/, "");
+const ERPNEXT_URL = process.env.ERPNEXT_URL?.replace(/\/$/, "");
 
 // تحصين HTML لمنع XSS
 function esc(str: string | null | undefined): string {
@@ -37,6 +38,15 @@ function safeUrl(url: string): string {
   }
 }
 
+function erpnextDocUrl(doctype: "opportunity" | "supplier", id: string): string {
+  const fallbackPath = doctype === "opportunity" ? "/get-quote" : "/ar/register";
+  const encodedId = encodeURIComponent(id);
+
+  return safeUrl(
+    ERPNEXT_URL ? `${ERPNEXT_URL}/app/${doctype}/${encodedId}` : `${BASE_URL}${fallbackPath}`
+  );
+}
+
 // ─────────────────────────────────────────────
 //  1. إشعار الأدمن — طلب تسعير جديد
 // ─────────────────────────────────────────────
@@ -48,6 +58,8 @@ export async function sendNewQuoteNotification(quote: {
   delivery_address: string;
   materials: string;
 }) {
+  const opportunityUrl = erpnextDocUrl("opportunity", quote.id);
+
   return getResend().emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
@@ -66,7 +78,7 @@ export async function sendNewQuoteNotification(quote: {
             <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">المواد</td><td style="padding: 8px 0;">${esc(quote.materials)}</td></tr>
           </table>
           <div style="margin-top: 24px;">
-            <a href="${safeUrl(`${BASE_URL}/admin/quotes/${quote.id}`)}"
+            <a href="${opportunityUrl}"
                style="background: #09B14B; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
               عرض الطلب
             </a>
@@ -501,7 +513,7 @@ export async function sendClientResponseNotification(data: {
   quote_id: string;
 }) {
   const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280" };
-  const adminUrl = safeUrl(`${BASE_URL}/admin/quotes/${data.quote_id}`);
+  const adminUrl = erpnextDocUrl("opportunity", data.quote_id);
 
   return getResend().emails.send({
     from: FROM,
