@@ -230,8 +230,9 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
     setLoading(true);
     try {
-      // رفع ملف BOQ إذا وجد — عبر API server-side لتجاوز RLS
+      // رفع ملف الكميات إذا وجد عبر API server-side.
       let boqFileUrl: string | null = null;
+      let boqFileName: string | null = null;
       if (selectedFile) {
         const uploadForm = new FormData();
         uploadForm.append("file", selectedFile);
@@ -244,6 +245,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         }
         const uploadData = await uploadRes.json();
         boqFileUrl = uploadData.url;
+        boqFileName = uploadData.fileName ?? null;
       }
 
       const quoteRes = await fetch("/api/quotes", {
@@ -260,6 +262,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         boq_file_url: boqFileUrl,
+        boq_file_name: boqFileName,
         }),
       });
       const quoteData = await quoteRes.json().catch(() => null) as { id?: string; error?: string } | null;

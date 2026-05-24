@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { uploadERPNextFile } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const FOLDERS = {
@@ -71,6 +72,16 @@ export async function POST(req: NextRequest) {
 
     if (!(rules.types as readonly string[]).includes(file.type)) {
       return NextResponse.json({ error: "نوع الملف غير مسموح" }, { status: 400 });
+    }
+
+    if (folder === "boq") {
+      const uploaded = await uploadERPNextFile(file);
+      return NextResponse.json({
+        ok: true,
+        url: uploaded.fileUrl,
+        fileName: uploaded.name,
+        originalName: uploaded.fileName,
+      });
     }
 
     const adminSupabase = createServiceRoleClient();

@@ -30,7 +30,7 @@ Do not use `/request` or `/become-supplier`.
 2. Use ERPNext REST API for ERPNext data operations. Do not query ERPNext database directly.
 3. Do not modify ERPNext core DocTypes directly. Use Custom Fields and standard Frappe customization.
 4. Workflow state fields are `build_request_stage` and `build_supplier_stage`.
-5. BOQ files are currently stored as URL text in `build_boq_file_url`, not as Frappe Attach records.
+5. Quantity files from `/ar/get-quote` are uploaded to ERPNext File, attached to the Opportunity, and referenced in `build_boq_file_url`.
 6. Arabic-first UI is required. Customer-facing UI must support RTL.
 7. Do not use a virtual warehouse named `Build` in stock logic until it is confirmed configured in ERPNext.
 8. Do not implement WhatsApp integration unless explicitly instructed.
@@ -50,7 +50,7 @@ Do not use `/request` or `/become-supplier`.
 - `build_delivery_date`: Date
 - `build_required_materials`: Long Text
 - `build_sheet_link`: Data
-- `build_boq_file_url`: Data, URL only
+- `build_boq_file_url`: Data, ERPNext File URL reference
 - `build_customer_notes`: Long Text
 
 ### Supplier
@@ -91,7 +91,7 @@ Do not use `/request` or `/become-supplier`.
 - `build_delivery_address`: Small Text
 - `build_delivery_date`: Date
 - `build_required_materials`: Long Text
-- `build_boq_file_url`: Data, URL only
+- `build_boq_file_url`: Data, URL reference
 - `build_internal_notes`: Long Text
 
 ### Supplier Quotation
@@ -209,6 +209,7 @@ Done:
 - Customer request form: `/ar/get-quote`
 - Supplier registration form: `/ar/register`
 - ERPNext Lead and Opportunity creation for product requests
+- ERPNext File upload and Opportunity attachment for quantity files
 - ERPNext Supplier creation for supplier registrations
 - Build custom fields with `build_` prefix
 - Product request workflow on Opportunity
@@ -240,7 +241,6 @@ Not implemented yet:
 - RFQ reply automation
 - WhatsApp integration
 - Supplier portal
-- BOQ as Frappe Attach
 
 ## Catalog and Matching
 

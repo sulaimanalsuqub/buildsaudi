@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createERPNextProductOpportunity } from "@/lib/erpnext";
+import { attachERPNextFileToDocument, createERPNextProductOpportunity } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
 
@@ -15,6 +15,7 @@ const quoteSchema = z.object({
   delivery_date: z.string().trim().min(1),
   notes: z.string().trim().optional().or(z.literal("")),
   boq_file_url: z.string().trim().url().optional().or(z.literal("")),
+  boq_file_name: z.string().trim().optional().or(z.literal("")),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,6 +36,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("ERPNext opportunity creation failed:", error);
     return NextResponse.json({ error: "تعذر حفظ طلب المنتجات في نظام العمليات" }, { status: 500 });
+  }
+
+  if (quote.boq_file_name) {
+    try {
+      await attachERPNextFileToDocument(quote.boq_file_name, "Opportunity", opportunity.name);
+    } catch (fileError) {
+      console.error("ERPNext file attachment failed:", fileError);
+    }
   }
 
   try {

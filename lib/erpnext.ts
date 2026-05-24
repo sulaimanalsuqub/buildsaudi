@@ -11,6 +11,14 @@ type ERPNextDocumentResponse<T> = {
   data: T;
 };
 
+type ERPNextUploadResponse = {
+  message: {
+    name: string;
+    file_name?: string;
+    file_url: string;
+  };
+};
+
 function getERPNextConfig() {
   const baseUrl = process.env.ERPNEXT_URL?.replace(/\/$/, "");
   const apiToken = process.env.ERPNEXT_API_TOKEN;
@@ -57,6 +65,62 @@ export async function createERPNextDocument<T>(doctype: string, data: Record<str
   });
 
   return response.data;
+}
+
+export async function updateERPNextDocument<T>(
+  doctype: string,
+  name: string,
+  data: Record<string, unknown>
+): Promise<T> {
+  const response = await erpnextRequest<ERPNextDocumentResponse<T>>(
+    `/api/resource/${encodeDocType(doctype)}/${encodeURIComponent(name)}`,
+    {
+      method: "PUT",
+      body: data,
+    }
+  );
+
+  return response.data;
+}
+
+export async function uploadERPNextFile(file: File) {
+  const { baseUrl, apiToken } = getERPNextConfig();
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("is_private", "1");
+  formData.append("folder", "Home/Attachments");
+
+  const res = await fetch(`${baseUrl}/api/method/upload_file`, {
+    method: "POST",
+    headers: {
+      Authorization: `token ${apiToken}`,
+      Accept: "application/json",
+    },
+    body: formData,
+    cache: "no-store",
+  });
+
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : null;
+
+  if (!res.ok) {
+    const detail = json?._server_messages ?? json?.exception ?? json?.exc_type ?? text;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+
+  const uploaded = (json as ERPNextUploadResponse).message;
+  return {
+    name: uploaded.name,
+    fileName: uploaded.file_name ?? uploaded.name,
+    fileUrl: uploaded.file_url,
+  };
+}
+
+export async function attachERPNextFileToDocument(fileName: string, doctype: string, docname: string) {
+  return updateERPNextDocument<{ name: string }>("File", fileName, {
+    attached_to_doctype: doctype,
+    attached_to_name: docname,
+  });
 }
 
 export async function getERPNextList<T>(
