@@ -220,6 +220,7 @@ Done:
 - Build RFQ fields on Request for Quotation
 - ERPNext Client Script on Opportunity: `Build Opportunity RFQ Button`
 - Build supplier response fields on Supplier Quotation
+- ERPNext Client Script on Request for Quotation: `Build RFQ Supplier Quotation Button`
 - Build costing and service fee fields on Quotation
 - Build fulfillment fields on Sales Order and Purchase Order
 - Build catalog fields on Item
@@ -265,7 +266,7 @@ The intended operations flow is:
 3. From the Opportunity form, use the Build button `إنشاء RFQ لبيلد` to create a linked RFQ draft.
 4. Build adds selected suppliers on the RFQ and sends it through ERPNext email or manual communication.
 5. Suppliers respond with prices.
-6. Build records Supplier Quotations in ERPNext.
+6. From the RFQ form, use the Build button `تسجيل عرض مورد` to create a linked Supplier Quotation.
 7. Build compares supplier responses.
 8. Build adds service fee or margin.
 9. Build sends final Quotation to the customer.
