@@ -25,8 +25,57 @@ function build_sales_order_status_for_supplier_status(status) {
   return map[status] || "In Fulfillment";
 }
 
+function build_opportunity_stage_for_supplier_status(status) {
+  const map = {
+    Delivered: "Fulfilled",
+    Cancelled: "Cancelled",
+  };
+
+  return map[status] || null;
+}
+
+function build_workflow_actions_for_opportunity(currentStage, targetStage) {
+  if (!targetStage || currentStage === targetStage) {
+    return [];
+  }
+
+  if (targetStage === "Cancelled") {
+    return currentStage === "Fulfilled" ? [] : ["Cancel"];
+  }
+
+  if (targetStage !== "Fulfilled") {
+    return [];
+  }
+
+  const paths = {
+    "New Product Request": ["Start Review", "Source Suppliers", "Send Quote", "Mark Fulfilled"],
+    "Reviewing Request": ["Source Suppliers", "Send Quote", "Mark Fulfilled"],
+    "Sourcing Suppliers": ["Send Quote", "Mark Fulfilled"],
+    "Quoted to Customer": ["Mark Fulfilled"],
+  };
+
+  return paths[currentStage] || [];
+}
+
+async function build_apply_opportunity_stage(opportunityName, targetStage) {
+  if (!opportunityName || !targetStage) {
+    return;
+  }
+
+  let opportunity = await frappe.db.get_doc("Opportunity", opportunityName);
+  const actions = build_workflow_actions_for_opportunity(opportunity.build_request_stage, targetStage);
+
+  for (const action of actions) {
+    opportunity = await frappe.xcall("frappe.model.workflow.apply_workflow", {
+      doc: opportunity,
+      action,
+    });
+  }
+}
+
 async function build_update_delivery_status(frm, values) {
   const salesOrderStatus = build_sales_order_status_for_supplier_status(values.supplier_status);
+  const opportunityStage = build_opportunity_stage_for_supplier_status(values.supplier_status);
   const notes = [
     frm.doc.build_delivery_notes || "",
     values.notes ? frappe.datetime.now_datetime() + " - " + values.notes : "",
@@ -41,6 +90,10 @@ async function build_update_delivery_status(frm, values) {
     await frappe.db.set_value("Sales Order", frm.doc.build_sales_order, {
       build_delivery_status: salesOrderStatus,
     });
+  }
+
+  if (frm.doc.build_opportunity && opportunityStage) {
+    await build_apply_opportunity_stage(frm.doc.build_opportunity, opportunityStage);
   }
 
   frappe.show_alert({
@@ -76,6 +129,12 @@ frappe.ui.form.on("Purchase Order", {
             read_only: 1,
           },
           {
+            fieldname: "opportunity_stage_preview",
+            label: __("مرحلة الطلب المتوقعة"),
+            fieldtype: "Data",
+            read_only: 1,
+          },
+          {
             fieldname: "notes",
             label: __("ملاحظات التحديث"),
             fieldtype: "Small Text",
@@ -100,6 +159,7 @@ frappe.ui.form.on("Purchase Order", {
       const updatePreview = () => {
         const status = dialog.get_value("supplier_status");
         dialog.set_value("sales_order_status_preview", build_sales_order_status_for_supplier_status(status));
+        dialog.set_value("opportunity_stage_preview", build_opportunity_stage_for_supplier_status(status) || "-");
       };
 
       dialog.fields_dict.supplier_status.df.onchange = updatePreview;
