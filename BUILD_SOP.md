@@ -218,6 +218,7 @@ Done:
 - Supplier Groups: `Build Pre-Registered Suppliers`, `Build Approved Suppliers`, `Build Rejected Suppliers`
 - Initial Item Group structure in ERPNext
 - Build RFQ fields on Request for Quotation
+- ERPNext Client Script on Opportunity: `Build Opportunity RFQ Button`
 - Build supplier response fields on Supplier Quotation
 - Build costing and service fee fields on Quotation
 - Build fulfillment fields on Sales Order and Purchase Order
@@ -261,15 +262,16 @@ The intended operations flow is:
 
 1. Build reviews a customer Opportunity.
 2. Build identifies suitable suppliers manually from the catalog and supplier knowledge.
-3. Build sends RFQs through ERPNext email or manual communication.
-4. Suppliers respond with prices.
-5. Build records Supplier Quotations in ERPNext.
-6. Build compares supplier responses.
-7. Build adds service fee or margin.
-8. Build sends final Quotation to the customer.
-9. After customer approval, Build creates Sales Order.
-10. Build creates Purchase Order for the selected supplier.
-11. Build links Sales Order and Purchase Order through `build_purchase_order` and `build_sales_order`.
+3. From the Opportunity form, use the Build button `إنشاء RFQ لبيلد` to create a linked RFQ draft.
+4. Build adds selected suppliers on the RFQ and sends it through ERPNext email or manual communication.
+5. Suppliers respond with prices.
+6. Build records Supplier Quotations in ERPNext.
+7. Build compares supplier responses.
+8. Build adds service fee or margin.
+9. Build sends final Quotation to the customer.
+10. After customer approval, Build creates Sales Order.
+11. Build creates Purchase Order for the selected supplier.
+12. Build links Sales Order and Purchase Order through `build_purchase_order` and `build_sales_order`.
 
 The first manual version of this flow is now configured with ERPNext standard
 documents and Build linking fields. Do not automate supplier matching, WhatsApp,
