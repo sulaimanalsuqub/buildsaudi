@@ -200,7 +200,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
-      if (!form.materials.trim()) e.materials = copy.required;
+      if (!form.materials.trim() && !selectedFile && !form.sheetLink.trim()) e.materials = copy.required;
       if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
     } else if (s === 2) {
       if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
@@ -233,6 +233,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       // رفع ملف الكميات إذا وجد عبر API server-side.
       let boqFileUrl: string | null = null;
       let boqFileName: string | null = null;
+      let boqExtractedText = "";
       if (selectedFile) {
         const uploadForm = new FormData();
         uploadForm.append("file", selectedFile);
@@ -246,6 +247,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         const uploadData = await uploadRes.json();
         boqFileUrl = uploadData.url;
         boqFileName = uploadData.fileName ?? null;
+        boqExtractedText = uploadData.extractedText ?? "";
       }
 
       const quoteRes = await fetch("/api/quotes", {
@@ -263,6 +265,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         notes: form.notes || null,
         boq_file_url: boqFileUrl,
         boq_file_name: boqFileName,
+        boq_file_text: boqExtractedText,
         }),
       });
       const quoteData = await quoteRes.json().catch(() => null) as { id?: string; error?: string } | null;

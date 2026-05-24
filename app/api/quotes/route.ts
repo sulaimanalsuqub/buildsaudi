@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { attachERPNextFileToDocument, createERPNextProductOpportunity } from "@/lib/erpnext";
+import { extractMaterialItems } from "@/lib/material-extraction";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
 
@@ -24,13 +25,17 @@ const quoteSchema = z.object({
   client_name: z.string().trim().min(2),
   phone: z.string().trim().min(8),
   client_email: optionalEmail,
-  materials: z.string().trim().min(2),
+  materials: optionalText,
   sheet_link: optionalUrl,
   delivery_address: z.string().trim().min(2),
   delivery_date: z.string().trim().min(1),
   notes: optionalText,
   boq_file_url: optionalText,
   boq_file_name: optionalText,
+  boq_file_text: optionalText,
+}).refine((data) => Boolean(data.materials || data.sheet_link || data.boq_file_url || data.boq_file_text), {
+  path: ["materials"],
+  message: "Materials, sheet link, or quantity file is required",
 });
 
 export async function POST(req: NextRequest) {
@@ -47,7 +52,18 @@ export async function POST(req: NextRequest) {
 
   let opportunity: { name: string };
   try {
-    opportunity = await createERPNextProductOpportunity(quote);
+    const extractedItems = await extractMaterialItems({
+      materials: quote.materials,
+      notes: quote.notes,
+      sheet_link: quote.sheet_link,
+      boq_file_url: quote.boq_file_url,
+      boq_file_text: quote.boq_file_text,
+    });
+
+    opportunity = await createERPNextProductOpportunity({
+      ...quote,
+      extracted_items: extractedItems,
+    });
   } catch (error) {
     console.error("ERPNext opportunity creation failed:", error);
     return NextResponse.json({ error: "تعذر حفظ طلب المنتجات في نظام العمليات" }, { status: 500 });
@@ -68,7 +84,7 @@ export async function POST(req: NextRequest) {
       client_name: quote.client_name,
       phone: quote.phone,
       delivery_address: quote.delivery_address,
-      materials: quote.materials,
+      materials: quote.materials || quote.boq_file_text || quote.boq_file_url || quote.sheet_link || "ملف كميات مرفق",
     });
     if (quote.client_email) {
       await sendQuoteConfirmationToClient({

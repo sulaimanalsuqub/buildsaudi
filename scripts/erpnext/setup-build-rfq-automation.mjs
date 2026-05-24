@@ -34,6 +34,34 @@ async function create_build_rfq_from_opportunity(frm) {
   const today = frappe.datetime.get_today();
   const deliveryDate = frm.doc.build_delivery_date || today;
   const requiredMaterials = frm.doc.build_required_materials || frm.doc.title || "Build material request";
+  const extractedItems = (frm.doc.build_extracted_material_items || [])
+    .filter((item) => item.build_review_status !== "Rejected" && item.build_item_name);
+  const rfqItems = extractedItems.length
+    ? extractedItems.map((item) => {
+      const qty = flt(item.build_quantity || 1) || 1;
+      const descriptionParts = [
+        item.build_description || item.build_item_name,
+        item.build_specifications ? __("المواصفات") + ": " + item.build_specifications : "",
+        item.build_category ? __("الفئة") + ": " + item.build_category : "",
+      ].filter(Boolean);
+
+      return {
+        item_code: item.build_item_code || "BUILD-MATERIALS-REQUEST",
+        description: descriptionParts.join("\n"),
+        qty,
+        uom: item.build_uom || "Nos",
+        schedule_date: deliveryDate,
+      };
+    })
+    : [
+      {
+        item_code: "BUILD-MATERIALS-REQUEST",
+        description: requiredMaterials,
+        qty: 1,
+        uom: "Nos",
+        schedule_date: deliveryDate,
+      },
+    ];
 
   const rfq = await frappe.db.insert({
     doctype: "Request for Quotation",
@@ -50,15 +78,7 @@ async function create_build_rfq_from_opportunity(frm) {
     build_boq_file_url: frm.doc.build_boq_file_url,
     build_internal_notes: frm.doc.build_customer_notes,
     message_for_supplier: __("يرجى تزويدنا بعرض سعر للمواد المطلوبة حسب تفاصيل الطلب المرفقة.") + "\n\n" + requiredMaterials,
-    items: [
-      {
-        item_code: "BUILD-MATERIALS-REQUEST",
-        description: requiredMaterials,
-        qty: 1,
-        uom: "Nos",
-        schedule_date: deliveryDate,
-      },
-    ],
+    items: rfqItems,
   });
 
   frappe.show_alert({

@@ -19,6 +19,17 @@ type ERPNextUploadResponse = {
   };
 };
 
+export type ERPNextMaterialItem = {
+  item_name: string;
+  description: string;
+  quantity: number;
+  uom: string;
+  category: string;
+  specifications: string;
+  confidence: number;
+  source: string;
+};
+
 function getERPNextConfig() {
   const baseUrl = process.env.ERPNEXT_URL?.replace(/\/$/, "");
   const apiToken = process.env.ERPNEXT_API_TOKEN;
@@ -204,13 +215,15 @@ export async function createERPNextProductOpportunity(quote: {
   client_name: string;
   phone: string;
   client_email?: string;
-  materials: string;
+  materials?: string;
   sheet_link?: string;
   delivery_address: string;
   delivery_date: string;
   notes?: string;
   boq_file_url?: string | null;
+  extracted_items?: ERPNextMaterialItem[];
 }) {
+  const materialSummary = quote.materials || "يرجى مراجعة ملف الكميات أو الرابط المرفق.";
   let lead = quote.client_email
     ? (await getERPNextList<{ name: string }>("Lead", {
         fields: ["name"],
@@ -238,6 +251,8 @@ export async function createERPNextProductOpportunity(quote: {
     });
   }
 
+  const extractedItems = quote.extracted_items || [];
+
   return createERPNextDocument<{ name: string }>("Opportunity", {
     opportunity_from: "Lead",
     party_name: lead.name,
@@ -251,11 +266,27 @@ export async function createERPNextProductOpportunity(quote: {
     build_contact_email: quote.client_email || "",
     build_delivery_address: quote.delivery_address,
     build_delivery_date: quote.delivery_date,
-    build_required_materials: quote.materials,
+    build_required_materials: materialSummary,
     build_sheet_link: quote.sheet_link || "",
     build_boq_file_url: quote.boq_file_url || "",
+    build_material_extraction_status: extractedItems.length ? "Extracted" : "Needs Review",
+    build_material_extraction_summary: extractedItems.length
+      ? `Extracted ${extractedItems.length} material item(s) from website request. Review before RFQ.`
+      : "No structured material items were extracted. Review the raw request before RFQ.",
+    build_extracted_material_items: extractedItems.map((item, index) => ({
+      idx: index + 1,
+      build_item_name: item.item_name,
+      build_description: item.description,
+      build_quantity: item.quantity,
+      build_uom: item.uom,
+      build_category: item.category,
+      build_specifications: item.specifications,
+      build_confidence: item.confidence,
+      build_source: item.source,
+      build_review_status: "Needs Review",
+    })),
     build_customer_notes: [
-      quote.materials,
+      materialSummary,
       quote.notes ? `Notes: ${quote.notes}` : "",
       quote.sheet_link ? `Sheet Link: ${quote.sheet_link}` : "",
       quote.boq_file_url ? `BOQ File: ${quote.boq_file_url}` : "",

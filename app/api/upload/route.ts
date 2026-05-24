@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { uploadERPNextFile } from "@/lib/erpnext";
+import { extractTextFromProcurementFile } from "@/lib/file-text";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 const FOLDERS = {
@@ -75,12 +76,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (folder === "boq") {
+      let extractedText = "";
+      try {
+        extractedText = await extractTextFromProcurementFile(file);
+      } catch (extractError) {
+        console.error("BOQ text extraction failed:", extractError);
+      }
+
       const uploaded = await uploadERPNextFile(file);
       return NextResponse.json({
         ok: true,
         url: uploaded.fileUrl,
         fileName: uploaded.name,
         originalName: uploaded.fileName,
+        extractedText,
       });
     }
 

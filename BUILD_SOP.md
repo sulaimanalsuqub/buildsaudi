@@ -30,7 +30,7 @@ Do not use `/request` or `/become-supplier`.
 2. Use ERPNext REST API for ERPNext data operations. Do not query ERPNext database directly.
 3. Do not modify ERPNext core DocTypes directly. Use Custom Fields and standard Frappe customization.
 4. Workflow state fields are `build_request_stage` and `build_supplier_stage`.
-5. Quantity files from `/ar/get-quote` are uploaded to ERPNext File, attached to the Opportunity, and referenced in `build_boq_file_url`.
+5. Quantity files from `/ar/get-quote` are uploaded to ERPNext File, attached to the Opportunity, referenced in `build_boq_file_url`, and parsed for material extraction when possible.
 6. Arabic-first UI is required. Customer-facing UI must support RTL.
 7. Do not use a virtual warehouse named `Build` in stock logic until it is confirmed configured in ERPNext.
 8. Do not implement WhatsApp integration unless explicitly instructed.
@@ -52,6 +52,26 @@ Do not use `/request` or `/become-supplier`.
 - `build_sheet_link`: Data
 - `build_boq_file_url`: Data, ERPNext File URL reference
 - `build_customer_notes`: Long Text
+- `build_material_extraction_status`: Select, `Pending`, `Extracted`, `Needs Review`, `Failed`
+- `build_material_extraction_summary`: Long Text
+- `build_extracted_material_items`: Table, child DocType `Build Request Material Item`
+
+### Build Request Material Item
+
+Child table used on Opportunity for structured material lines extracted from the
+customer request. These rows are reviewable before RFQ creation.
+
+- `build_item_name`: Data
+- `build_quantity`: Float
+- `build_uom`: Data
+- `build_category`: Data
+- `build_confidence`: Percent
+- `build_review_status`: Select, `Needs Review`, `Approved`, `Rejected`
+- `build_description`: Small Text
+- `build_specifications`: Small Text
+- `build_item_code`: Link to Item
+- `build_source`: Select, `ai`, `fallback`, `manual`
+- `build_notes`: Small Text
 
 ### Supplier
 
@@ -210,6 +230,7 @@ Done:
 - Supplier registration form: `/ar/register`
 - ERPNext Lead and Opportunity creation for product requests
 - ERPNext File upload and Opportunity attachment for quantity files
+- Material extraction on customer requests and uploaded quantity files into reviewable Opportunity child rows
 - ERPNext Supplier creation for supplier registrations
 - Build custom fields with `build_` prefix
 - Product request workflow on Opportunity
@@ -269,16 +290,19 @@ The intended operations flow is:
 
 1. Build reviews a customer Opportunity.
 2. Build identifies suitable suppliers manually from the catalog and supplier knowledge.
-3. From the Opportunity form, use the Build button `إنشاء RFQ لبيلد` to create a linked RFQ draft.
-4. Build adds selected suppliers on the RFQ and sends it through ERPNext email or manual communication.
-5. Suppliers respond with prices.
-6. From the RFQ form, use the Build button `تسجيل عرض مورد` to create a linked Supplier Quotation.
-7. From the Opportunity form, use the Build button `مقارنة عروض الموردين` to review supplier prices, lead times, validity, and notes.
-8. From the winning Supplier Quotation, use the Build button `اعتماد كعرض فائز` to create a customer Quotation with Build service fee.
-9. Build reviews and sends the final Quotation to the customer.
-10. After customer approval, use the Build button `إنشاء أوامر التنفيذ` on Quotation.
-11. The action creates or reuses the Customer, creates Sales Order, creates Purchase Order for the selected supplier, and links both documents.
-12. From the Purchase Order form, use the Build button `تحديث حالة التوريد` to update supplier progress, sync the linked Sales Order delivery status, and close the linked Opportunity as `Fulfilled` when delivered.
+3. Review extracted material rows on the Opportunity. These rows can come from typed materials or uploaded Excel/CSV/PDF quantity files. Approve, reject, or correct rows if needed.
+4. From the Opportunity form, use the Build button `إنشاء RFQ لبيلد` to create a linked RFQ draft.
+   If extracted material rows exist, RFQ items are created from those rows; otherwise the
+   placeholder Item `BUILD-MATERIALS-REQUEST` is used.
+5. Build adds selected suppliers on the RFQ and sends it through ERPNext email or manual communication.
+6. Suppliers respond with prices.
+7. From the RFQ form, use the Build button `تسجيل عرض مورد` to create a linked Supplier Quotation.
+8. From the Opportunity form, use the Build button `مقارنة عروض الموردين` to review supplier prices, lead times, validity, and notes.
+9. From the winning Supplier Quotation, use the Build button `اعتماد كعرض فائز` to create a customer Quotation with Build service fee.
+10. Build reviews and sends the final Quotation to the customer.
+11. After customer approval, use the Build button `إنشاء أوامر التنفيذ` on Quotation.
+12. The action creates or reuses the Customer, creates Sales Order, creates Purchase Order for the selected supplier, and links both documents.
+13. From the Purchase Order form, use the Build button `تحديث حالة التوريد` to update supplier progress, sync the linked Sales Order delivery status, and close the linked Opportunity as `Fulfilled` when delivered.
 
 The first manual version of this flow is now configured with ERPNext standard
 documents and Build linking fields. Do not automate supplier matching, WhatsApp,
@@ -307,3 +331,23 @@ It includes grouped links for:
 - Catalog and setup: `Item`, `Item Group`, `Custom Field`, `Client Script`, `Email Template`, `Email Account`
 
 Maintain this workspace through `scripts/erpnext/setup-build-operations-workspace.mjs`.
+
+## Material Extraction
+
+The website accepts typed material descriptions and uploaded quantity files.
+
+For uploaded BOQ / quantity files:
+
+- CSV and Excel files are read into sheet text.
+- PDF files are parsed into text when possible.
+- The extracted text is sent with the customer typed text to DeepSeek.
+- DeepSeek returns structured material rows.
+- Rows are saved in `build_extracted_material_items` on the Opportunity.
+
+Use environment variables:
+
+- `DEEPSEEK_API_KEY`
+- `DEEPSEEK_MATERIAL_EXTRACTION_MODEL`, default `deepseek-v4-pro`
+
+If DeepSeek is not configured or parsing fails, the request still enters ERPNext
+and the system uses fallback extraction from typed materials.
