@@ -211,14 +211,32 @@ export async function createERPNextProductOpportunity(quote: {
   notes?: string;
   boq_file_url?: string | null;
 }) {
-  const lead = await createERPNextDocument<{ name: string }>("Lead", {
-    lead_name: quote.client_name,
-    company_name: quote.client_name,
-    email_id: quote.client_email || undefined,
-    mobile_no: quote.phone,
-    status: "Lead",
-    source: "Website",
-  });
+  let lead = quote.client_email
+    ? (await getERPNextList<{ name: string }>("Lead", {
+        fields: ["name"],
+        filters: [["Lead", "email_id", "=", quote.client_email]],
+        limit: 1,
+      }))[0]
+    : undefined;
+
+  if (!lead) {
+    lead = (await getERPNextList<{ name: string }>("Lead", {
+      fields: ["name"],
+      filters: [["Lead", "mobile_no", "=", quote.phone]],
+      limit: 1,
+    }))[0];
+  }
+
+  if (!lead) {
+    lead = await createERPNextDocument<{ name: string }>("Lead", {
+      lead_name: quote.client_name,
+      company_name: quote.client_name,
+      email_id: quote.client_email || undefined,
+      mobile_no: quote.phone,
+      status: "Lead",
+      source: "Website",
+    });
+  }
 
   return createERPNextDocument<{ name: string }>("Opportunity", {
     opportunity_from: "Lead",
