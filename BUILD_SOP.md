@@ -219,6 +219,7 @@ Done:
 - Initial Item Group structure in ERPNext
 - Build RFQ fields on Request for Quotation
 - ERPNext Client Script on Opportunity: `Build Opportunity RFQ Button`
+- Supplier quote comparison button on Opportunity: `مقارنة عروض الموردين`
 - Build supplier response fields on Supplier Quotation
 - ERPNext Client Script on Request for Quotation: `Build RFQ Supplier Quotation Button`
 - Build costing and service fee fields on Quotation
@@ -267,7 +268,7 @@ The intended operations flow is:
 4. Build adds selected suppliers on the RFQ and sends it through ERPNext email or manual communication.
 5. Suppliers respond with prices.
 6. From the RFQ form, use the Build button `تسجيل عرض مورد` to create a linked Supplier Quotation.
-7. Build compares supplier responses.
+7. From the Opportunity form, use the Build button `مقارنة عروض الموردين` to review supplier prices, lead times, validity, and notes.
 8. Build adds service fee or margin.
 9. Build sends final Quotation to the customer.
 10. After customer approval, Build creates Sales Order.

@@ -68,6 +68,100 @@ async function create_build_rfq_from_opportunity(frm) {
   frappe.set_route("Form", "Request for Quotation", rfq.name);
 }
 
+function build_money(value) {
+  return format_currency(flt(value || 0), "SAR");
+}
+
+function build_escape(value) {
+  return frappe.utils.escape_html(value || "");
+}
+
+async function show_build_supplier_quote_comparison(frm) {
+  const supplierQuotations = await frappe.db.get_list("Supplier Quotation", {
+    fields: [
+      "name",
+      "supplier",
+      "supplier_name",
+      "status",
+      "transaction_date",
+      "valid_till",
+      "grand_total",
+      "rounded_total",
+      "build_rfq",
+      "build_delivery_lead_time",
+      "build_supplier_response_notes",
+    ],
+    filters: [
+      ["Supplier Quotation", "build_opportunity", "=", frm.doc.name],
+      ["Supplier Quotation", "docstatus", "!=", 2],
+    ],
+    order_by: "grand_total asc",
+    limit: 50,
+  });
+
+  if (!supplierQuotations.length) {
+    frappe.msgprint({
+      title: __("لا توجد عروض موردين"),
+      indicator: "orange",
+      message: __("لم يتم تسجيل عروض موردين مرتبطة بهذا الطلب حتى الآن."),
+    });
+    return;
+  }
+
+  const rows = supplierQuotations.map((quote, index) => {
+    const total = quote.rounded_total || quote.grand_total || 0;
+    const bestBadge = index === 0
+      ? '<span class="indicator-pill green">' + __("الأقل سعرًا") + "</span>"
+      : "";
+
+    return ''
+      + '<tr>'
+      + '<td><b>' + build_escape(quote.supplier_name || quote.supplier) + '</b><div class="text-muted small">' + build_escape(quote.name) + '</div></td>'
+      + '<td>' + build_money(total) + '<div>' + bestBadge + '</div></td>'
+      + '<td>' + build_escape(quote.build_delivery_lead_time || "-") + '</td>'
+      + '<td>' + build_escape(quote.valid_till || "-") + '</td>'
+      + '<td>' + build_escape(quote.status || "-") + '</td>'
+      + '<td>' + build_escape(quote.build_supplier_response_notes || "-") + '</td>'
+      + '<td><button class="btn btn-xs btn-default" data-build-open-sq="' + build_escape(quote.name) + '">' + __("فتح") + '</button></td>'
+      + '</tr>';
+  }).join("");
+
+  const dialog = new frappe.ui.Dialog({
+    title: __("مقارنة عروض الموردين"),
+    size: "extra-large",
+    fields: [
+      {
+        fieldtype: "HTML",
+        fieldname: "comparison_html",
+        options: ''
+          + '<div class="table-responsive">'
+          + '<table class="table table-bordered table-hover">'
+          + '<thead>'
+          + '<tr>'
+          + '<th>' + __("المورد") + '</th>'
+          + '<th>' + __("الإجمالي") + '</th>'
+          + '<th>' + __("مدة التوريد") + '</th>'
+          + '<th>' + __("صالح حتى") + '</th>'
+          + '<th>' + __("الحالة") + '</th>'
+          + '<th>' + __("الملاحظات") + '</th>'
+          + '<th>' + __("الإجراء") + '</th>'
+          + '</tr>'
+          + '</thead>'
+          + '<tbody>' + rows + '</tbody>'
+          + '</table>'
+          + '</div>',
+      },
+    ],
+  });
+
+  dialog.show();
+  dialog.$wrapper.find("[data-build-open-sq]").on("click", function () {
+    const quoteName = this.getAttribute("data-build-open-sq");
+    dialog.hide();
+    frappe.set_route("Form", "Supplier Quotation", quoteName);
+  });
+}
+
 frappe.ui.form.on("Opportunity", {
   refresh(frm) {
     if (frm.is_new() || frm.doc.opportunity_type !== "Build Product Request") {
@@ -80,6 +174,19 @@ frappe.ui.form.on("Opportunity", {
         .catch((error) => {
           frappe.msgprint({
             title: __("تعذر إنشاء RFQ"),
+            indicator: "red",
+            message: error.message || error,
+          });
+        })
+        .finally(() => frappe.dom.unfreeze());
+    }, __("Build"));
+
+    frm.add_custom_button(__("مقارنة عروض الموردين"), () => {
+      frappe.dom.freeze(__("جاري تحميل عروض الموردين..."));
+      show_build_supplier_quote_comparison(frm)
+        .catch((error) => {
+          frappe.msgprint({
+            title: __("تعذر تحميل عروض الموردين"),
             indicator: "red",
             message: error.message || error,
           });
