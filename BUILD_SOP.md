@@ -232,6 +232,7 @@ Done:
 - Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 - Email Templates: `Build RFQ Supplier Request`, `Build Customer Quotation`
 - Email Account: `Build Resend` for ERPNext outgoing SMTP through Resend
+- ERPNext Workspace: `Build`, configured as the Build operations center with filtered shortcuts and grouped links
 
 Started:
 
@@ -282,3 +283,27 @@ The intended operations flow is:
 The first manual version of this flow is now configured with ERPNext standard
 documents and Build linking fields. Do not automate supplier matching, WhatsApp,
 or portal behavior until instructed.
+
+## Build Operations Workspace
+
+ERPNext Workspace `Build` is the operational home for the Build team.
+
+It includes filtered shortcuts for:
+
+- New customer product requests
+- Requests under review
+- Requests in supplier sourcing
+- Customer quotations sent
+- New supplier registrations
+- Suppliers under review
+- Approved suppliers
+- Sales orders in fulfillment
+
+It includes grouped links for:
+
+- Customer requests: `Opportunity`, `Lead`, `Quotation`, `Sales Order`
+- Supplier and pricing work: `Supplier`, `Supplier Group`, `Request for Quotation`, `Supplier Quotation`, supplier quote comparison report
+- Fulfillment follow-up: `Purchase Order`, `Sales Order`, `Communication`
+- Catalog and setup: `Item`, `Item Group`, `Custom Field`, `Client Script`, `Email Template`, `Email Account`
+
+Maintain this workspace through `scripts/erpnext/setup-build-operations-workspace.mjs`.
