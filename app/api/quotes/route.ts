@@ -4,18 +4,33 @@ import { attachERPNextFileToDocument, createERPNextProductOpportunity } from "@/
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
 
+const optionalText = z.preprocess(
+  (value) => (value === null ? "" : value),
+  z.string().trim().optional().or(z.literal(""))
+);
+
+const optionalUrl = z.preprocess(
+  (value) => (value === null ? "" : value),
+  z.string().trim().url().optional().or(z.literal(""))
+);
+
+const optionalEmail = z.preprocess(
+  (value) => (value === null ? "" : value),
+  z.string().trim().email().optional().or(z.literal(""))
+);
+
 const quoteSchema = z.object({
   project_name: z.string().trim().min(2),
   client_name: z.string().trim().min(2),
   phone: z.string().trim().min(8),
-  client_email: z.string().trim().email().optional().or(z.literal("")),
+  client_email: optionalEmail,
   materials: z.string().trim().min(2),
-  sheet_link: z.string().trim().url().optional().or(z.literal("")),
+  sheet_link: optionalUrl,
   delivery_address: z.string().trim().min(2),
   delivery_date: z.string().trim().min(1),
-  notes: z.string().trim().optional().or(z.literal("")),
-  boq_file_url: z.string().trim().optional().or(z.literal("")),
-  boq_file_name: z.string().trim().optional().or(z.literal("")),
+  notes: optionalText,
+  boq_file_url: optionalText,
+  boq_file_name: optionalText,
 });
 
 export async function POST(req: NextRequest) {
