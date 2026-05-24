@@ -14,7 +14,7 @@ const quoteSchema = z.object({
   delivery_address: z.string().trim().min(2),
   delivery_date: z.string().trim().min(1),
   notes: z.string().trim().optional().or(z.literal("")),
-  boq_file_url: z.string().trim().url().optional().or(z.literal("")),
+  boq_file_url: z.string().trim().optional().or(z.literal("")),
   boq_file_name: z.string().trim().optional().or(z.literal("")),
 });
 
