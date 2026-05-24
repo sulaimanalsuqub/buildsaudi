@@ -225,6 +225,7 @@ Done:
 - Build costing and service fee fields on Quotation
 - ERPNext Client Script on Supplier Quotation: `Build Supplier Quotation Winner Button`
 - Build fulfillment fields on Sales Order and Purchase Order
+- ERPNext Client Script on Quotation: `Build Quotation Order Automation`
 - Build catalog fields on Item
 - Operational placeholder Item: `BUILD-MATERIALS-REQUEST`
 - Email Templates: `Build RFQ Supplier Request`, `Build Customer Quotation`
@@ -272,9 +273,9 @@ The intended operations flow is:
 7. From the Opportunity form, use the Build button `مقارنة عروض الموردين` to review supplier prices, lead times, validity, and notes.
 8. From the winning Supplier Quotation, use the Build button `اعتماد كعرض فائز` to create a customer Quotation with Build service fee.
 9. Build reviews and sends the final Quotation to the customer.
-10. After customer approval, Build creates Sales Order.
-11. Build creates Purchase Order for the selected supplier.
-12. Build links Sales Order and Purchase Order through `build_purchase_order` and `build_sales_order`.
+10. After customer approval, use the Build button `إنشاء أوامر التنفيذ` on Quotation.
+11. The action creates or reuses the Customer, creates Sales Order, creates Purchase Order for the selected supplier, and links both documents.
+12. Build tracks fulfillment through `build_delivery_status` on Sales Order and `build_supplier_delivery_status` on Purchase Order.
 
 The first manual version of this flow is now configured with ERPNext standard
 documents and Build linking fields. Do not automate supplier matching, WhatsApp,
