@@ -15,7 +15,6 @@ import {
   Package,
   Paintbrush,
   ShieldCheck,
-  Store,
   Truck,
   Warehouse,
 } from "lucide-react";
@@ -67,10 +66,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       step: "01",
     },
     {
-      en: "We Coordinate Supply",
-      ar: "نرتب التوريد",
-      descEn: "We review your request and match it with the right approved suppliers.",
-      descAr: "نراجع الطلب ونختار الموردين المناسبين لتنفيذه.",
+      en: "We Prepare Your Quote",
+      ar: "نجهّز عرض السعر",
+      descEn: "We review your requirements and prepare a comprehensive price quote for your project.",
+      descAr: "نراجع احتياجاتك ونجهّز عرض سعر شاملاً لمشروعك في أسرع وقت.",
       icon: Package,
       step: "02",
     },
@@ -94,9 +93,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     card1Title: isRtl ? "أطلب المنتجات" : "Order Products",
     card1Sub: isRtl ? "أرسل احتياج مشروعك وجدول الكميات" : "Send your project requirements and BOQ",
     card1Cta: isRtl ? "ابدأ الآن" : "Get Started",
-    card2Title: isRtl ? "كُن موردًا" : "Become a Supplier",
-    card2Sub: isRtl ? "سجّل منشأتك وابدأ التوريد" : "Register your company as a supplier",
-    card2Cta: isRtl ? "سجّل الآن" : "Register Now",
+    card2Title: isRtl ? "توصيل لكل المملكة" : "Nationwide Delivery",
+    card2Sub: isRtl ? "نوصّل مواد مشروعك مباشرةً لموقعك في أي منطقة بالمملكة" : "We deliver your materials directly to your site anywhere in Saudi Arabia",
+    card2Cta: isRtl ? "اطلب الآن" : "Order Now",
     // Sections
     catalogLabel: isRtl ? "الكتالوج" : "Catalog",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
@@ -113,7 +112,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       ? "أرسل احتياجاتك اليوم وسنتولى ترتيب التوريد."
       : "Submit your requirements today and we'll coordinate supply.",
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
-    secondary: isRtl ? "كُن موردًا" : "Become a Supplier",
   };
 
   return (
@@ -166,9 +164,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               </div>
             </Link>
 
-            {/* Card 2 — Become a Supplier */}
+            {/* Card 2 — Nationwide Delivery */}
             <Link
-              href={isRtl ? "/ar/register" : "/register"}
+              href={isRtl ? "/ar/get-quote" : "/get-quote"}
               className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10"
             >
               {/* Background decoration */}
@@ -177,7 +175,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
               <div className="relative">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark">
-                  <Store className="h-7 w-7" />
+                  <Truck className="h-7 w-7" />
                 </div>
                 <h2 className="mt-6 text-2xl font-bold text-brand-dark md:text-3xl">{t.card2Title}</h2>
                 <p className="mt-2 text-base text-brand-dark/60">{t.card2Sub}</p>
@@ -266,19 +264,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             <p className="mx-auto mt-4 max-w-md text-base text-white/72">
               {t.ctaBody}
             </p>
-            <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-9 flex justify-center">
               <Link
                 href={isRtl ? "/ar/get-quote" : "/get-quote"}
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-bold text-brand-dark shadow-premium transition hover:bg-brand-light"
               >
                 {t.primary}
                 <ArrowIcon className="h-4 w-4" />
-              </Link>
-              <Link
-                href={isRtl ? "/ar/register" : "/register"}
-                className="inline-flex h-12 items-center gap-2 rounded-full border-2 border-white/30 px-8 text-[15px] font-bold text-white transition hover:border-white/55 hover:bg-white/10"
-              >
-                {t.secondary}
               </Link>
             </div>
           </div>

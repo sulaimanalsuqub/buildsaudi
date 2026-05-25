@@ -14,7 +14,6 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
     main: [
       { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
-      { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
     ],
     legal: [
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
@@ -38,8 +37,8 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             />
             <p className="mt-4 text-sm leading-[1.8] text-brand-dark/58">
               {isRtl
-                ? "بيلد شريك توريد لمواد البناء، يستقبل طلبات المشاريع ويدير علاقات الموردين ودورة الشراء."
-                : "Build is a procurement partner for construction materials, managing project requests and supplier relationships."}
+                ? "بيلد منصة متخصصة في توريد مواد البناء للمقاولين والمطورين في أنحاء المملكة العربية السعودية."
+                : "Build is a specialized platform for supplying construction materials to contractors and developers across Saudi Arabia."}
             </p>
           </div>
 

@@ -43,21 +43,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           />
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex" dir={isRtl ? "rtl" : "ltr"}>
-          <Link
-            href={isRtl ? "/ar/get-quote" : "/get-quote"}
-            className="text-sm font-semibold text-brand-dark/60 transition hover:text-brand-dark"
-          >
-            {isRtl ? "أطلب المنتجات" : "Order Products"}
-          </Link>
-          <Link
-            href={isRtl ? "/ar/register" : "/register"}
-            className="text-sm font-semibold text-brand-dark/60 transition hover:text-brand-dark"
-          >
-            {isRtl ? "كُن موردًا" : "Become a Supplier"}
-          </Link>
-        </nav>
-
         <div className="flex items-center gap-2">
           <Link
             href={languageHref}
