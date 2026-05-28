@@ -39,7 +39,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             width={4302}
             height={1500}
             priority
-            className="h-8 w-auto"
+            className="h-6 w-auto"
           />
         </Link>
 
