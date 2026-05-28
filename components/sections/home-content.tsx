@@ -124,11 +124,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         <Container>
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="type-hero text-brand-dark">
-              {isRtl ? (
-                <>أسرع طريق لتوريد <AuroraText>مشروعك</AuroraText></>
-              ) : (
-                <>The fastest way to <AuroraText>supply your project</AuroraText></>
-              )}
+              {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
             </h1>
             <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62" aria-label={t.body}>
               {t.body.split("،").map((part, i, arr) => (
