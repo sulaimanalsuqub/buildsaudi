@@ -262,28 +262,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      {/* ── CTA banner ───────────────────────────────── */}
-      <section className="py-16 md:py-20">
-        <Container>
-          <div className="overflow-hidden rounded-3xl bg-cta-gradient px-8 py-14 text-center md:px-14 md:py-16">
-            <h2 className="text-3xl font-bold text-white md:text-[38px] md:leading-tight">
-              {t.ctaTitle}
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-base text-white/72">
-              {t.ctaBody}
-            </p>
-            <div className="mt-9 flex justify-center">
-              <Link
-                href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-bold text-brand-dark shadow-premium transition hover:bg-brand-light"
-              >
-                {t.primary}
-                <ArrowIcon className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </section>
 
     </main>
   );
