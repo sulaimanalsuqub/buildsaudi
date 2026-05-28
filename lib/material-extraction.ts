@@ -12,7 +12,6 @@ export type ExtractedMaterialItem = {
 type ExtractionInput = {
   materials?: string;
   notes?: string;
-  sheet_link?: string;
   boq_file_url?: string | null;
   boq_file_text?: string;
 };
@@ -149,7 +148,6 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
               `Customer typed materials:\n${input.materials}`,
               input.boq_file_text ? `Extracted file text:\n${input.boq_file_text}` : "",
               input.notes ? `Notes:\n${input.notes}` : "",
-              input.sheet_link ? `Sheet link:\n${input.sheet_link}` : "",
               input.boq_file_url ? `Uploaded file URL:\n${input.boq_file_url}` : "",
               `Required JSON shape:
 {

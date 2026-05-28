@@ -72,6 +72,9 @@ const t = {
       "موافقتك على العرض",
       "توصيل المواد للموقع",
     ],
+    contactMethod: "طريقة التواصل المفضلة لعرض السعر",
+    contactMethodEmail: "بريد إلكتروني",
+    contactMethodWhatsapp: "واتساب",
     contactMsg: "سنتواصل معك على",
     contactTime: "خلال 24-48 ساعة",
   },
@@ -126,6 +129,9 @@ const t = {
       "You approve the offer",
       "Materials delivered to site",
     ],
+    contactMethod: "Preferred contact method for the quote",
+    contactMethodEmail: "Email",
+    contactMethodWhatsapp: "WhatsApp",
     contactMsg: "We'll contact you at",
     contactTime: "within 24-48 hours",
   },
@@ -149,6 +155,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     clientName: "",
     phone: "",
     email: "",
+    contactMethod: "whatsapp" as "email" | "whatsapp",
     materials: "",
     deliveryAddress: "",
     deliveryDate: "",
@@ -262,6 +269,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         client_name: form.clientName,
         phone: form.phone,
         client_email: form.email,
+        contact_method: form.contactMethod,
         materials: form.materials,
 delivery_address: form.deliveryAddress,
         delivery_date: form.deliveryDate,
@@ -297,7 +305,7 @@ delivery_address: form.deliveryAddress,
     setSelectedFiles([]);
     setErrors({});
     setStep(0);
-    setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -431,6 +439,26 @@ delivery_address: form.deliveryAddress,
                   dir="ltr"
                 />
               </Field>
+              <Field label={copy.contactMethod}>
+                <div className="grid grid-cols-2 gap-3">
+                  {(["whatsapp", "email"] as const).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => set("contactMethod", method)}
+                      className={[
+                        "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
+                        form.contactMethod === method
+                          ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
+                          : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
+                      ].join(" ")}
+                    >
+                      {method === "whatsapp" ? "📱" : "📧"}
+                      {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
+                    </button>
+                  ))}
+                </div>
+              </Field>
             </div>
           </>
         )}
@@ -552,6 +580,7 @@ delivery_address: form.deliveryAddress,
               <ReviewRow label={copy.clientName} value={form.clientName || copy.notProvided} />
               <ReviewRow label={copy.phone} value={form.phone || copy.notProvided} dir="ltr" />
               <ReviewRow label={copy.email} value={form.email || copy.notProvided} dir="ltr" />
+              <ReviewRow label={copy.contactMethod} value={form.contactMethod === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail} />
               <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
               <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
               {selectedFiles.length > 0 && <ReviewRow label={copy.boqFile} value={selectedFiles.map((f) => f.name).join("، ")} />}

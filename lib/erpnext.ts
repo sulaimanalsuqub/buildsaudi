@@ -215,8 +215,8 @@ export async function createERPNextProductOpportunity(quote: {
   client_name: string;
   phone: string;
   client_email?: string;
+  contact_method?: "email" | "whatsapp";
   materials?: string;
-  sheet_link?: string;
   delivery_address: string;
   delivery_date: string;
   notes?: string;
@@ -264,10 +264,10 @@ export async function createERPNextProductOpportunity(quote: {
     build_project_name: quote.project_name,
     build_contact_phone: quote.phone,
     build_contact_email: quote.client_email || "",
+    build_contact_method: quote.contact_method || "whatsapp",
     build_delivery_address: quote.delivery_address,
     build_delivery_date: quote.delivery_date,
     build_required_materials: materialSummary,
-    build_sheet_link: quote.sheet_link || "",
     build_boq_file_url: quote.boq_file_url || "",
     build_material_extraction_status: extractedItems.length ? "Extracted" : "Needs Review",
     build_material_extraction_summary: extractedItems.length
@@ -288,7 +288,6 @@ export async function createERPNextProductOpportunity(quote: {
     build_customer_notes: [
       materialSummary,
       quote.notes ? `Notes: ${quote.notes}` : "",
-      quote.sheet_link ? `Sheet Link: ${quote.sheet_link}` : "",
       quote.boq_file_url ? `BOQ File: ${quote.boq_file_url}` : "",
     ].filter(Boolean).join("\n\n"),
   });
