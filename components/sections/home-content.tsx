@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -124,7 +125,19 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             <h1 className="type-hero text-brand-dark">
               {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
             </h1>
-            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62">{t.body}</p>
+            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62" aria-label={t.body}>
+              {t.body.split("،").map((part, i, arr) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 + i * 0.25, ease: "easeOut" }}
+                  className="inline"
+                >
+                  {part.trim()}{i < arr.length - 1 ? "، " : ""}
+                </motion.span>
+              ))}
+            </p>
           </div>
         </Container>
       </section>
