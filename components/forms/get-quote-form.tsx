@@ -141,8 +141,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [quoteRef, setQuoteRef] = useState("");
   const [loading, setLoading] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
@@ -199,8 +198,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
-      if (!form.materials.trim() && !selectedFile) e.materials = copy.required;
-      if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
+      if (!form.materials.trim() && selectedFiles.length === 0) e.materials = copy.required;
+      if (selectedFiles.some((f) => f.size > 10 * 1024 * 1024)) e.boqFile = copy.fileTooLarge;
     } else if (s === 2) {
       if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
       if (!form.deliveryDate) e.deliveryDate = copy.required;
@@ -229,24 +228,30 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
     setLoading(true);
     try {
-      // رفع ملف الكميات إذا وجد عبر API server-side.
+      // رفع الملفات عبر API server-side
       let boqFileUrl: string | null = null;
       let boqFileName: string | null = null;
       let boqExtractedText = "";
-      if (selectedFile) {
-        const uploadForm = new FormData();
-        uploadForm.append("file", selectedFile);
-        uploadForm.append("folder", "boq");
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
-        if (!uploadRes.ok) {
-          setErrors({ boqFile: copy.fileUploadError });
-          setLoading(false);
-          return;
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const uploadForm = new FormData();
+          uploadForm.append("file", file);
+          uploadForm.append("folder", "boq");
+          const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
+          if (!uploadRes.ok) {
+            setErrors({ boqFile: copy.fileUploadError });
+            setLoading(false);
+            return;
+          }
+          const uploadData = await uploadRes.json();
+          if (!boqFileUrl) {
+            boqFileUrl = uploadData.url;
+            boqFileName = uploadData.fileName ?? null;
+          }
+          if (uploadData.extractedText) {
+            boqExtractedText += (boqExtractedText ? "\n\n---\n\n" : "") + uploadData.extractedText;
+          }
         }
-        const uploadData = await uploadRes.json();
-        boqFileUrl = uploadData.url;
-        boqFileName = uploadData.fileName ?? null;
-        boqExtractedText = uploadData.extractedText ?? "";
       }
 
       const quoteRes = await fetch("/api/quotes", {
@@ -289,8 +294,7 @@ delivery_address: form.deliveryAddress,
   const reset = () => {
     setSubmitted(false);
     setQuoteRef("");
-    setFileName("");
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setErrors({});
     setStep(0);
     setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", deliveryAddress: "", deliveryDate: "", notes: "" });
@@ -454,28 +458,50 @@ delivery_address: form.deliveryAddress,
             </Field>
             <Field label={copy.boqFile}>
               <div
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-brand-dark/15 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <FileUp className="h-5 w-5 shrink-0 text-brand-primary" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-brand-dark truncate">
-                    {fileName || copy.chooseFile}
+                  <p className="text-sm font-semibold text-brand-dark">
+                    {selectedFiles.length > 0
+                      ? isRtl ? `${selectedFiles.length} ملف${selectedFiles.length > 1 ? " مرفق" : " مرفق"}` : `${selectedFiles.length} file${selectedFiles.length > 1 ? "s" : ""} selected`
+                      : copy.chooseFile}
                   </p>
-                  {!fileName && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
+                  {selectedFiles.length === 0 && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
                 </div>
+                <span className="text-xs text-brand-primary font-medium">
+                  {isRtl ? "+ إضافة" : "+ Add"}
+                </span>
               </div>
+              {selectedFiles.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {selectedFiles.map((f, i) => (
+                    <li key={i} className="flex items-center justify-between rounded-lg border border-brand-dark/8 bg-white px-3 py-2 text-xs">
+                      <span className="truncate text-brand-dark/70 max-w-[80%]">{f.name}</span>
+                      <button
+                        type="button"
+                        className="text-brand-dark/35 hover:text-red-500 transition-colors ms-2 shrink-0"
+                        onClick={() => setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls,.pdf,.csv"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setFileName(file.name);
-                    setSelectedFile(file);
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length > 0) {
+                    setSelectedFiles((prev) => [...prev, ...files]);
                     setErrors((p) => ({ ...p, boqFile: "" }));
+                    e.target.value = "";
                   }
                 }}
               />
@@ -528,7 +554,7 @@ delivery_address: form.deliveryAddress,
               <ReviewRow label={copy.email} value={form.email || copy.notProvided} dir="ltr" />
               <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
               <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
-              {fileName && <ReviewRow label={copy.boqFile} value={fileName} />}
+              {selectedFiles.length > 0 && <ReviewRow label={copy.boqFile} value={selectedFiles.map((f) => f.name).join("، ")} />}
               <ReviewRow label={copy.deliveryAddress} value={form.deliveryAddress || copy.notProvided} />
               <ReviewRow label={copy.deliveryDate} value={form.deliveryDate || copy.notProvided} dir="ltr" />
               {form.notes && <ReviewRow label={copy.notes} value={form.notes} className="sm:col-span-2" />}
