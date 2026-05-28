@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { AuroraText } from "@/components/ui/aurora-text";
 import {
   ArrowLeft,
   ArrowRight,
@@ -123,7 +124,11 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         <Container>
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="type-hero text-brand-dark">
-              {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
+              {isRtl ? (
+                <>أسرع طريق لتوريد <AuroraText>مشروعك</AuroraText></>
+              ) : (
+                <>The fastest way to <AuroraText>supply your project</AuroraText></>
+              )}
             </h1>
             <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62" aria-label={t.body}>
               {t.body.split("،").map((part, i, arr) => (
@@ -206,8 +211,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="bg-[#f7f9f6] py-16 md:py-20">
         <Container>
           <div className="text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-primary">{t.catalogLabel}</p>
-            <h2 className="type-section-title mx-auto mt-3 text-brand-dark">{t.catalogTitle}</h2>
+            <h2 className="type-section-title mx-auto text-brand-dark">{t.catalogTitle}</h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.catalogSub}</p>
           </div>
 
@@ -235,8 +239,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="py-16 md:py-20">
         <Container>
           <div className="text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-primary">{t.processLabel}</p>
-            <h2 className="type-section-title mx-auto mt-3 text-brand-dark">{t.howTitle}</h2>
+            <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.howSub}</p>
           </div>
 
