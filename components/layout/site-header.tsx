@@ -22,7 +22,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
 
   const homeHref = isRtl ? "/ar" : "/";
   const languageHref = isRtl ? "/" : "/ar";
-  const registerHref = isRtl ? "/ar/register" : "/register";
 
   return (
     <header
@@ -50,12 +49,6 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             aria-label={isRtl ? "English" : "العربية"}
           >
             <Languages className="h-4 w-4" />
-          </Link>
-          <Link
-            href={registerHref}
-            className="inline-flex h-9 items-center justify-center rounded-full bg-brand-dark px-5 text-sm font-bold text-white transition hover:bg-brand-primary"
-          >
-            {isRtl ? "كُن موردًا" : "Become a Supplier"}
           </Link>
         </div>
       </Container>
