@@ -151,7 +151,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     phone: "",
     email: "",
     materials: "",
-    sheetLink: "",
     deliveryAddress: "",
     deliveryDate: "",
     notes: "",
@@ -200,7 +199,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
-      if (!form.materials.trim() && !selectedFile && !form.sheetLink.trim()) e.materials = copy.required;
+      if (!form.materials.trim() && !selectedFile) e.materials = copy.required;
       if (selectedFile && selectedFile.size > 10 * 1024 * 1024) e.boqFile = copy.fileTooLarge;
     } else if (s === 2) {
       if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
@@ -259,8 +258,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         phone: form.phone,
         client_email: form.email,
         materials: form.materials,
-        sheet_link: form.sheetLink || null,
-        delivery_address: form.deliveryAddress,
+delivery_address: form.deliveryAddress,
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         boq_file_url: boqFileUrl,
@@ -295,7 +293,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setSelectedFile(null);
     setErrors({});
     setStep(0);
-    setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    setForm({ projectName: "", clientName: "", phone: "", email: "", materials: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -483,21 +481,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               />
               {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
             </Field>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-brand-dark/10" />
-              <span className="text-xs text-brand-dark/40 font-medium">{copy.orDivider}</span>
-              <div className="flex-1 h-px bg-brand-dark/10" />
-            </div>
-            <Field label={copy.sheetLink}>
-              <input
-                type="url"
-                placeholder={copy.sheetLinkPlaceholder}
-                value={form.sheetLink}
-                onChange={(e) => set("sheetLink", e.target.value)}
-                className={inputCls(false)}
-                dir="ltr"
-              />
-            </Field>
           </>
         )}
 
@@ -546,7 +529,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
               <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
               {fileName && <ReviewRow label={copy.boqFile} value={fileName} />}
-              {form.sheetLink && <ReviewRow label={copy.sheetLink} value={form.sheetLink} dir="ltr" />}
               <ReviewRow label={copy.deliveryAddress} value={form.deliveryAddress || copy.notProvided} />
               <ReviewRow label={copy.deliveryDate} value={form.deliveryDate || copy.notProvided} dir="ltr" />
               {form.notes && <ReviewRow label={copy.notes} value={form.notes} className="sm:col-span-2" />}
