@@ -121,11 +121,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="bg-white py-16 md:py-20 lg:py-24">
         <Container>
           <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
-              <span className="h-2 w-2 rounded-full bg-brand-primary" />
-              {t.eyebrow}
-            </span>
-            <h1 className="type-hero mt-6 text-brand-dark">
+            <h1 className="type-hero text-brand-dark">
               {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
             </h1>
             <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62">{t.body}</p>

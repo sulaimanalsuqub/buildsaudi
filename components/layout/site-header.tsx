@@ -55,7 +55,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             href={registerHref}
             className="inline-flex h-9 items-center justify-center rounded-full bg-brand-dark px-5 text-sm font-bold text-white transition hover:bg-brand-primary"
           >
-            {isRtl ? "سجّل كمورد" : "Register"}
+            {isRtl ? "كُن موردًا" : "Become a Supplier"}
           </Link>
         </div>
       </Container>

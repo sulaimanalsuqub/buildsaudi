@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
 
 // ====== تفعيل / إيقاف وضع الصيانة ======
 // اضبط NEXT_PUBLIC_MAINTENANCE_MODE=true في .env.local أو Vercel لتفعيله
 const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
 const ERPNEXT_URL = process.env.NEXT_PUBLIC_ERPNEXT_URL;
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
@@ -30,8 +29,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/maintenance", request.url));
   }
 
-  // تابع عمل Supabase session كالمعتاد
-  return await updateSession(request);
+  return NextResponse.next();
 }
 
 export const config = {
