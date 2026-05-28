@@ -151,12 +151,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             {/* Card 1 — Order Products */}
             <Link
               href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl p-8 md:min-h-[340px] md:p-10"
-              style={{ background: "linear-gradient(135deg, #1D3F1F 0%, #09B14B 100%)" }}
+              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl bg-brand-dark p-8 md:min-h-[340px] md:p-10"
             >
-              {/* Background decoration */}
-              <div className="pointer-events-none absolute -end-12 -top-12 h-48 w-48 rounded-full bg-white/5" />
-              <div className="pointer-events-none absolute -bottom-8 -start-8 h-32 w-32 rounded-full bg-white/5" />
 
               <div className="relative">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
@@ -179,9 +175,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               href={isRtl ? "/ar/get-quote" : "/get-quote"}
               className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10"
             >
-              {/* Background decoration */}
-              <div className="pointer-events-none absolute -end-12 -top-12 h-48 w-48 rounded-full bg-brand-dark/3" />
-              <div className="pointer-events-none absolute -bottom-8 -start-8 h-32 w-32 rounded-full bg-brand-primary/5" />
 
               <div className="relative">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark">
@@ -216,7 +209,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               return (
                 <article
                   key={item.en}
-                  className="group rounded-2xl border border-brand-dark/8 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-primary/20 hover:shadow-soft"
+                  className="group rounded-2xl border border-brand-dark/8 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-primary/20"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-light text-brand-primary transition group-hover:bg-brand-primary/10">
                     <Icon className="h-5 w-5" />
@@ -247,7 +240,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                     <span className="hidden md:block absolute top-[2.75rem] start-[calc(50%+2rem)] end-0 h-px bg-brand-primary/20" />
                   )}
                   {/* step number + icon */}
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white shadow-premium">
+                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white">
                     <Icon className="h-6 w-6" />
                     <span className="absolute -top-2 -end-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-black text-white">
                       {step.step}

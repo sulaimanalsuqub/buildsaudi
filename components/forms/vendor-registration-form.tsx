@@ -302,7 +302,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   if (isSubmitted) {
     return (
-      <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center shadow-premium md:p-10">
+      <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center md:p-10">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
           <CheckCircle2 className="h-7 w-7" />
         </div>
@@ -313,7 +313,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 shadow-premium md:p-8" dir={isRtl ? "rtl" : "ltr"}>
+    <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
       <div className="mb-8 space-y-6">
         <div className="flex flex-col gap-5 border-b border-brand-dark/10 pb-6 md:flex-row md:items-start md:justify-between">
           <div>
@@ -615,7 +615,7 @@ function OptionCard({ checked, children }: { checked: boolean; children: React.R
     <label
       className={cn(
         "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 type-small font-semibold transition",
-        checked ? "border-brand-primary bg-brand-primary/10 text-brand-dark shadow-soft" : "border-brand-dark/15 bg-white text-brand-dark/78 hover:border-brand-dark/30"
+        checked ? "border-brand-primary bg-brand-primary/10 text-brand-dark" : "border-brand-dark/15 bg-white text-brand-dark/78 hover:border-brand-dark/30"
       )}
     >
       {children}
@@ -644,7 +644,7 @@ function BinaryField({
             key={option.value}
             className={cn(
               "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition",
-              value === option.value ? "border-brand-primary bg-brand-primary/10 shadow-soft" : "border-brand-dark/15 hover:border-brand-dark/30"
+              value === option.value ? "border-brand-primary bg-brand-primary/10" : "border-brand-dark/15 hover:border-brand-dark/30"
             )}
           >
             <RadioGroupItem value={option.value} />

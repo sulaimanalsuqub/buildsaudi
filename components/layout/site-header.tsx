@@ -28,7 +28,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
     <header
       className={[
         "fixed inset-x-0 top-0 z-50 border-b border-brand-dark/8 bg-white/92 backdrop-blur-xl transition-all duration-300",
-        scrolled ? "shadow-[0_4px_24px_rgba(29,63,31,0.07)]" : "",
+        scrolled ? "border-b border-brand-dark/10" : "",
       ].join(" ")}
     >
       <Container className="flex h-[72px] items-center justify-between gap-4">

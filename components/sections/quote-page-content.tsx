@@ -58,7 +58,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
         <Container>
           <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
 
-            <aside className="rounded-2xl border border-brand-dark/8 bg-white p-6 shadow-soft">
+            <aside className="rounded-2xl border border-brand-dark/8 bg-white p-6">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-brand-primary">{t.sideTitle}</p>
               <div className="mt-4 space-y-3">
                 {points.map((point) => {
