@@ -105,7 +105,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       ? "نوفر مواد البناء عبر ثماني فئات رئيسية لجميع احتياجات مشاريعك"
       : "We supply construction materials across eight major categories for all your project needs",
     processLabel: isRtl ? "العملية" : "Process",
-    howTitle: isRtl ? "كيف يعمل بيلد؟" : "How Build Works",
+    howTitle: isRtl ? "كيف نشتغل؟" : "How We Work",
     howSub: isRtl
       ? "ثلاث خطوات بسيطة لتأمين مواد مشروعك"
       : "Three simple steps to secure your project materials",
@@ -237,22 +237,24 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
           </div>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {steps.map((step) => {
+          <div className="mt-12 grid gap-0 md:grid-cols-3">
+            {steps.map((step, index) => {
               const Icon = step.icon;
               return (
-                <div
-                  key={step.en}
-                  className="relative rounded-2xl border border-brand-dark/8 bg-white p-7 shadow-soft"
-                >
-                  <span className="absolute top-6 end-7 text-5xl font-black leading-none text-brand-dark/[0.06]">
-                    {step.step}
-                  </span>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
-                    <Icon className="h-5 w-5" />
+                <div key={step.en} className="relative flex flex-col items-center text-center px-6 py-8">
+                  {/* connector line */}
+                  {index < steps.length - 1 && (
+                    <span className="hidden md:block absolute top-[2.75rem] start-[calc(50%+2rem)] end-0 h-px bg-brand-primary/20" />
+                  )}
+                  {/* step number + icon */}
+                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white shadow-premium">
+                    <Icon className="h-6 w-6" />
+                    <span className="absolute -top-2 -end-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-black text-white">
+                      {step.step}
+                    </span>
                   </div>
                   <h3 className="mt-5 text-[17px] font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
-                  <p className="mt-2 text-sm leading-6 text-brand-dark/58">{isRtl ? step.descAr : step.descEn}</p>
+                  <p className="mt-2 text-sm leading-6 text-brand-dark/55 max-w-[200px]">{isRtl ? step.descAr : step.descEn}</p>
                 </div>
               );
             })}
