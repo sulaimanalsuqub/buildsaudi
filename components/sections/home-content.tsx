@@ -212,7 +212,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         <Container>
           <div className="text-center">
             <h2 className="type-section-title mx-auto text-brand-dark">{t.catalogTitle}</h2>
-            <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.catalogSub}</p>
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -240,7 +239,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         <Container>
           <div className="text-center">
             <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
-            <p className="mx-auto mt-4 max-w-lg text-base text-brand-dark/58">{t.howSub}</p>
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-3">
