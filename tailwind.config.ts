@@ -9,11 +9,10 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          dark: "#0F110E",
-          primary: "#F4B324", // Premium Amber/Orange from build.sa
+          dark: "#1D3F1F",
+          primary: "#05B04C",
           accent: "#C5D92D",
-          light: "#F8F9F7",
-          surface: "#FDFDFD"
+          light: "#F4F3EB"
         }
       },
       borderRadius: {

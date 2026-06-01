@@ -121,22 +121,18 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-white pb-20 pt-24 md:pb-32 md:pt-40">
-        {/* Background Decorative Element */}
-        <div className="absolute right-0 top-0 -mr-24 -mt-24 h-96 w-96 rounded-full bg-brand-primary/5 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -ml-24 -mb-24 h-96 w-96 rounded-full bg-brand-accent/5 blur-3xl" />
 
         <Container className="relative">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-            <div>
+            
+            {/* Text Section (Right side in RTL) */}
+            <div className="flex flex-col items-center lg:items-start text-center lg:text-start">
               <motion.div
-                initial={{ opacity: 0, x: isRtl ? 20 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <span className="inline-block rounded-full bg-brand-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-primary">
-                  {t.eyebrow}
-                </span>
-                <h1 className="type-hero mt-6 text-brand-dark leading-[1.1]">
+                <h1 className="type-hero text-brand-dark leading-[1.1]">
                   {isRtl ? (
                     <>
                       أسرع طريق لتوريد <br />
@@ -153,30 +149,25 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   {t.body}
                 </p>
 
-                <div className="mt-10 flex flex-wrap gap-4">
+                <div className="mt-10">
                   <Link
                     href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                    className="inline-flex h-12 items-center justify-center rounded-full bg-brand-dark px-8 text-sm font-bold text-white transition hover:bg-brand-primary"
+                    className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-white transition hover:bg-brand-dark"
                   >
                     {t.primary}
-                  </Link>
-                  <Link
-                    href="#how-it-works"
-                    className="inline-flex h-12 items-center justify-center rounded-full border border-brand-dark/10 px-8 text-sm font-bold text-brand-dark transition hover:bg-brand-light"
-                  >
-                    {t.processLabel}
                   </Link>
                 </div>
               </motion.div>
             </div>
 
+            {/* Image Section (Left side in RTL) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative hidden lg:block"
             >
-              <div className="relative aspect-square overflow-hidden rounded-[3rem] border-8 border-brand-light bg-brand-light shadow-2xl">
+              <div className="relative aspect-square overflow-hidden rounded-[3rem] border border-brand-dark/10 bg-brand-light">
                 <Image
                   src="/images/buildman.png"
                   alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
@@ -186,8 +177,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 />
               </div>
 
-              {/* Floating Stat Card */}
-              <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-2xl shadow-brand-dark/10">
+              {/* Floating Stat Card (Flat) */}
+              <div className="absolute -bottom-6 -inline-start-6 rounded-2xl border border-brand-dark/10 bg-white p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-white">
                     <ShieldCheck className="h-6 w-6" />
@@ -199,6 +190,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 </div>
               </div>
             </motion.div>
+
           </div>
         </Container>
       </section>
@@ -232,16 +224,15 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.05 }}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/5 bg-white p-8 transition-all hover:border-brand-primary/30 hover:shadow-2xl hover:shadow-brand-primary/5"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-white p-8 transition-all"
                 >
                   <div className="relative z-10">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-primary transition-colors group-hover:bg-brand-primary group-hover:text-white">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-primary transition-colors">
                       <Icon className="h-6 w-6" aria-hidden="true" />
                     </div>
                     <h3 className="mt-6 text-xl font-bold text-brand-dark">{isRtl ? item.ar : item.en}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-brand-dark/50">{isRtl ? item.descAr : item.descEn}</p>
                   </div>
-                  <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-brand-primary/5 transition-transform group-hover:scale-150" />
                 </motion.article>
               );
             })}
@@ -280,9 +271,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                     )}
                     
                     <div className="relative z-10 flex flex-col items-center text-center">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-dark text-white shadow-xl shadow-brand-dark/20 transition-transform hover:scale-110">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-dark text-white border border-brand-dark/10">
                         <Icon className="h-8 w-8 text-brand-primary" aria-hidden="true" />
-                        <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-black text-brand-dark shadow-lg">
+                        <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-black text-brand-dark border-2 border-white">
                           {step.step}
                         </div>
                       </div>
@@ -303,9 +294,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="pb-20 pt-10 md:pb-32">
         <Container>
           <div className="relative overflow-hidden rounded-[3rem] bg-brand-dark px-8 py-16 text-center md:px-16 md:py-24">
-            {/* Background elements */}
-            <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-brand-primary/20 blur-3xl" />
-            <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand-primary/10 blur-3xl" />
             
             <div className="relative z-10 mx-auto max-w-2xl">
               <h2 className="text-3xl font-black text-white md:text-5xl">{t.ctaTitle}</h2>
@@ -313,7 +301,19 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               <div className="mt-10">
                 <Link
                   href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                  className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-brand-dark transition hover:bg-white hover:scale-105"
+                  className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-brand-dark transition hover:bg-white"
+                >
+                  {t.card1Cta}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+    </main>
+  );
+}
+ text-lg font-bold text-brand-dark transition hover:bg-white hover:scale-105"
                 >
                   {t.card1Cta}
                 </Link>
