@@ -173,9 +173,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               {/* Floating Stat Card (Flat) */}
               <div className="absolute -bottom-6 -inline-start-6 rounded-2xl border border-brand-dark/10 bg-white p-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-white">
-                    <ShieldCheck className="h-6 w-6" />
-                  </div>
+                  <Image
+                    src="/images/build-icon.png"
+                    alt={isRtl ? "أيقونة بيلد" : "Build icon"}
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0"
+                  />
                   <div>
                     <p className="text-sm font-bold text-brand-dark">{isRtl ? "موثوقية كاملة" : "Full Reliability"}</p>
                     <p className="text-xs text-brand-dark/60">{isRtl ? "توصيل آمن للمواقع" : "Secure Site Delivery"}</p>
