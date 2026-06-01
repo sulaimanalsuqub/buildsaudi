@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Languages, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Languages } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
 
@@ -14,11 +13,8 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -30,7 +26,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 border-b border-brand-dark/8 bg-white/92 backdrop-blur-xl transition-all duration-300 dark:border-white/10 dark:bg-brand-dark/90",
+        "fixed inset-x-0 top-0 z-50 border-b border-brand-dark/8 bg-white/92 backdrop-blur-xl transition-all duration-300",
         scrolled ? "border-b border-brand-dark/10 shadow-sm" : "",
       ].join(" ")}
     >
@@ -42,24 +38,14 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             width={4302}
             height={1500}
             priority
-            className="h-10 w-auto dark:invert"
+            className="h-10 w-auto"
           />
         </Link>
 
         <div className="flex items-center gap-2">
-          {/* Theme Toggle */}
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark dark:border-white/12 dark:bg-brand-dark dark:text-brand-light/70 dark:hover:border-white/25 dark:hover:text-brand-light"
-            aria-label={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
-          >
-            {mounted && (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
-            {!mounted && <div className="h-4 w-4" />}
-          </button>
-
           <Link
             href={languageHref}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark dark:border-white/12 dark:bg-brand-dark dark:text-brand-light/70 dark:hover:border-white/25 dark:hover:text-brand-light"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
             aria-label={isRtl ? "English" : "العربية"}
           >
             <Languages className="h-4 w-4" />

@@ -19,16 +19,16 @@ export default function GlobalError({
   return (
     <div
       dir="rtl"
-      className="flex min-h-screen flex-col items-center justify-center bg-brand-light px-6 text-center transition-colors dark:bg-brand-dark"
+      className="flex min-h-screen flex-col items-center justify-center bg-brand-light px-6 text-center"
     >
       <div className="max-w-md">
         <p className="text-7xl font-black">
           <AuroraText>500</AuroraText>
         </p>
-        <h1 className="mt-4 text-2xl font-bold text-brand-dark dark:text-brand-light">
+        <h1 className="mt-4 text-2xl font-bold text-brand-dark">
           حدث خطأ غير متوقع
         </h1>
-        <p className="mt-3 text-brand-dark/60 leading-relaxed dark:text-brand-light/60">
+        <p className="mt-3 text-brand-dark/60 leading-relaxed">
           نعتذر عن هذا الخطأ. يمكنك المحاولة مجدداً أو العودة للرئيسية.
         </p>
         <div className="mt-8 flex justify-center gap-3">

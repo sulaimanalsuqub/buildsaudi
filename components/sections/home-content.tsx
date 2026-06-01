@@ -116,23 +116,23 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   };
 
   return (
-    <main dir={isRtl ? "rtl" : "ltr"} className="transition-colors dark:bg-brand-dark">
+    <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="bg-white py-16 md:py-20 lg:py-24 dark:bg-brand-dark">
+      <section className="bg-white py-16 md:py-20 lg:py-24">
         <Container>
           <div className="mx-auto max-w-2xl text-center">
-            <h1 className="type-hero text-brand-dark dark:text-brand-light">
+            <h1 className="type-hero text-brand-dark">
               {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
             </h1>
-            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62 dark:text-brand-light/60" aria-label={t.body}>
+            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62" aria-label={t.body}>
               {t.body.split("،").map((part, i, arr) => (
                 <motion.span
                   key={i}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.3 + i * 0.25, ease: "easeOut" }}
-                  className="inline dark:text-brand-light/70"
+                  className="inline"
                 >
                   {part.trim()}{i < arr.length - 1 ? "، " : ""}
                 </motion.span>
@@ -143,26 +143,26 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── Action cards ─────────────────────────────── */}
-      <section className="pb-16 md:pb-20 dark:bg-brand-dark">
+      <section className="pb-16 md:pb-20">
         <Container>
           <div className="grid gap-4 sm:grid-cols-2">
 
             {/* Card 1 — Order Products */}
             <Link
               href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl bg-brand-dark p-8 md:min-h-[340px] md:p-10 dark:bg-white/5 dark:border dark:border-white/10"
+              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl bg-brand-dark p-8 md:min-h-[340px] md:p-10"
             >
 
               <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white dark:bg-white/10">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
                   <FileText className="h-7 w-7" aria-hidden="true" />
                 </div>
-                <h2 className="mt-6 text-2xl font-bold text-white md:text-3xl dark:text-brand-light">{t.card1Title}</h2>
-                <p className="mt-2 text-base text-white/70 dark:text-brand-light/60">{t.card1Sub}</p>
+                <h2 className="mt-6 text-2xl font-bold text-white md:text-3xl">{t.card1Title}</h2>
+                <p className="mt-2 text-base text-white/70">{t.card1Sub}</p>
               </div>
 
               <div className="relative mt-8 flex items-center justify-between">
-                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-brand-dark transition group-hover:bg-brand-light dark:bg-brand-primary dark:text-white dark:group-hover:bg-brand-primary/90">
+                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-brand-dark transition group-hover:bg-brand-light">
                   {t.card1Cta}
                   <ArrowIcon className="h-4 w-4" aria-hidden="true" />
                 </span>
@@ -172,19 +172,19 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             {/* Card 2 — Nationwide Delivery */}
             <Link
               href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10 dark:bg-white/5 dark:border-white/10"
+              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10"
             >
 
               <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark dark:bg-white/10 dark:text-brand-light">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark">
                   <Truck className="h-7 w-7" aria-hidden="true" />
                 </div>
-                <h2 className="mt-6 text-2xl font-bold text-brand-dark md:text-3xl dark:text-brand-light">{t.card2Title}</h2>
-                <p className="mt-2 text-base text-brand-dark/60 dark:text-brand-light/60">{t.card2Sub}</p>
+                <h2 className="mt-6 text-2xl font-bold text-brand-dark md:text-3xl">{t.card2Title}</h2>
+                <p className="mt-2 text-base text-brand-dark/60">{t.card2Sub}</p>
               </div>
 
               <div className="relative mt-8 flex items-center justify-between">
-                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-dark px-6 text-sm font-bold text-white transition group-hover:bg-brand-primary dark:bg-white dark:text-brand-dark dark:group-hover:bg-brand-light">
+                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-dark px-6 text-sm font-bold text-white transition group-hover:bg-brand-primary">
                   {t.card2Cta}
                   <ArrowIcon className="h-4 w-4" aria-hidden="true" />
                 </span>
@@ -196,10 +196,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
-      <section className="bg-[#f7f9f6] py-16 md:py-20 dark:bg-white/5">
+      <section className="bg-[#f7f9f6] py-16 md:py-20">
         <Container>
           <div className="text-center">
-            <h2 className="type-section-title mx-auto text-brand-dark dark:text-brand-light">{t.catalogTitle}</h2>
+            <h2 className="type-section-title mx-auto text-brand-dark">{t.catalogTitle}</h2>
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -208,13 +208,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               return (
                 <article
                   key={item.en}
-                  className="group rounded-2xl border border-brand-dark/8 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-primary/20 dark:border-white/10 dark:bg-white/5"
+                  className="group rounded-2xl border border-brand-dark/8 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-primary/20"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-light text-brand-primary transition group-hover:bg-brand-primary/10 dark:bg-white/10">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-light text-brand-primary transition group-hover:bg-brand-primary/10">
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </div>
-                  <p className="mt-4 text-[15px] font-bold text-brand-dark dark:text-brand-light">{isRtl ? item.ar : item.en}</p>
-                  <p className="mt-1.5 text-[13px] leading-5 text-brand-dark/52 dark:text-brand-light/50">{isRtl ? item.descAr : item.descEn}</p>
+                  <p className="mt-4 text-[15px] font-bold text-brand-dark">{isRtl ? item.ar : item.en}</p>
+                  <p className="mt-1.5 text-[13px] leading-5 text-brand-dark/52">{isRtl ? item.descAr : item.descEn}</p>
                 </article>
               );
             })}
@@ -223,10 +223,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── How it works ─────────────────────────────── */}
-      <section className="py-16 md:py-20 dark:bg-brand-dark">
+      <section className="py-16 md:py-20">
         <Container>
           <div className="text-center">
-            <h2 className="type-section-title mx-auto text-brand-dark dark:text-brand-light">{t.howTitle}</h2>
+            <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
           </div>
 
           <div className="mt-12 grid gap-0 md:grid-cols-3">
@@ -236,17 +236,17 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <div key={step.en} className="relative flex flex-col items-center text-center px-6 py-8">
                   {/* connector line */}
                   {index < steps.length - 1 && (
-                    <span className="hidden md:block absolute top-[2.75rem] start-[calc(50%+2rem)] end-0 h-px bg-brand-primary/20 dark:bg-brand-primary/10" />
+                    <span className="hidden md:block absolute top-[2.75rem] start-[calc(50%+2rem)] end-0 h-px bg-brand-primary/20" />
                   )}
                   {/* step number + icon */}
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white dark:bg-white/10 dark:text-brand-light">
+                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white">
                     <Icon className="h-6 w-6" aria-hidden="true" />
                     <span className="absolute -top-2 -end-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-black text-white">
                       {step.step}
                     </span>
                   </div>
-                  <h3 className="mt-5 text-[17px] font-bold text-brand-dark dark:text-brand-light">{isRtl ? step.ar : step.en}</h3>
-                  <p className="mt-2 text-sm leading-6 text-brand-dark/55 max-w-[200px] dark:text-brand-light/50">{isRtl ? step.descAr : step.descEn}</p>
+                  <h3 className="mt-5 text-[17px] font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
+                  <p className="mt-2 text-sm leading-6 text-brand-dark/55 max-w-[200px]">{isRtl ? step.descAr : step.descEn}</p>
                 </div>
               );
             })}
