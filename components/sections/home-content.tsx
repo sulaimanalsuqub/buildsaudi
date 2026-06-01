@@ -95,7 +95,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     catalogLabel: isRtl ? "الكتالوج" : "Catalog",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
     catalogSub: isRtl
-      ? "نوفر مواد البناء عبر ثماني فئات رئيسية لجميع احتياجات مشاريعك"
+      ? "فئات رئيسية لجميع احتياجات مشاريعك"
       : "We supply construction materials across eight major categories for all your project needs",
     processLabel: isRtl ? "العملية" : "Process",
     howTitle: isRtl ? "كيف نشتغل؟" : "How We Work",
