@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Droplets,
   Fan,
-  FileText,
   HardHat,
   LampCeiling,
   Package,
@@ -45,8 +44,6 @@ type Step = {
 };
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
-  const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
-
   const catalog: CatalogItem[] = [
     { en: "Building Materials", ar: "مواد البناء", descEn: "Cement, steel, blocks & more", descAr: "إسمنت، حديد، بلوك وغيرها", icon: Warehouse },
     { en: "Safety Tools", ar: "أدوات السلامة", descEn: "PPE, barriers & safety gear", descAr: "معدات الحماية الشخصية", icon: HardHat },
@@ -302,18 +299,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <Link
                   href={isRtl ? "/ar/get-quote" : "/get-quote"}
                   className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-brand-dark transition hover:bg-white"
-                >
-                  {t.card1Cta}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-    </main>
-  );
-}
- text-lg font-bold text-brand-dark transition hover:bg-white hover:scale-105"
                 >
                   {t.card1Cta}
                 </Link>
