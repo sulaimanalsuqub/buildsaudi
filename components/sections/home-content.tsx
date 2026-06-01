@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { AuroraText } from "@/components/ui/aurora-text";
 import {
   ArrowLeft,
   ArrowRight,
@@ -119,25 +120,95 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="bg-white py-16 md:py-20 lg:py-24">
-        <Container>
-          <div className="mx-auto max-w-2xl text-center">
-            <h1 className="type-hero text-brand-dark">
-              {isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project"}
-            </h1>
-            <p className="type-subheading mx-auto mt-5 max-w-lg text-brand-dark/62" aria-label={t.body}>
-              {t.body.split("،").map((part, i, arr) => (
-                <motion.span
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 + i * 0.25, ease: "easeOut" }}
-                  className="inline"
-                >
-                  {part.trim()}{i < arr.length - 1 ? "، " : ""}
-                </motion.span>
-              ))}
-            </p>
+      <section className="relative overflow-hidden bg-white pb-20 pt-24 md:pb-32 md:pt-40">
+        {/* Background Decorative Element */}
+        <div className="absolute right-0 top-0 -mr-24 -mt-24 h-96 w-96 rounded-full bg-brand-primary/5 blur-3xl" />
+        <div className="absolute bottom-0 left-0 -ml-24 -mb-24 h-96 w-96 rounded-full bg-brand-accent/5 blur-3xl" />
+
+        <Container className="relative">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: isRtl ? 20 : -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <span className="inline-block rounded-full bg-brand-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-primary">
+                  {t.eyebrow}
+                </span>
+                <h1 className="type-hero mt-6 text-brand-dark leading-[1.1]">
+                  {isRtl ? (
+                    <>
+                      أسرع طريق لتوريد <br />
+                      <AuroraText>مشروعك الإنشائي</AuroraText>
+                    </>
+                  ) : (
+                    <>
+                      The fastest way to supply <br />
+                      <AuroraText>Your Project</AuroraText>
+                    </>
+                  )}
+                </h1>
+                <p className="type-subheading mt-6 max-w-xl text-brand-dark/70">
+                  {t.body}
+                </p>
+
+                <div className="mt-10 flex flex-wrap gap-4">
+                  <Link
+                    href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                    className="inline-flex h-12 items-center justify-center rounded-full bg-brand-dark px-8 text-sm font-bold text-white transition hover:bg-brand-primary"
+                  >
+                    {t.primary}
+                  </Link>
+                  <Link
+                    href="#how-it-works"
+                    className="inline-flex h-12 items-center justify-center rounded-full border border-brand-dark/10 px-8 text-sm font-bold text-brand-dark transition hover:bg-brand-light"
+                  >
+                    {t.processLabel}
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative hidden lg:block"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-brand-light">
+                <div className="absolute inset-0 flex items-center justify-center p-12">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[Warehouse, HardHat, LampCeiling, Truck].map((Icon, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                        className="flex h-32 w-32 items-center justify-center rounded-3xl bg-white shadow-xl shadow-brand-dark/5"
+                      >
+                        <Icon className="h-10 w-10 text-brand-primary" />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+                {/* Decorative Pattern Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-50" />
+              </div>
+
+              {/* Floating Stat Card */}
+              <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-6 shadow-2xl shadow-brand-dark/10">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-white">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-brand-dark">{isRtl ? "موثوقية كاملة" : "Full Reliability"}</p>
+                    <p className="text-xs text-brand-dark/60">{isRtl ? "توصيل آمن للمواقع" : "Secure Site Delivery"}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </Container>
       </section>
