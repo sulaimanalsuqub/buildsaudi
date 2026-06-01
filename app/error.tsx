@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { AuroraText } from "@/components/ui/aurora-text";
+import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
   error,
@@ -17,29 +19,25 @@ export default function GlobalError({
   return (
     <div
       dir="rtl"
-      className="flex min-h-screen flex-col items-center justify-center bg-[#F4F3EB] px-6 text-center"
+      className="flex min-h-screen flex-col items-center justify-center bg-brand-light px-6 text-center transition-colors dark:bg-brand-dark"
     >
       <div className="max-w-md">
-        <p className="text-7xl font-black text-red-400">500</p>
-        <h1 className="mt-4 text-2xl font-bold text-[#1D3F1F]">
+        <p className="text-7xl font-black">
+          <AuroraText>500</AuroraText>
+        </p>
+        <h1 className="mt-4 text-2xl font-bold text-brand-dark dark:text-brand-light">
           حدث خطأ غير متوقع
         </h1>
-        <p className="mt-3 text-[#1D3F1F]/60 leading-relaxed">
+        <p className="mt-3 text-brand-dark/60 leading-relaxed dark:text-brand-light/60">
           نعتذر عن هذا الخطأ. يمكنك المحاولة مجدداً أو العودة للرئيسية.
         </p>
         <div className="mt-8 flex justify-center gap-3">
-          <button
-            onClick={reset}
-            className="rounded-full bg-[#09B14B] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#1D3F1F]"
-          >
+          <Button onClick={reset} size="lg" className="rounded-full">
             حاول مجدداً
-          </button>
-          <Link
-            href="/"
-            className="rounded-full border border-[#1D3F1F]/20 px-6 py-3 text-sm font-semibold text-[#1D3F1F] transition-all hover:bg-[#1D3F1F]/5"
-          >
-            الرئيسية
-          </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-full">
+            <Link href="/">الرئيسية</Link>
+          </Button>
         </div>
       </div>
     </div>

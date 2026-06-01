@@ -6,13 +6,17 @@
   color-scheme: light;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 html,
 body {
   min-height: 100%;
 }
 
 body {
-  @apply bg-white text-brand-dark antialiased;
+  @apply bg-white text-brand-dark antialiased transition-colors duration-300 dark:bg-brand-dark dark:text-brand-light;
 }
 
 @layer components {
