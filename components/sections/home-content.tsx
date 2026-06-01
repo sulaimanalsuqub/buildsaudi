@@ -203,59 +203,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         </Container>
       </section>
 
-      {/* ── Action cards ─────────────────────────────── */}
-      <section className="pb-16 md:pb-20">
-        <Container>
-          <div className="grid gap-4 sm:grid-cols-2">
-
-            {/* Card 1 — Order Products */}
-            <Link
-              href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl bg-brand-dark p-8 md:min-h-[340px] md:p-10"
-            >
-
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
-                  <FileText className="h-7 w-7" aria-hidden="true" />
-                </div>
-                <h2 className="mt-6 text-2xl font-bold text-white md:text-3xl">{t.card1Title}</h2>
-                <p className="mt-2 text-base text-white/70">{t.card1Sub}</p>
-              </div>
-
-              <div className="relative mt-8 flex items-center justify-between">
-                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-brand-dark transition group-hover:bg-brand-light">
-                  {t.card1Cta}
-                  <ArrowIcon className="h-4 w-4" aria-hidden="true" />
-                </span>
-              </div>
-            </Link>
-
-            {/* Card 2 — Nationwide Delivery */}
-            <Link
-              href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-brand-light p-8 md:min-h-[340px] md:p-10"
-            >
-
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-dark/10 text-brand-dark">
-                  <Truck className="h-7 w-7" aria-hidden="true" />
-                </div>
-                <h2 className="mt-6 text-2xl font-bold text-brand-dark md:text-3xl">{t.card2Title}</h2>
-                <p className="mt-2 text-base text-brand-dark/60">{t.card2Sub}</p>
-              </div>
-
-              <div className="relative mt-8 flex items-center justify-between">
-                <span className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-dark px-6 text-sm font-bold text-white transition group-hover:bg-brand-primary">
-                  {t.card2Cta}
-                  <ArrowIcon className="h-4 w-4" aria-hidden="true" />
-                </span>
-              </div>
-            </Link>
-
-          </div>
-        </Container>
-      </section>
-
       {/* ── Catalog ──────────────────────────────────── */}
       <section className="bg-[#f7f9f6] py-16 md:py-20">
         <Container>
