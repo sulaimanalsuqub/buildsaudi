@@ -40,7 +40,6 @@ type Step = {
   descEn: string;
   descAr: string;
   icon: typeof Box;
-  step: string;
 };
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
@@ -62,7 +61,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       descEn: "Upload your BOQ and project specifications through our simple form.",
       descAr: "ارفع جدول الكميات ومواصفات مشروعك عبر نموذجنا البسيط.",
       icon: ClipboardList,
-      step: "01",
     },
     {
       en: "We Prepare Your Quote",
@@ -70,7 +68,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       descEn: "We review your requirements and prepare a comprehensive price quote for your project.",
       descAr: "نراجع احتياجاتك ونجهّز عرض سعر شاملاً لمشروعك في أسرع وقت.",
       icon: Package,
-      step: "02",
     },
     {
       en: "Delivered On-Site",
@@ -78,7 +75,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       descEn: "Materials are delivered directly to your project location across KSA.",
       descAr: "تُسلَّم المواد مباشرةً في موقع مشروعك في أنحاء المملكة.",
       icon: Truck,
-      step: "03",
     },
   ];
 
@@ -249,40 +245,36 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             </p>
           </div>
 
-          <div className="mt-20">
-            <div className="grid gap-12 lg:grid-cols-3 lg:gap-8">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={step.en}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.2 }}
-                    className="relative"
-                  >
-                    {/* Step line connector */}
-                    {index < steps.length - 1 && (
-                      <div className="absolute left-[50%] top-10 hidden h-[2px] w-full bg-brand-dark/5 lg:block" />
-                    )}
-                    
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-dark text-white border border-brand-dark/10">
-                        <Icon className="h-8 w-8 text-brand-primary" aria-hidden="true" />
-                        <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-black text-brand-dark border-2 border-white">
-                          {step.step}
-                        </div>
-                      </div>
-                      <h3 className="mt-8 text-2xl font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
-                      <p className="mt-4 max-w-[280px] text-base leading-relaxed text-brand-dark/60">
-                        {isRtl ? step.descAr : step.descEn}
-                      </p>
+          <div className="relative mt-16 grid gap-6 md:grid-cols-3">
+            {/* Connecting line behind cards */}
+            <div className="absolute top-14 hidden h-[2px] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent md:inset-x-[15%] md:block" />
+
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <motion.div
+                  key={s.en}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 }}
+                  className="relative flex flex-col items-center rounded-3xl border border-brand-dark/8 bg-white p-8 text-center"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
+                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className="absolute end-0 top-14 hidden -translate-y-1/2 translate-x-1/2 text-brand-primary/30 md:block">
+                      <ArrowRight className={`h-5 w-5 ${isRtl ? "rotate-180" : ""}`} />
                     </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+                  )}
+                  <h3 className="mt-5 text-lg font-bold text-brand-dark">{isRtl ? s.ar : s.en}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-brand-dark/55">
+                    {isRtl ? s.descAr : s.descEn}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </Container>
       </section>
