@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Rubik } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import { Toaster } from "sonner";
 
@@ -10,10 +10,15 @@ import "./globals.css";
 
 const GTM_ID = "GTM-KBN6BHR";
 
-const rubik = Rubik({
-  subsets: ["latin", "arabic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap"
+const gtAmericaArabic = localFont({
+  src: [
+    { path: "./fonts/GTAmericaArabic-Light.ttf", weight: "300", style: "normal" },
+    { path: "./fonts/GTAmericaArabic-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/GTAmericaArabic-Medium.ttf", weight: "500", style: "normal" },
+    { path: "./fonts/GTAmericaArabic-Bold.ttf", weight: "700", style: "normal" },
+    { path: "./fonts/GTAmericaArabic-Black.ttf", weight: "900", style: "normal" },
+  ],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -71,7 +76,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <OrganizationSchema />
         <WebsiteSchema />
       </head>
-      <body className={rubik.className}>
+      <body className={gtAmericaArabic.className}>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
