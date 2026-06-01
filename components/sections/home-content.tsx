@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { AuroraText } from "@/components/ui/aurora-text";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -140,12 +140,12 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   {isRtl ? (
                     <>
                       أسرع طريق لتوريد <br />
-                      <AuroraText>مشروعك الإنشائي</AuroraText>
+                      <span className="text-brand-primary">مشروعك الإنشائي</span>
                     </>
                   ) : (
                     <>
                       The fastest way to supply <br />
-                      <AuroraText>Your Project</AuroraText>
+                      <span className="text-brand-primary">Your Project</span>
                     </>
                   )}
                 </h1>
@@ -176,24 +176,14 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative hidden lg:block"
             >
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-brand-light">
-                <div className="absolute inset-0 flex items-center justify-center p-12">
-                  <div className="grid grid-cols-2 gap-4">
-                    {[Warehouse, HardHat, LampCeiling, Truck].map((Icon, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 + i * 0.1 }}
-                        className="flex h-32 w-32 items-center justify-center rounded-3xl bg-white shadow-xl shadow-brand-dark/5"
-                      >
-                        <Icon className="h-10 w-10 text-brand-primary" />
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-                {/* Decorative Pattern Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-50" />
+              <div className="relative aspect-square overflow-hidden rounded-[2rem]">
+                <Image
+                  src="/images/buildman.png"
+                  alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
 
               {/* Floating Stat Card */}
