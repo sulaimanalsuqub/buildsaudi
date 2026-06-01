@@ -204,26 +204,45 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
-      <section className="bg-[#f7f9f6] py-16 md:py-20">
+      <section className="bg-brand-light py-20 md:py-32">
         <Container>
-          <div className="text-center">
-            <h2 className="type-section-title mx-auto text-brand-dark">{t.catalogTitle}</h2>
+          <div className="flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="max-w-3xl"
+            >
+              <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
+                {t.catalogTitle}
+              </h2>
+              <p className="mt-4 text-lg text-brand-dark/60">
+                {t.catalogSub}
+              </p>
+            </motion.div>
           </div>
 
-          <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {catalog.map((item) => {
+          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {catalog.map((item, index) => {
               const Icon = item.icon;
               return (
-                <article
+                <motion.article
                   key={item.en}
-                  className="group rounded-2xl border border-brand-dark/8 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand-primary/20"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/5 bg-white p-8 transition-all hover:border-brand-primary/30 hover:shadow-2xl hover:shadow-brand-primary/5"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-light text-brand-primary transition group-hover:bg-brand-primary/10">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  <div className="relative z-10">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-primary transition-colors group-hover:bg-brand-primary group-hover:text-white">
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-6 text-xl font-bold text-brand-dark">{isRtl ? item.ar : item.en}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-brand-dark/50">{isRtl ? item.descAr : item.descEn}</p>
                   </div>
-                  <p className="mt-4 text-[15px] font-bold text-brand-dark">{isRtl ? item.ar : item.en}</p>
-                  <p className="mt-1.5 text-[13px] leading-5 text-brand-dark/52">{isRtl ? item.descAr : item.descEn}</p>
-                </article>
+                  <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-brand-primary/5 transition-transform group-hover:scale-150" />
+                </motion.article>
               );
             })}
           </div>
@@ -231,38 +250,78 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── How it works ─────────────────────────────── */}
-      <section className="py-16 md:py-20">
+      <section id="how-it-works" className="py-20 md:py-32">
         <Container>
-          <div className="text-center">
-            <h2 className="type-section-title mx-auto text-brand-dark">{t.howTitle}</h2>
+          <div className="flex flex-col items-center text-center">
+            <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
+              {t.howTitle}
+            </h2>
+            <p className="mt-4 text-lg text-brand-dark/60">
+              {t.howSub}
+            </p>
           </div>
 
-          <div className="mt-12 grid gap-0 md:grid-cols-3">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.en} className="relative flex flex-col items-center text-center px-6 py-8">
-                  {/* connector line */}
-                  {index < steps.length - 1 && (
-                    <span className="hidden md:block absolute top-[2.75rem] start-[calc(50%+2rem)] end-0 h-px bg-brand-primary/20" />
-                  )}
-                  {/* step number + icon */}
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white">
-                    <Icon className="h-6 w-6" aria-hidden="true" />
-                    <span className="absolute -top-2 -end-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[11px] font-black text-white">
-                      {step.step}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 text-[17px] font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
-                  <p className="mt-2 text-sm leading-6 text-brand-dark/55 max-w-[200px]">{isRtl ? step.descAr : step.descEn}</p>
-                </div>
-              );
-            })}
+          <div className="mt-20">
+            <div className="grid gap-12 lg:grid-cols-3 lg:gap-8">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <motion.div
+                    key={step.en}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.2 }}
+                    className="relative"
+                  >
+                    {/* Step line connector */}
+                    {index < steps.length - 1 && (
+                      <div className="absolute left-[50%] top-10 hidden h-[2px] w-full bg-brand-dark/5 lg:block" />
+                    )}
+                    
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-dark text-white shadow-xl shadow-brand-dark/20 transition-transform hover:scale-110">
+                        <Icon className="h-8 w-8 text-brand-primary" aria-hidden="true" />
+                        <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-black text-brand-dark shadow-lg">
+                          {step.step}
+                        </div>
+                      </div>
+                      <h3 className="mt-8 text-2xl font-bold text-brand-dark">{isRtl ? step.ar : step.en}</h3>
+                      <p className="mt-4 max-w-[280px] text-base leading-relaxed text-brand-dark/60">
+                        {isRtl ? step.descAr : step.descEn}
+                      </p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         </Container>
       </section>
 
-
+      {/* ── Final CTA ────────────────────────────────── */}
+      <section className="pb-20 pt-10 md:pb-32">
+        <Container>
+          <div className="relative overflow-hidden rounded-[3rem] bg-brand-dark px-8 py-16 text-center md:px-16 md:py-24">
+            {/* Background elements */}
+            <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-brand-primary/20 blur-3xl" />
+            <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-brand-primary/10 blur-3xl" />
+            
+            <div className="relative z-10 mx-auto max-w-2xl">
+              <h2 className="text-3xl font-black text-white md:text-5xl">{t.ctaTitle}</h2>
+              <p className="mt-6 text-lg text-white/70">{t.ctaBody}</p>
+              <div className="mt-10">
+                <Link
+                  href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                  className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-brand-dark transition hover:bg-white hover:scale-105"
+                >
+                  {t.card1Cta}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
     </main>
   );
 }
