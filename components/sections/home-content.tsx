@@ -176,12 +176,12 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative hidden lg:block"
             >
-              <div className="relative aspect-square overflow-hidden rounded-[2rem]">
+              <div className="relative aspect-square overflow-hidden rounded-[3rem] border-8 border-brand-light bg-brand-light shadow-2xl">
                 <Image
                   src="/images/buildman.png"
                   alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   priority
                 />
               </div>
