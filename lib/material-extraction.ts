@@ -1,3 +1,21 @@
+// ── Cache بسيط لتفادي استدعاء DeepSeek مرتين لنفس المحتوى ──────────────────
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 دقائق
+const extractionCache = new Map<string, { result: ExtractedMaterialItem[]; expiresAt: number }>();
+
+function hashInput(input: ExtractionInput): string {
+  const key = [
+    input.materials?.trim() ?? "",
+    input.boq_file_text?.slice(0, 500) ?? "",
+    input.boq_file_url ?? "",
+    input.notes?.trim() ?? "",
+  ].join("|");
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = Math.imul(31, hash) + key.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+}
+
 export type ExtractedMaterialItem = {
   item_name: string;
   description: string;
@@ -127,6 +145,13 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
     return fallbackExtract(input);
   }
 
+  // تحقق من الـ cache أولاً
+  const cacheKey = hashInput(input);
+  const cached = extractionCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.result;
+  }
+
   try {
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -180,8 +205,12 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
       || extractOutputText(json);
     const parsed = JSON.parse(outputText) as { items?: Array<Omit<ExtractedMaterialItem, "source">> };
     const items = normalizeItems(parsed.items || [], "ai");
+    const result = items.length ? items : fallbackExtract(input);
 
-    return items.length ? items : fallbackExtract(input);
+    // خزّن النتيجة في الـ cache
+    extractionCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    return result;
   } catch (error) {
     console.error("Material extraction failed, using fallback:", error);
     return fallbackExtract(input);

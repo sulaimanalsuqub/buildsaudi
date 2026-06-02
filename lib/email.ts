@@ -13,6 +13,24 @@ const BASE_URL = (
 ).replace(/\/$/, "");
 const ERPNEXT_URL = process.env.ERPNEXT_URL?.replace(/\/$/, "");
 
+// إرسال الإيميل مع إعادة المحاولة تلقائياً (3 محاولات، backoff تصاعدي)
+type EmailParams = Parameters<ReturnType<typeof getResend>["emails"]["send"]>[0];
+async function sendEmail(params: EmailParams) {
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await getResend().emails.send(params);
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, attempt * 600));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // تحصين HTML لمنع XSS
 function esc(str: string | null | undefined): string {
   if (!str) return "";
@@ -60,7 +78,7 @@ export async function sendNewQuoteNotification(quote: {
 }) {
   const opportunityUrl = erpnextDocUrl("opportunity", quote.id);
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `طلب تسعير جديد — ${quote.project_name}`,
@@ -97,7 +115,7 @@ export async function sendQuoteConfirmationToClient(quote: {
   client_name: string;
   client_email: string;
 }) {
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: quote.client_email,
     subject: `تم استلام طلبك — ${quote.project_name}`,
@@ -136,7 +154,7 @@ export async function sendContractSignLink(vendor: {
 }) {
   const signUrl = safeUrl(`${BASE_URL}/vendor/sign/${vendor.token}`);
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: vendor.email,
     subject: `طلب توقيع عقد — ${vendor.contractTitle}`,
@@ -173,7 +191,7 @@ export async function sendVendorActivatedEmail(vendor: {
   manager_name: string;
   email: string;
 }) {
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: vendor.email,
     subject: "تم تفعيل حسابك كمورد — Build Saudi",
@@ -203,7 +221,7 @@ export async function sendVendorRejectedEmail(vendor: {
   manager_name: string;
   email: string;
 }) {
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: vendor.email,
     subject: "بخصوص طلب الانضمام — Build Saudi",
@@ -253,7 +271,7 @@ export async function sendRfqToVendor(params: {
     )
     .join("");
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.vendorEmail,
     subject: `طلب عرض سعر — ${params.projectName}`,
@@ -330,7 +348,7 @@ export async function sendClientOfferEmail(offer: {
   const offerUrl = safeUrl(`${BASE_URL}/offer/${offer.offer_token}`);
   const fmt = (n: number) => n.toLocaleString("ar-SA") + " ر.س";
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: offer.client_email,
     subject: `عرض سعر جاهز — ${offer.project_name}`,
@@ -441,7 +459,7 @@ export async function sendQuoteStatusToClient(params: {
   const config = STATUS_CLIENT_MAP[params.status];
   if (!config) return null;
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.client_email,
     subject: `${config.subject} — ${params.project_name}`,
@@ -473,7 +491,7 @@ export async function sendVendorRegistrationConfirmation(vendor: {
   manager_name: string;
   email: string;
 }) {
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: vendor.email,
     subject: "تم استلام طلب انضمامكم — Build Saudi",
@@ -515,7 +533,7 @@ export async function sendClientResponseNotification(data: {
   const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280" };
   const adminUrl = erpnextDocUrl("opportunity", data.quote_id);
 
-  return getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `رد العميل: ${actionInfo.label} — ${data.project_name}`,

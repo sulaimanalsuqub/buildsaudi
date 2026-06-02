@@ -116,10 +116,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section className="relative overflow-hidden bg-white pb-20 pt-24 md:pb-32 md:pt-40">
 
         <Container className="relative">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-            
+          <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+
             {/* Text Section (Right side in RTL) */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-start">
+            <div className="flex flex-col items-center md:items-start text-center md:text-start">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -158,7 +158,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative hidden lg:block"
+              className="relative hidden md:block"
             >
               <div className="relative aspect-square overflow-hidden rounded-[3rem] border border-brand-dark/10 bg-brand-light">
                 <Image
@@ -286,7 +286,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       {/* ── Final CTA ────────────────────────────────── */}
       <section className="pb-20 pt-10 md:pb-32">
         <Container>
-          <div className="relative overflow-hidden rounded-[3rem] bg-brand-dark px-8 py-16 text-center md:px-16 md:py-24">
+          <div className="relative overflow-hidden rounded-2xl bg-brand-dark px-8 py-16 text-center md:rounded-[3rem] md:px-16 md:py-24">
             
             <div className="relative z-10 mx-auto max-w-2xl">
               <h2 className="text-3xl font-black text-white md:text-5xl">{t.ctaTitle}</h2>

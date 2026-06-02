@@ -11,6 +11,35 @@ const ALLOWED_TYPES = [
   "text/csv",
 ];
 
+// التحقق من Magic Bytes للتأكد أن محتوى الملف يطابق نوعه المُعلَن
+async function isValidFileContent(file: File): Promise<boolean> {
+  // CSV: ملف نصي، لا magic bytes مطلوبة
+  if (file.type === "text/csv") return true;
+
+  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+
+  // PDF: %PDF = 25 50 44 46
+  if (file.type === "application/pdf") {
+    return head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
+  }
+
+  // XLSX (ZIP format): PK\x03\x04 = 50 4B 03 04
+  if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+    return head[0] === 0x50 && head[1] === 0x4B && head[2] === 0x03 && head[3] === 0x04;
+  }
+
+  // XLS (Compound Binary Format): D0 CF 11 E0
+  if (file.type === "application/vnd.ms-excel") {
+    return (
+      (head[0] === 0xD0 && head[1] === 0xCF && head[2] === 0x11 && head[3] === 0xE0) ||
+      // بعض ملفات XLS قديمة ترفع كـ ZIP أيضاً
+      (head[0] === 0x50 && head[1] === 0x4B)
+    );
+  }
+
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const clientId = getClientIdentifier(req);
@@ -30,6 +59,11 @@ export async function POST(req: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json({ error: "نوع الملف غير مسموح" }, { status: 400 });
+    }
+
+    const contentValid = await isValidFileContent(file);
+    if (!contentValid) {
+      return NextResponse.json({ error: "محتوى الملف لا يتطابق مع نوعه" }, { status: 400 });
     }
 
     let extractedText = "";

@@ -20,7 +20,9 @@ export async function GET() {
       erpnextReachable = res.ok;
       if (!res.ok) erpnextError = `HTTP ${res.status}`;
     } catch (e) {
-      erpnextError = String(e);
+      // تسجيل التفاصيل داخلياً فقط — لا تُكشف للعميل
+      console.error("[Health] ERPNext ping failed:", e);
+      erpnextError = "connection failed";
     }
   }
 

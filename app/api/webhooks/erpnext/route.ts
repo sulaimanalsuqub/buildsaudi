@@ -25,11 +25,24 @@ type OpportunityPayload = {
 
 type WebhookPayload = SupplierPayload | OpportunityPayload;
 
+const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 دقائق
+
 export async function POST(req: NextRequest) {
-  // Verify shared secret
+  // التحقق من الـ secret
   const secret = req.headers.get("x-webhook-secret");
   if (!WEBHOOK_SECRET || secret !== WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // حماية من Replay Attacks: رفض الطلبات خارج نافذة 5 دقائق
+  const tsHeader = req.headers.get("x-webhook-timestamp");
+  if (tsHeader) {
+    const ts = Number(tsHeader);
+    const age = Date.now() - ts;
+    if (isNaN(age) || age > REPLAY_WINDOW_MS || age < -30_000) {
+      console.warn("[Webhook] Rejected — timestamp out of range:", tsHeader);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   let payload: WebhookPayload;

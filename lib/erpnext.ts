@@ -59,7 +59,10 @@ async function erpnextRequest<T>(path: string, options: ERPNextRequestOptions = 
 
   if (!res.ok) {
     const detail = json?._server_messages ?? json?.exception ?? json?.exc_type ?? text;
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    const detailStr = typeof detail === "string" ? detail : JSON.stringify(detail);
+    // تسجيل التفاصيل الكاملة في سجلات السيرفر فقط — لا تُرسل للـ client
+    console.error(`[ERPNext] ${options.method ?? "GET"} ${path} → ${res.status}:`, detailStr);
+    throw new Error(`ERPNext error: ${res.status}`);
   }
 
   return json as T;
@@ -116,7 +119,9 @@ export async function uploadERPNextFile(file: File) {
 
   if (!res.ok) {
     const detail = json?._server_messages ?? json?.exception ?? json?.exc_type ?? text;
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    const detailStr = typeof detail === "string" ? detail : JSON.stringify(detail);
+    console.error(`[ERPNext] POST /api/method/upload_file → ${res.status}:`, detailStr);
+    throw new Error(`ERPNext upload error: ${res.status}`);
   }
 
   const uploaded = (json as ERPNextUploadResponse).message;

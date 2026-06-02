@@ -28,7 +28,7 @@ export function LegalPageContent({ title, badge, isRtl = false, children }: Lega
       {/* Content */}
       <section className="bg-[#f7f9f6] py-10 md:py-14">
         <Container>
-          <article className="mx-auto max-w-[860px] rounded-2xl border border-brand-dark/8 bg-white p-8 md:p-12">
+          <article className="mx-auto max-w-[860px] rounded-2xl border border-brand-dark/8 bg-white p-5 sm:p-8 md:p-12">
             <div className="space-y-6">
               {children}
             </div>

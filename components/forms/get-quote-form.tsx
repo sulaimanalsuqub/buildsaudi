@@ -390,7 +390,7 @@ delivery_address: form.deliveryAddress,
             className="h-full rounded-full bg-brand-primary"
           />
         </div>
-        <div className="grid gap-2 pt-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-4">
           {copy.steps.map((label, index) => (
             <div
               key={label}
@@ -439,7 +439,7 @@ delivery_address: form.deliveryAddress,
                   dir="ltr"
                 />
               </Field>
-              <Field label={copy.contactMethod}>
+              <Field label={copy.contactMethod} className="sm:col-span-2">
                 <div className="grid grid-cols-2 gap-3">
                   {(["whatsapp", "email"] as const).map((method) => (
                     <button
@@ -637,14 +637,16 @@ function Field({
   error,
   required,
   children,
+  className,
 }: {
   label: string;
   error?: string;
   required?: boolean;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
       <label className="text-sm font-semibold text-brand-dark">
         {label}
         {required && <span className="ms-1 text-brand-primary">*</span>}

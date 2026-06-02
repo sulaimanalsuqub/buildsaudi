@@ -561,7 +561,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
 function StepTabs({ labels, currentStep }: { labels: string[]; currentStep: number }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {labels.map((label, index) => {
         const active = index === currentStep;
         const completed = index < currentStep;
@@ -607,7 +607,7 @@ function ErrorText({ text, isRtl }: { text?: string; isRtl: boolean }) {
 }
 
 function OptionGrid({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("grid gap-3 md:grid-cols-2", className)}>{children}</div>;
+  return <div className={cn("grid grid-cols-2 gap-3 md:grid-cols-2", className)}>{children}</div>;
 }
 
 function OptionCard({ checked, children }: { checked: boolean; children: React.ReactNode }) {
