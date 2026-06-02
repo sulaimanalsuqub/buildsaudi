@@ -158,9 +158,9 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative hidden md:block"
+              className="relative"
             >
-              <div className="relative aspect-square overflow-hidden rounded-[3rem] border border-brand-dark/10 bg-brand-light">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light md:aspect-square md:rounded-[3rem]">
                 <Image
                   src="/images/buildman.png"
                   alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
@@ -170,8 +170,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 />
               </div>
 
-              {/* Floating Stat Card (Flat) */}
-              <div className="absolute -bottom-6 -inline-start-6 rounded-2xl border border-brand-dark/10 bg-white p-6">
+              {/* Floating Stat Card — مخفي على الجوال لتفادي الـ overflow */}
+              <div className="absolute -bottom-6 -inline-start-6 hidden rounded-2xl border border-brand-dark/10 bg-white p-6 md:flex">
                 <div className="flex items-center gap-4">
                   <Image
                     src="/images/build-icon.png"

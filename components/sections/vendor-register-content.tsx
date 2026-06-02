@@ -32,7 +32,7 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
               <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
               <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
             </div>
-            <div className="hidden md:block">
+            <div>
               <Image
                 src="/images/build-truck-vendor.png"
                 alt={isRtl ? "شاحنة بيلد للتوريد" : "Build supply truck"}
