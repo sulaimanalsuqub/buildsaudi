@@ -229,14 +229,30 @@ export async function createERPNextProductOpportunity(quote: {
   extracted_items?: ERPNextMaterialItem[];
 }) {
   const materialSummary = quote.materials || "يرجى مراجعة ملف الكميات أو الرابط المرفق.";
-  let lead = quote.client_email
-    ? (await getERPNextList<{ name: string }>("Lead", {
+  // ابحث بالإيميل والجوال معاً أولاً لتفادي الخلط بين عملاء مختلفين
+  let lead: { name: string } | undefined;
+
+  if (quote.client_email) {
+    lead = (await getERPNextList<{ name: string }>("Lead", {
+      fields: ["name"],
+      filters: [
+        ["Lead", "email_id", "=", quote.client_email],
+        ["Lead", "mobile_no", "=", quote.phone],
+      ],
+      limit: 1,
+    }))[0];
+
+    // إن لم يوجد تطابق مشترك، ابحث بالإيميل فقط
+    if (!lead) {
+      lead = (await getERPNextList<{ name: string }>("Lead", {
         fields: ["name"],
         filters: [["Lead", "email_id", "=", quote.client_email]],
         limit: 1,
-      }))[0]
-    : undefined;
+      }))[0];
+    }
+  }
 
+  // إن لم يوجد بالإيميل، ابحث بالجوال
   if (!lead) {
     lead = (await getERPNextList<{ name: string }>("Lead", {
       fields: ["name"],
@@ -252,7 +268,6 @@ export async function createERPNextProductOpportunity(quote: {
       email_id: quote.client_email || undefined,
       mobile_no: quote.phone,
       status: "Lead",
-      source: "Website",
     });
   }
 
@@ -279,6 +294,7 @@ export async function createERPNextProductOpportunity(quote: {
       ? `Extracted ${extractedItems.length} material item(s) from website request. Review before RFQ.`
       : "No structured material items were extracted. Review the raw request before RFQ.",
     build_extracted_material_items: extractedItems.map((item, index) => ({
+      doctype: "Build Request Material Item",
       idx: index + 1,
       build_item_name: item.item_name,
       build_description: item.description,
