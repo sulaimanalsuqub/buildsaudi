@@ -285,8 +285,7 @@ delivery_address: form.deliveryAddress,
       }
 
       // حفظ الرقم المرجعي
-      const refId = quoteData.id.split("-")[0].toUpperCase();
-      setQuoteRef(refId);
+      setQuoteRef(quoteData.id);
 
       // مسح المسودة بعد النجاح
       localStorage.removeItem(STORAGE_KEY);
