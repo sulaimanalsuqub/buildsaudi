@@ -160,13 +160,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
-              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light md:rounded-[3rem]">
+              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light md:aspect-square md:rounded-[3rem]">
                 <Image
                   src="/images/buildman.png"
                   alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
                   width={800}
                   height={800}
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover object-center md:h-full"
                   priority
                 />
               </div>
