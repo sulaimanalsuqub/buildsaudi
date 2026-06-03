@@ -4,37 +4,25 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowLeft,
-  ArrowRight,
   Box,
   Cable,
-  ClipboardList,
   Droplets,
   Fan,
   HardHat,
   LampCeiling,
-  Package,
   Paintbrush,
   ShieldCheck,
-  Truck,
   Warehouse,
 } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
+import { HowItWorks } from "@/components/sections/how-it-works";
 
 type HomeContentProps = {
   isRtl?: boolean;
 };
 
 type CatalogItem = {
-  en: string;
-  ar: string;
-  descEn: string;
-  descAr: string;
-  icon: typeof Box;
-};
-
-type Step = {
   en: string;
   ar: string;
   descEn: string;
@@ -52,30 +40,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     { en: "HVAC", ar: "التكييف والتهوية", descEn: "AC units, ventilation & ducting", descAr: "وحدات تكييف وتهوية وقنوات", icon: Fan },
     { en: "Paint & Decor", ar: "الدهانات والتشطيبات", descEn: "Interior, exterior & specialty paints", descAr: "دهانات داخلية وخارجية ومتخصصة", icon: Paintbrush },
     { en: "Piping Systems", ar: "أنظمة الأنابيب", descEn: "Industrial & civil piping solutions", descAr: "حلول الأنابيب الصناعية والمدنية", icon: Cable },
-  ];
-
-  const steps: Step[] = [
-    {
-      en: "Submit Requirements",
-      ar: "أرسل احتياجاتك",
-      descEn: "Upload your BOQ and project specifications through our simple form.",
-      descAr: "ارفع جدول الكميات ومواصفات مشروعك عبر نموذجنا البسيط.",
-      icon: ClipboardList,
-    },
-    {
-      en: "We Prepare Your Quote",
-      ar: "نجهّز عرض السعر",
-      descEn: "We review your requirements and prepare a comprehensive price quote for your project.",
-      descAr: "نراجع احتياجاتك ونجهّز عرض سعر شاملاً لمشروعك في أسرع وقت.",
-      icon: Package,
-    },
-    {
-      en: "Delivered On-Site",
-      ar: "التسليم في الموقع",
-      descEn: "Materials are delivered directly to your project location across KSA.",
-      descAr: "تُسلَّم المواد مباشرةً في موقع مشروعك في أنحاء المملكة.",
-      icon: Truck,
-    },
   ];
 
   const t = {
@@ -239,50 +203,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── How it works ─────────────────────────────── */}
-      <section id="how-it-works" className="py-20 md:py-32">
-        <Container>
-          <div className="flex flex-col items-center text-center">
-            <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
-              {t.howTitle}
-            </h2>
-            <p className="mt-4 text-lg text-brand-dark/60">
-              {t.howSub}
-            </p>
-          </div>
-
-          <div className="relative mt-16 grid gap-6 md:grid-cols-3">
-            {/* Connecting line behind cards */}
-            <div className="absolute top-14 hidden h-[2px] bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent md:inset-x-[15%] md:block" />
-
-            {steps.map((s, i) => {
-              const Icon = s.icon;
-              return (
-                <motion.div
-                  key={s.en}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15 }}
-                  className="relative flex flex-col items-center rounded-3xl border border-brand-dark/8 bg-white p-8 text-center"
-                >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
-                    <Icon className="h-6 w-6" aria-hidden="true" />
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className="absolute end-0 top-14 hidden -translate-y-1/2 translate-x-1/2 text-brand-primary/30 md:block">
-                      <ArrowRight className={`h-5 w-5 ${isRtl ? "rotate-180" : ""}`} />
-                    </div>
-                  )}
-                  <h3 className="mt-5 text-lg font-bold text-brand-dark">{isRtl ? s.ar : s.en}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-brand-dark/55">
-                    {isRtl ? s.descAr : s.descEn}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </Container>
-      </section>
+      <HowItWorks isRtl={isRtl} />
 
       {/* ── Final CTA ────────────────────────────────── */}
       <section className="pb-20 pt-10 md:pb-32">
