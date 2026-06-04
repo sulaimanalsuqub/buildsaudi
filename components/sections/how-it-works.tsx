@@ -148,9 +148,6 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
       <Container>
         {/* Header */}
         <div className="flex flex-col items-center text-center mb-20">
-          <span className="mb-4 inline-flex items-center rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
-            {t.label}
-          </span>
           <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
             {t.title}
           </h2>
