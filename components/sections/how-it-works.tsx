@@ -46,93 +46,95 @@ const steps: Step[] = [
 
 export function HowItWorks({ isRtl = false }: HowItWorksProps) {
   const sectionRef = useRef<HTMLElement>(null);
-  const lineRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const lineProgressRef = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dotRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pulseRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const numRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // خط يمتد من اليسار لليمين
+      // ── 1. خط يتحرك مع الـ scroll ──────────────────────
       gsap.fromTo(
-        lineRef.current,
-        { scaleX: 0, transformOrigin: isRtl ? "right center" : "left center" },
+        lineProgressRef.current,
+        { scaleX: 0 },
         {
           scaleX: 1,
-          duration: 1.2,
-          ease: "power2.inOut",
+          ease: "none",
+          transformOrigin: isRtl ? "right center" : "left center",
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top 65%",
-            toggleActions: "play none none reverse",
+            start: "top 55%",
+            end: "bottom 75%",
+            scrub: 1.2,
           },
         }
       );
 
-      // نقاط الـ dots تظهر بالتتابع
-      gsap.fromTo(
-        dotRefs.current,
-        { scale: 0, opacity: 0 },
-        {
-          scale: 1,
-          opacity: 1,
-          duration: 0.4,
-          ease: "back.out(2)",
-          stagger: 0.3,
-          delay: 0.3,
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 65%",
-            toggleActions: "play none none reverse",
-          },
-        }
-      );
+      // ── 2. كل خطوة تظهر بشكل مستقل مع ScrollTrigger خاص بها ──
+      stepRefs.current.forEach((step, i) => {
+        if (!step) return;
 
-      // البطاقات ترتفع بالتتابع
-      gsap.fromTo(
-        cardRefs.current,
-        { y: 40, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.7,
-          ease: "power3.out",
-          stagger: 0.2,
-          delay: 0.2,
+        const tl = gsap.timeline({
           scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 65%",
+            trigger: step,
+            start: "top 72%",
             toggleActions: "play none none reverse",
           },
-        }
-      );
+        });
 
-      // الأيقونات تدور خفيفاً عند الظهور
-      gsap.fromTo(
-        iconRefs.current,
-        { rotate: -15, scale: 0.7, opacity: 0 },
-        {
-          rotate: 0,
-          scale: 1,
-          opacity: 1,
-          duration: 0.6,
-          ease: "back.out(1.7)",
-          stagger: 0.2,
-          delay: 0.4,
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 65%",
-            toggleActions: "play none none reverse",
+        // رقم الخطوة يُكشف بـ clip-path من الأسفل
+        tl.fromTo(
+          numRefs.current[i],
+          { clipPath: "inset(100% 0% 0% 0%)", y: 20, opacity: 0 },
+          { clipPath: "inset(0% 0% 0% 0%)", y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+          0
+        );
+
+        // النقطة تظهر بـ spring bounce
+        tl.fromTo(
+          dotRefs.current[i],
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(3)" },
+          0.15
+        );
+
+        // حلقة pulse تتمدد وتختفي
+        tl.fromTo(
+          pulseRefs.current[i],
+          { scale: 1, opacity: 0.6 },
+          { scale: 2.5, opacity: 0, duration: 0.9, ease: "power2.out" },
+          0.4
+        );
+
+        // البطاقة تظهر بـ 3D entrance
+        tl.fromTo(
+          cardRefs.current[i],
+          {
+            y: 60,
+            rotateX: -18,
+            scale: 0.92,
+            opacity: 0,
+            transformPerspective: 800,
           },
-        }
-      );
+          {
+            y: 0,
+            rotateX: 0,
+            scale: 1,
+            opacity: 1,
+            duration: 0.75,
+            ease: "power4.out",
+          },
+          0.2
+        );
+      });
     }, sectionRef);
 
     return () => ctx.revert();
   }, [isRtl]);
 
   const t = {
-    label: isRtl ? "العملية" : "Process",
     title: isRtl ? "كيف نشتغل؟" : "How We Work",
     sub: isRtl
       ? "ثلاث خطوات بسيطة لتأمين مواد مشروعك"
@@ -151,37 +153,56 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
           <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
             {t.title}
           </h2>
-          <p className="mt-4 text-lg text-brand-dark/60 max-w-md">
-            {t.sub}
-          </p>
+          <p className="mt-4 text-lg text-brand-dark/60 max-w-md">{t.sub}</p>
         </div>
 
         {/* Steps */}
         <div className="relative">
-          {/* خط الربط */}
-          <div className="absolute top-8 inset-x-[10%] hidden md:block">
+          {/* خط الربط — سطح المكتب فقط */}
+          <div className="absolute top-[4.25rem] inset-x-[16%] hidden md:block pointer-events-none">
             <div className="relative h-[2px] bg-brand-dark/8 w-full">
               <div
-                ref={lineRef}
-                className="absolute inset-0 bg-gradient-to-r from-brand-primary/60 via-brand-primary to-brand-primary/60 origin-left"
-                style={{ transform: "scaleX(0)" }}
+                ref={lineProgressRef}
+                className="absolute inset-0 bg-gradient-to-r from-brand-primary/50 via-brand-primary to-brand-primary/50"
+                style={{
+                  transformOrigin: isRtl ? "right center" : "left center",
+                  transform: "scaleX(0)",
+                }}
               />
             </div>
           </div>
 
-          {/* نقاط التوقف والبطاقات */}
-          <div className="grid gap-10 md:grid-cols-3 md:gap-6">
+          <div className="grid gap-14 md:grid-cols-3 md:gap-8">
             {steps.map((step, i) => {
               const Icon = step.icon;
+              const num = String(i + 1).padStart(2, "0");
               return (
-                <div key={step.en} className="flex flex-col items-center text-center">
-                  {/* الدائرة */}
-                  <div
-                    ref={(el) => { dotRefs.current[i] = el; }}
-                    className="relative z-10 mb-8 flex h-16 w-16 items-center justify-center rounded-full bg-white border-2 border-brand-primary shadow-lg shadow-brand-primary/15"
+                <div
+                  key={step.en}
+                  ref={(el) => { stepRefs.current[i] = el; }}
+                  className="flex flex-col items-center text-center"
+                >
+                  {/* رقم الخطوة */}
+                  <span
+                    ref={(el) => { numRefs.current[i] = el; }}
+                    className="mb-4 text-6xl font-black tabular-nums leading-none text-brand-primary/15 select-none"
+                    style={{ clipPath: "inset(100% 0% 0% 0%)" }}
                   >
+                    {num}
+                  </span>
+
+                  {/* الدائرة + pulse */}
+                  <div className="relative mb-8">
+                    {/* حلقة pulse خلف النقطة */}
                     <div
-                      ref={(el) => { iconRefs.current[i] = el; }}
+                      ref={(el) => { pulseRefs.current[i] = el; }}
+                      className="absolute inset-0 rounded-full bg-brand-primary/25 opacity-0"
+                      style={{ transform: "scale(1)" }}
+                    />
+                    <div
+                      ref={(el) => { dotRefs.current[i] = el; }}
+                      className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white border-2 border-brand-primary shadow-lg shadow-brand-primary/20"
+                      style={{ transform: "scale(0)", opacity: 0 }}
                     >
                       <Icon className="h-7 w-7 text-brand-primary" />
                     </div>
@@ -191,6 +212,7 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
                   <div
                     ref={(el) => { cardRefs.current[i] = el; }}
                     className="w-full rounded-3xl border border-brand-dark/8 bg-white p-8 shadow-sm"
+                    style={{ opacity: 0 }}
                   >
                     <h3 className="text-lg font-bold text-brand-dark mb-3">
                       {isRtl ? step.ar : step.en}
