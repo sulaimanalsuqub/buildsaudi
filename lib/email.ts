@@ -13,6 +13,9 @@ const BASE_URL = (
 ).replace(/\/$/, "");
 const ERPNEXT_URL = process.env.ERPNEXT_URL?.replace(/\/$/, "");
 
+const LOGO_URL   = `${BASE_URL}/brand/logo-en.svg`;
+const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.svg`;
+
 // إرسال الإيميل مع إعادة المحاولة تلقائياً (3 محاولات، backoff تصاعدي)
 type EmailParams = Parameters<ReturnType<typeof getResend>["emails"]["send"]>[0];
 async function sendEmail(params: EmailParams) {
@@ -59,10 +62,138 @@ function safeUrl(url: string): string {
 function erpnextDocUrl(doctype: "opportunity" | "supplier", id: string): string {
   const fallbackPath = doctype === "opportunity" ? "/get-quote" : "/ar/register";
   const encodedId = encodeURIComponent(id);
-
   return safeUrl(
     ERPNEXT_URL ? `${ERPNEXT_URL}/app/${doctype}/${encodedId}` : `${BASE_URL}${fallbackPath}`
   );
+}
+
+// ─────────────────────────────────────────────
+//  هيكل الإيميل الموحّد
+// ─────────────────────────────────────────────
+type EmailShellOptions = {
+  previewText?: string;
+  accentColor?: string;
+  badgeIcon?: string;
+  badgeLabel?: string;
+  logoVariant?: "en" | "ar";
+  content: string;
+};
+
+function emailShell({
+  previewText = "",
+  accentColor = "#1D3F1F",
+  badgeIcon = "",
+  badgeLabel = "",
+  logoVariant = "en",
+  content,
+}: EmailShellOptions): string {
+  const logoSrc = logoVariant === "ar" ? LOGO_AR_URL : LOGO_URL;
+  const badge = badgeIcon || badgeLabel
+    ? `<div style="display:inline-flex;align-items:center;gap:8px;background:${accentColor}1a;border:1px solid ${accentColor}33;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;color:${accentColor};margin-bottom:20px;">
+        ${badgeIcon ? `<span style="font-size:15px;">${badgeIcon}</span>` : ""}
+        ${badgeLabel ? `<span>${esc(badgeLabel)}</span>` : ""}
+       </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light"/>
+<title>Build Saudi</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f2ef;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+${previewText ? `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#f0f2ef;">${esc(previewText)}</div>` : ""}
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f0f2ef;padding:40px 16px 48px;">
+  <tr><td align="center">
+
+    <!-- Card -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;">
+
+      <!-- Logo Header -->
+      <tr>
+        <td style="background:#ffffff;border-radius:16px 16px 0 0;padding:28px 40px 24px;border-bottom:1px solid #e8ede8;text-align:right;">
+          <img src="${logoSrc}" alt="Build Saudi" height="38" style="display:inline-block;height:38px;width:auto;vertical-align:middle;" />
+        </td>
+      </tr>
+
+      <!-- Accent Bar -->
+      <tr>
+        <td style="background:${accentColor};height:4px;font-size:0;line-height:0;">&nbsp;</td>
+      </tr>
+
+      <!-- Content -->
+      <tr>
+        <td style="background:#ffffff;padding:36px 40px 40px;border-radius:0 0 16px 16px;">
+          ${badge}
+          ${content}
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:28px 16px 0;text-align:center;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="background:#1D3F1F;border-radius:12px;padding:24px 32px;">
+                <img src="${LOGO_URL}" alt="Build Saudi" height="26" style="display:block;margin:0 auto 14px;height:26px;width:auto;opacity:.9;" />
+                <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,.5);text-align:center;direction:rtl;">
+                  منصة Build Saudi لتوريد مواد البناء في المملكة العربية السعودية
+                </p>
+                <p style="margin:0;font-size:11px;color:rgba(255,255,255,.3);text-align:center;">
+                  © ${new Date().getFullYear()} Build Saudi · جميع الحقوق محفوظة
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+
+</body>
+</html>`;
+}
+
+// ─────────────────────────────────────────────
+//  مكوّنات مشتركة
+// ─────────────────────────────────────────────
+function infoRow(label: string, value: string, dir = "rtl") {
+  return `<tr>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f2ef;color:#6b7280;font-size:13px;width:130px;vertical-align:top;">${esc(label)}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f2ef;font-weight:600;color:#1D3F1F;font-size:14px;" dir="${dir}">${value}</td>
+  </tr>`;
+}
+
+function infoTable(rows: string) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:28px;">${rows}</table>`;
+}
+
+function ctaButton(href: string, label: string, color = "#09B14B") {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
+    <tr>
+      <td style="border-radius:10px;background:${color};">
+        <a href="${href}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;letter-spacing:.3px;">${esc(label)}</a>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function greeting(name: string, subtitle?: string) {
+  return `<h2 style="margin:0 0 ${subtitle ? "6px" : "20px"};font-size:22px;font-weight:700;color:#1D3F1F;line-height:1.3;">مرحباً، ${esc(name)}</h2>
+${subtitle ? `<p style="margin:0 0 24px;font-size:14px;color:#6b7280;">${esc(subtitle)}</p>` : ""}`;
+}
+
+function highlightBox(content: string, color = "#09B14B") {
+  return `<div style="background:${color}0d;border-right:4px solid ${color};border-radius:0 10px 10px 0;padding:16px 20px;margin:24px 0;font-size:14px;color:#1D3F1F;line-height:1.7;">${content}</div>`;
+}
+
+function sectionTitle(text: string) {
+  return `<p style="margin:24px 0 12px;font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">${esc(text)}</p>`;
 }
 
 // ─────────────────────────────────────────────
@@ -82,28 +213,25 @@ export async function sendNewQuoteNotification(quote: {
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `طلب تسعير جديد — ${quote.project_name}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">طلب تسعير جديد</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">المشروع</td><td style="padding: 8px 0; font-weight: 600;">${esc(quote.project_name)}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">العميل</td><td style="padding: 8px 0;">${esc(quote.client_name)}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">الجوال</td><td style="padding: 8px 0;" dir="ltr">${esc(quote.phone)}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">التسليم</td><td style="padding: 8px 0;">${esc(quote.delivery_address)}</td></tr>
-            <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">المواد</td><td style="padding: 8px 0;">${esc(quote.materials)}</td></tr>
-          </table>
-          <div style="margin-top: 24px;">
-            <a href="${opportunityUrl}"
-               style="background: #09B14B; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
-              عرض الطلب
-            </a>
-          </div>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `طلب تسعير جديد من ${quote.client_name} لمشروع ${quote.project_name}`,
+      accentColor: "#09B14B",
+      badgeIcon: "📋",
+      badgeLabel: "طلب تسعير جديد",
+      content: `
+        ${greeting(quote.client_name, `مشروع: ${quote.project_name}`)}
+        ${sectionTitle("تفاصيل الطلب")}
+        ${infoTable(
+          infoRow("المشروع", esc(quote.project_name)) +
+          infoRow("العميل", esc(quote.client_name)) +
+          infoRow("الجوال", esc(quote.phone), "ltr") +
+          infoRow("عنوان التسليم", esc(quote.delivery_address))
+        )}
+        ${sectionTitle("المواد المطلوبة")}
+        <div style="background:#f8faf8;border:1px solid #e8ede8;border-radius:10px;padding:16px 20px;margin-bottom:8px;font-size:14px;color:#374151;line-height:1.8;">${esc(quote.materials)}</div>
+        ${ctaButton(opportunityUrl, "فتح الطلب في لوحة التحكم")}
+      `,
+    }),
   });
 }
 
@@ -119,26 +247,22 @@ export async function sendQuoteConfirmationToClient(quote: {
     from: FROM,
     to: quote.client_email,
     subject: `تم استلام طلبك — ${quote.project_name}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">تم استلام طلبك ✓</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(quote.client_name)}</strong>،</p>
-          <p style="color: #4b5563; line-height: 1.7;">
-            تم استلام طلب عرض السعر الخاص بمشروع <strong>${esc(quote.project_name)}</strong> بنجاح.
-            سيتواصل معك فريق Build Saudi خلال <strong>24 ساعة</strong> بعرض سعر مفصّل.
-          </p>
-          <div style="margin: 24px 0; padding: 16px; background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0; font-size: 13px; color: #6b7280;">المشروع</p>
-            <p style="margin: 4px 0 0; font-weight: 600; color: #1D3F1F;">${esc(quote.project_name)}</p>
-          </div>
-          <p style="color: #6b7280; font-size: 13px;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
-          <p style="margin-top: 24px; color: #4b5563;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `تم استلام طلبك لمشروع ${quote.project_name} بنجاح`,
+      accentColor: "#09B14B",
+      badgeIcon: "✅",
+      badgeLabel: "تم استلام الطلب",
+      content: `
+        ${greeting(quote.client_name)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          تم استلام طلب عرض السعر الخاص بمشروع <strong style="color:#1D3F1F;">${esc(quote.project_name)}</strong> بنجاح.
+        </p>
+        ${highlightBox(`سيتواصل معك فريق Build Saudi خلال <strong>24 ساعة</strong> بعرض سعر مفصّل يشمل جميع المواد المطلوبة.`)}
+        ${sectionTitle("تفاصيل الطلب")}
+        ${infoTable(infoRow("المشروع", esc(quote.project_name)))}
+        <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">للاستفسار، يمكنك التواصل معنا مباشرةً عبر الموقع أو البريد الإلكتروني.</p>
+      `,
+    }),
   });
 }
 
@@ -158,28 +282,30 @@ export async function sendContractSignLink(vendor: {
     from: FROM,
     to: vendor.email,
     subject: `طلب توقيع عقد — ${vendor.contractTitle}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">طلب توقيع عقد</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(vendor.manager_name)}</strong> / ${esc(vendor.establishment_name)}،</p>
-          <p style="color: #4b5563;">يرجى مراجعة عقد الشراكة مع Build Saudi والموافقة عليه من خلال الرابط أدناه.</p>
-          <p style="color: #4b5563;">العقد: <strong>${esc(vendor.contractTitle)}</strong></p>
-          <div style="margin-top: 24px;">
-            <a href="${signUrl}"
-               style="background: #09B14B; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
-              مراجعة العقد والتوقيع
-            </a>
-          </div>
-          <p style="margin-top: 24px; font-size: 12px; color: #9ca3af;">
-            إذا لم تتمكن من فتح الزر، انسخ هذا الرابط:<br/>
-            <span dir="ltr">${signUrl}</span>
-          </p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `يرجى مراجعة عقد ${vendor.contractTitle} والتوقيع عليه`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "📝",
+      badgeLabel: "طلب توقيع عقد",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          يرجى مراجعة عقد الشراكة مع Build Saudi والموافقة عليه.
+        </p>
+        ${sectionTitle("تفاصيل العقد")}
+        ${infoTable(
+          infoRow("اسم العقد", esc(vendor.contractTitle)) +
+          infoRow("المنشأة", esc(vendor.establishment_name)) +
+          infoRow("المسؤول", esc(vendor.manager_name))
+        )}
+        ${highlightBox("يُرجى مراجعة بنود العقد بعناية قبل التوقيع. الرابط صالح لمدة محدودة.", "#f59e0b")}
+        ${ctaButton(signUrl, "مراجعة العقد والتوقيع")}
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.7;">
+          إذا لم يعمل الزر، انسخ هذا الرابط:<br/>
+          <span dir="ltr" style="word-break:break-all;color:#6b7280;">${signUrl}</span>
+        </p>
+      `,
+    }),
   });
 }
 
@@ -195,21 +321,26 @@ export async function sendVendorActivatedEmail(vendor: {
     from: FROM,
     to: vendor.email,
     subject: "تم تفعيل حسابك كمورد — Build Saudi",
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #09B14B; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">✓ تم تفعيل حسابك</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(vendor.manager_name)}</strong> / ${esc(vendor.establishment_name)}،</p>
-          <p style="color: #4b5563;">
-            يسعدنا إبلاغكم بأن حساب منشأتكم كمورد معتمد في منصة Build Saudi قد تم تفعيله.
-            سنتواصل معكم قريباً عند توفر فرص مناسبة.
-          </p>
-          <p style="margin-top: 24px; color: #4b5563;">شكراً لثقتكم بنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `مبروك! تم تفعيل حساب ${vendor.establishment_name} كمورد معتمد في Build Saudi`,
+      accentColor: "#09B14B",
+      badgeIcon: "🎉",
+      badgeLabel: "تم تفعيل الحساب",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          يسعدنا إبلاغكم بأن منشأتكم أصبحت <strong style="color:#09B14B;">موردًا معتمدًا</strong> في منصة Build Saudi.
+        </p>
+        ${highlightBox("سنتواصل معكم قريبًا عند توفر فرص توريد مناسبة لتخصصاتكم ومناطق التغطية.")}
+        ${sectionTitle("ما التالي؟")}
+        <ul style="margin:0 0 24px;padding-right:20px;color:#4b5563;font-size:14px;line-height:2;">
+          <li>سيتواصل معكم فريقنا لإتمام إجراءات الشراكة</li>
+          <li>ستصلكم طلبات عروض الأسعار (RFQ) عبر البريد الإلكتروني</li>
+          <li>يمكنكم التواصل معنا في أي وقت للاستفسار</li>
+        </ul>
+        <p style="margin:0;font-size:14px;color:#6b7280;">شكرًا لثقتكم بنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
   });
 }
 
@@ -225,22 +356,21 @@ export async function sendVendorRejectedEmail(vendor: {
     from: FROM,
     to: vendor.email,
     subject: "بخصوص طلب الانضمام — Build Saudi",
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">بخصوص طلب انضمامكم</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(vendor.manager_name)}</strong> / ${esc(vendor.establishment_name)}،</p>
-          <p style="color: #4b5563;">
-            نشكركم على اهتمامكم بالانضمام إلى شبكة موردي Build Saudi.
-            للأسف، لم نتمكن من قبول طلبكم في الوقت الحالي.
-          </p>
-          <p style="color: #4b5563;">للاستفسار، يرجى التواصل معنا عبر البريد الإلكتروني.</p>
-          <p style="margin-top: 24px; color: #4b5563;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `بخصوص طلب انضمام ${vendor.establishment_name} إلى Build Saudi`,
+      accentColor: "#1D3F1F",
+      badgeLabel: "بخصوص طلب الانضمام",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          نشكركم على اهتمامكم بالانضمام إلى شبكة موردي Build Saudi واهتمامكم بالتعاون معنا.
+        </p>
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          للأسف، لم نتمكن من قبول طلبكم في الوقت الحالي. يمكنكم التواصل معنا عبر البريد الإلكتروني للاستفسار عن أسباب القرار أو إعادة التقديم مستقبلاً.
+        </p>
+        <p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
   });
 }
 
@@ -260,72 +390,59 @@ export async function sendRfqToVendor(params: {
   notes?: string | null;
 }) {
   const itemRows = params.items
-    .map(
-      (item) => `
-      <tr style="border-bottom: 1px solid #f3f4f6;">
-        <td style="padding: 8px 12px; font-size: 13px; color: #1D3F1F;">${esc(item.name)}</td>
-        <td style="padding: 8px 12px; text-align: center; font-size: 13px; font-weight: 600;">${esc(String(item.quantity))}</td>
-        <td style="padding: 8px 12px; font-size: 13px; color: #4b5563;">${esc(item.unit)}</td>
-        <td style="padding: 8px 12px; font-size: 13px; color: #6b7280;">${esc(item.description) || "—"}</td>
-      </tr>`
-    )
+    .map((item, i) => `
+      <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8faf8"};">
+        <td style="padding:10px 14px;font-size:13px;color:#1D3F1F;font-weight:500;">${esc(item.name)}</td>
+        <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;color:#09B14B;">${esc(String(item.quantity))}</td>
+        <td style="padding:10px 14px;font-size:13px;color:#6b7280;">${esc(item.unit)}</td>
+        <td style="padding:10px 14px;font-size:12px;color:#9ca3af;">${esc(item.description ?? "") || "—"}</td>
+      </tr>`)
     .join("");
 
   return sendEmail({
     from: FROM,
     to: params.vendorEmail,
     subject: `طلب عرض سعر — ${params.projectName}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 620px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 28px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">طلب عرض سعر</h1>
-          <p style="color: rgba(255,255,255,0.7); margin: 6px 0 0; font-size: 14px;">${params.projectName}</p>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px; background: #fff;">
-          <p style="margin: 0 0 20px; font-size: 15px;">مرحباً <strong>${esc(params.managerName)}</strong> / ${esc(params.vendorName)}،</p>
-          <p style="color: #4b5563; line-height: 1.7; margin: 0 0 24px;">
-            نرجو التكرم بتزويدنا بعرض سعر للمواد المذكورة أدناه لمشروع <strong>${esc(params.projectName)}</strong>.
-          </p>
+    html: emailShell({
+      previewText: `طلب عرض سعر لمشروع ${params.projectName} — الموعد النهائي: ${params.deadline}`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "💼",
+      badgeLabel: "طلب عرض سعر (RFQ)",
+      content: `
+        ${greeting(`${params.managerName} / ${params.vendorName}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          نرجو التكرم بتزويدنا بعرض سعر للمواد المذكورة أدناه لمشروع <strong style="color:#1D3F1F;">${esc(params.projectName)}</strong>.
+        </p>
 
-          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
-            <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">📍 عنوان التسليم: <strong style="color: #1D3F1F;">${esc(params.deliveryAddress)}</strong></p>
-            <p style="margin: 0; font-size: 13px; color: #6b7280;">📅 تاريخ التسليم المطلوب: <strong style="color: #1D3F1F;">${esc(params.deliveryDate)}</strong></p>
-          </div>
+        ${sectionTitle("معلومات التسليم")}
+        ${infoTable(
+          infoRow("عنوان التسليم", esc(params.deliveryAddress)) +
+          infoRow("تاريخ التسليم", esc(params.deliveryDate))
+        )}
 
-          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
-            <thead>
-              <tr style="background: #f3f4f6;">
-                <th style="padding: 10px 12px; text-align: right; font-size: 12px; color: #6b7280; font-weight: 600;">الصنف</th>
-                <th style="padding: 10px 12px; text-align: center; font-size: 12px; color: #6b7280; font-weight: 600;">الكمية</th>
-                <th style="padding: 10px 12px; text-align: right; font-size: 12px; color: #6b7280; font-weight: 600;">الوحدة</th>
-                <th style="padding: 10px 12px; text-align: right; font-size: 12px; color: #6b7280; font-weight: 600;">الوصف</th>
-              </tr>
-            </thead>
-            <tbody>${itemRows}</tbody>
-          </table>
+        ${sectionTitle("المواد المطلوبة")}
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border:1px solid #e8ede8;border-radius:10px;overflow:hidden;margin-bottom:24px;">
+          <thead>
+            <tr style="background:#1D3F1F;">
+              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الصنف</th>
+              <th style="padding:10px 14px;text-align:center;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الكمية</th>
+              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الوحدة</th>
+              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الوصف</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+        </table>
 
-          <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 14px; margin-bottom: 24px;">
-            <p style="margin: 0; font-size: 13px; color: #92400e;">⏰ <strong>الموعد النهائي للرد: ${params.deadline}</strong></p>
-          </div>
+        ${highlightBox(`⏰ الموعد النهائي للرد: <strong>${esc(params.deadline)}</strong>`, "#f59e0b")}
 
-          ${
-            params.notes
-              ? `<div style="background: #f9fafb; border-radius: 8px; padding: 12px; margin-bottom: 24px;">
-                   <p style="margin: 0 0 4px; font-size: 12px; color: #6b7280;">ملاحظات إضافية:</p>
-                   <p style="margin: 0; font-size: 13px; color: #1D3F1F;">${esc(params.notes)}</p>
-                 </div>`
-              : ""
-          }
+        ${params.notes ? `${sectionTitle("ملاحظات إضافية")}<p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;background:#f8faf8;border-radius:10px;padding:14px 18px;">${esc(params.notes)}</p>` : ""}
 
-          <p style="color: #4b5563; font-size: 13px; line-height: 1.7; margin: 0 0 24px;">
-            يُرجى الرد على هذا البريد الإلكتروني مباشرةً بعرض سعركم متضمناً: السعر الإجمالي، مدة التوريد، وأي شروط خاصة.
-          </p>
-          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 24px 0;" />
-          <p style="color: #9ca3af; font-size: 12px; margin: 0;">رقم طلب العرض: <span dir="ltr">${params.rfqId.split("-")[0]}</span></p>
-          <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+        <p style="margin:24px 0 0;font-size:14px;color:#374151;line-height:1.8;">
+          يُرجى الرد على هذا البريد مباشرةً بعرض سعركم متضمنًا: السعر الإجمالي، مدة التوريد، وأي شروط خاصة.
+        </p>
+        <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">رقم الطلب: <span dir="ltr">${esc(params.rfqId.split("-")[0])}</span></p>
+      `,
+    }),
   });
 }
 
@@ -352,97 +469,98 @@ export async function sendClientOfferEmail(offer: {
     from: FROM,
     to: offer.client_email,
     subject: `عرض سعر جاهز — ${offer.project_name}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 620px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 28px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">عرض سعر جاهز لمشروعك ✓</h1>
-          <p style="color: rgba(255,255,255,0.7); margin: 6px 0 0; font-size: 14px;">${offer.project_name}</p>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px; background: #fff;">
-          <p style="margin: 0 0 20px; font-size: 15px;">مرحباً <strong>${esc(offer.client_name)}</strong>،</p>
-          <p style="color: #4b5563; line-height: 1.7; margin: 0 0 24px;">
-            يسعدنا إبلاغك بأن عرض السعر لمشروع <strong>${esc(offer.project_name)}</strong> جاهز الآن.
-            يُرجى مراجعته والرد خلال <strong>${esc(String(offer.validity_days))} أيام</strong>.
-          </p>
-          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
-            <h3 style="margin: 0 0 16px; font-size: 14px; color: #6b7280; font-weight: 600;">تفاصيل العرض</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">قيمة المواد والتوريد</td>
-                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.materials_total)}</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">التوصيل والجمارك (DDP)</td>
-                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.freight_total)}</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px 0; color: #4b5563; font-size: 14px;">رسوم خدمة المنصة</td>
-                <td style="padding: 10px 0; text-align: left; font-weight: 600; font-size: 14px;" dir="ltr">${fmt(offer.platform_fee)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 14px 0 0; font-size: 16px; font-weight: 700; color: #1D3F1F;">الإجمالي DDP</td>
-                <td style="padding: 14px 0 0; text-align: left; font-size: 18px; font-weight: 700; color: #09B14B;" dir="ltr">${fmt(offer.grand_total)}</td>
-              </tr>
-            </table>
-          </div>
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; margin-bottom: 28px;">
-            <p style="margin: 0 0 6px; font-size: 13px; color: #166534;">📦 عنوان التسليم: <strong>${esc(offer.delivery_address)}</strong></p>
-            <p style="margin: 0; font-size: 13px; color: #166534;">📅 تاريخ التسليم المطلوب: <strong>${esc(offer.delivery_date)}</strong></p>
-          </div>
-          <a href="${offerUrl}" style="display: block; text-align: center; background: #09B14B; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin-bottom: 16px;">
-            مراجعة العرض والرد عليه
-          </a>
-          <p style="text-align: center; font-size: 12px; color: #9ca3af; margin: 0;">
-            صالح لمدة ${esc(String(offer.validity_days))} أيام — ينتهي تلقائياً بعد انتهاء المدة
-          </p>
-          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 28px 0;" />
-          <p style="color: #6b7280; font-size: 13px; margin: 0;">للاستفسار يرجى التواصل معنا مباشرةً.</p>
-          <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `عرض السعر لمشروع ${offer.project_name} جاهز — الإجمالي: ${fmt(offer.grand_total)}`,
+      accentColor: "#09B14B",
+      badgeIcon: "✅",
+      badgeLabel: "عرض السعر جاهز",
+      content: `
+        ${greeting(offer.client_name)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          يسعدنا إبلاغك بأن عرض السعر لمشروع <strong style="color:#1D3F1F;">${esc(offer.project_name)}</strong> جاهز الآن.
+          يُرجى مراجعته والرد خلال <strong>${esc(String(offer.validity_days))} أيام</strong>.
+        </p>
+
+        ${sectionTitle("تفاصيل العرض المالي")}
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f8faf8;border:1px solid #e8ede8;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+          <tr style="border-bottom:1px solid #e8ede8;">
+            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">قيمة المواد والتوريد</td>
+            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.materials_total)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e8ede8;">
+            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">التوصيل والجمارك (DDP)</td>
+            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.freight_total)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e8ede8;">
+            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">رسوم خدمة المنصة</td>
+            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.platform_fee)}</td>
+          </tr>
+          <tr style="background:#1D3F1F;">
+            <td style="padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;">الإجمالي DDP</td>
+            <td style="padding:16px 20px;text-align:left;font-size:20px;font-weight:800;color:#09B14B;" dir="ltr">${fmt(offer.grand_total)}</td>
+          </tr>
+        </table>
+
+        ${sectionTitle("تفاصيل التسليم")}
+        ${infoTable(
+          infoRow("عنوان التسليم", esc(offer.delivery_address)) +
+          infoRow("تاريخ التسليم", esc(offer.delivery_date))
+        )}
+
+        ${ctaButton(offerUrl, "مراجعة العرض والرد عليه")}
+        <p style="margin:14px 0 0;text-align:center;font-size:12px;color:#9ca3af;">
+          صالح لمدة ${esc(String(offer.validity_days))} أيام — ينتهي تلقائيًا بعد انتهاء المدة
+        </p>
+      `,
+    }),
   });
 }
 
 // ─────────────────────────────────────────────
 //  8. إشعار العميل — تحديث حالة الطلب
 // ─────────────────────────────────────────────
-const STATUS_CLIENT_MAP: Record<string, { subject: string; title: string; message: string; color: string }> = {
+const STATUS_CLIENT_MAP: Record<string, { subject: string; title: string; message: string; color: string; icon: string }> = {
   admin_approved: {
     subject: "طلبك تحت المعالجة",
     title: "طلبك قيد المعالجة",
     message: "تم مراجعة طلبك والموافقة عليه. نعمل الآن على تجهيز عروض الأسعار من الموردين المعتمدين وسنوافيك بالعرض النهائي في أقرب وقت.",
     color: "#09B14B",
+    icon: "⚙️",
   },
   payment_pending: {
     subject: "بانتظار تأكيد الدفع",
     title: "بانتظار الدفع",
-    message: "شكراً لموافقتك على العرض. يُرجى إتمام عملية الدفع حتى نتمكن من البدء بتجهيز طلبك.",
+    message: "شكرًا لموافقتك على العرض. يُرجى إتمام عملية الدفع حتى نتمكن من البدء بتجهيز طلبك.",
     color: "#f59e0b",
+    icon: "💳",
   },
   payment_confirmed: {
     subject: "تم تأكيد الدفع",
-    title: "تم تأكيد الدفع ✓",
+    title: "تم تأكيد الدفع",
     message: "تم استلام وتأكيد الدفع بنجاح. سنبدأ بتجهيز طلبك وشحنه في أقرب وقت.",
     color: "#09B14B",
+    icon: "✅",
   },
   in_delivery: {
     subject: "طلبك في الطريق",
     title: "طلبك في الطريق إليك",
     message: "تم شحن طلبك وهو في الطريق إلى موقع التسليم. سنوافيك بالتفاصيل عند الوصول.",
     color: "#3b82f6",
+    icon: "🚚",
   },
   done: {
     subject: "تم تسليم طلبك بنجاح",
-    title: "تم التسليم ✓",
-    message: "تم تسليم طلبك بنجاح إلى الموقع المحدد. شكراً لثقتك في Build Saudi ونتطلع للتعاون معك مجدداً.",
+    title: "تم التسليم بنجاح",
+    message: "تم تسليم طلبك بنجاح إلى الموقع المحدد. شكرًا لثقتك في Build Saudi ونتطلع للتعاون معك مجددًا.",
     color: "#09B14B",
+    icon: "🎉",
   },
   cancelled: {
     subject: "تم إلغاء الطلب",
     title: "تم إلغاء الطلب",
     message: "نود إبلاغك بأنه تم إلغاء طلبك. إذا كان لديك أي استفسار، لا تتردد في التواصل معنا.",
     color: "#ef4444",
+    icon: "❌",
   },
 };
 
@@ -463,23 +581,19 @@ export async function sendQuoteStatusToClient(params: {
     from: FROM,
     to: params.client_email,
     subject: `${config.subject} — ${params.project_name}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: ${config.color}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">${config.title}</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(params.client_name)}</strong>،</p>
-          <p style="color: #4b5563; line-height: 1.7; margin: 0 0 24px;">${config.message}</p>
-          <div style="background: #f9fafb; border-radius: 10px; padding: 16px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
-            <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280;">المشروع</p>
-            <p style="margin: 0; font-weight: 600; color: #1D3F1F;">${esc(params.project_name)}</p>
-          </div>
-          <p style="color: #6b7280; font-size: 13px; margin: 0;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
-          <p style="margin: 12px 0 0; color: #4b5563; font-size: 13px;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `${config.subject} — مشروع ${params.project_name}`,
+      accentColor: config.color,
+      badgeIcon: config.icon,
+      badgeLabel: config.title,
+      content: `
+        ${greeting(params.client_name)}
+        ${highlightBox(config.message, config.color)}
+        ${sectionTitle("تفاصيل المشروع")}
+        ${infoTable(infoRow("المشروع", esc(params.project_name)))}
+        <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
+      `,
+    }),
   });
 }
 
@@ -495,21 +609,20 @@ export async function sendVendorRegistrationConfirmation(vendor: {
     from: FROM,
     to: vendor.email,
     subject: "تم استلام طلب انضمامكم — Build Saudi",
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: #1D3F1F; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">تم استلام طلب انضمامكم ✓</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <p style="margin: 0 0 16px;">مرحباً <strong>${esc(vendor.manager_name)}</strong> / ${esc(vendor.establishment_name)}،</p>
-          <p style="color: #4b5563; line-height: 1.7;">
-            شكراً لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi.
-            تم استلام طلبكم وسيتم مراجعته من قبل فريقنا. سنوافيكم بالنتيجة في أقرب وقت.
-          </p>
-          <p style="margin-top: 24px; color: #4b5563;">مع تحياتنا،<br/>فريق Build Saudi</p>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `تم استلام طلب انضمام ${vendor.establishment_name} إلى شبكة موردي Build Saudi`,
+      accentColor: "#09B14B",
+      badgeIcon: "📬",
+      badgeLabel: "تم استلام طلب الانضمام",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          شكرًا لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi. تم استلام طلبكم وسيتم مراجعته من قبل فريقنا.
+        </p>
+        ${highlightBox("سنوافيكم بنتيجة المراجعة في أقرب وقت ممكن، عادةً خلال <strong>3-5 أيام عمل</strong>.")}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
   });
 }
 
@@ -517,10 +630,10 @@ export async function sendVendorRegistrationConfirmation(vendor: {
 /*  10. إشعار الأدمن عند رد العميل على العرض      */
 /* ─────────────────────────────────────────────── */
 
-const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  accepted:                { label: "وافق على العرض",  color: "#09B14B" },
-  rejected:                { label: "رفض العرض",       color: "#dc2626" },
-  modification_requested:  { label: "طلب تعديل",       color: "#f59e0b" },
+const ACTION_LABELS: Record<string, { label: string; color: string; icon: string }> = {
+  accepted:               { label: "وافق على العرض", color: "#09B14B", icon: "✅" },
+  rejected:               { label: "رفض العرض",      color: "#dc2626", icon: "❌" },
+  modification_requested: { label: "طلب تعديل",      color: "#f59e0b", icon: "✏️" },
 };
 
 export async function sendClientResponseNotification(data: {
@@ -530,48 +643,30 @@ export async function sendClientResponseNotification(data: {
   reason?: string;
   quote_id: string;
 }) {
-  const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280" };
+  const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280", icon: "💬" };
   const adminUrl = erpnextDocUrl("opportunity", data.quote_id);
 
   return sendEmail({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `رد العميل: ${actionInfo.label} — ${data.project_name}`,
-    html: `
-      <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1D3F1F;">
-        <div style="background: ${actionInfo.color}; padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">رد العميل على العرض</h1>
-        </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px; border-radius: 0 0 12px 12px;">
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; width: 120px;">المشروع:</td>
-              <td style="padding: 8px 0; font-weight: bold;">${esc(data.project_name)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280;">العميل:</td>
-              <td style="padding: 8px 0;">${esc(data.client_name)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280;">الرد:</td>
-              <td style="padding: 8px 0;">
-                <span style="background: ${actionInfo.color}20; color: ${actionInfo.color}; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px;">
-                  ${esc(actionInfo.label)}
-                </span>
-              </td>
-            </tr>
-            ${data.reason ? `
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; vertical-align: top;">السبب:</td>
-              <td style="padding: 8px 0; color: #4b5563; line-height: 1.6;">${esc(data.reason)}</td>
-            </tr>
-            ` : ""}
-          </table>
-          <a href="${adminUrl}" style="display: inline-block; background: #1D3F1F; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">
-            عرض الطلب في لوحة التحكم
-          </a>
-        </div>
-      </div>
-    `,
+    html: emailShell({
+      previewText: `${data.client_name} ${actionInfo.label} على عرض مشروع ${data.project_name}`,
+      accentColor: actionInfo.color,
+      badgeIcon: actionInfo.icon,
+      badgeLabel: `رد العميل: ${actionInfo.label}`,
+      content: `
+        ${greeting(data.client_name, `مشروع: ${data.project_name}`)}
+        ${sectionTitle("تفاصيل الرد")}
+        ${infoTable(
+          infoRow("المشروع", esc(data.project_name)) +
+          infoRow("العميل", esc(data.client_name)) +
+          infoRow("القرار", `<span style="background:${actionInfo.color}1a;color:${actionInfo.color};padding:3px 12px;border-radius:999px;font-weight:700;font-size:13px;">${esc(actionInfo.icon)} ${esc(actionInfo.label)}</span>`)
+        )}
+        ${data.reason ? `${sectionTitle("سبب القرار")}
+        <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;background:#f8faf8;border-radius:10px;padding:14px 18px;">${esc(data.reason)}</p>` : ""}
+        ${ctaButton(adminUrl, "فتح الطلب في لوحة التحكم")}
+      `,
+    }),
   });
 }

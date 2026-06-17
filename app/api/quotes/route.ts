@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { attachERPNextFileToDocument, createERPNextProductOpportunity } from "@/lib/erpnext";
+import { attachERPNextFileToDocument, createERPNextProductOpportunity, resolveOrCreateLead, updateERPNextDocument, type ERPNextMaterialItem } from "@/lib/erpnext";
 import { extractMaterialItems } from "@/lib/material-extraction";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
@@ -10,10 +10,6 @@ const optionalText = z.preprocess(
   z.string().trim().optional().or(z.literal(""))
 );
 
-const optionalUrl = z.preprocess(
-  (value) => (value === null ? "" : value),
-  z.string().trim().url().optional().or(z.literal(""))
-);
 
 const optionalEmail = z.preprocess(
   (value) => (value === null ? "" : value),
@@ -52,49 +48,71 @@ export async function POST(req: NextRequest) {
 
   let opportunity: { name: string };
   try {
-    const extractedItems = await extractMaterialItems({
-      materials: quote.materials,
-      notes: quote.notes,
-      boq_file_url: quote.boq_file_url,
-      boq_file_text: quote.boq_file_text,
+    // بحث اللـ Lead وإنشاء الـ Opportunity بدون انتظار DeepSeek
+    const resolvedLead = await resolveOrCreateLead({
+      client_name: quote.client_name,
+      phone: quote.phone,
+      client_email: quote.client_email,
     });
 
     opportunity = await createERPNextProductOpportunity({
       ...quote,
-      extracted_items: extractedItems,
+      extracted_items: [],
+      resolved_lead: resolvedLead,
     });
   } catch (error) {
     console.error("ERPNext opportunity creation failed:", error);
     return NextResponse.json({ error: "تعذر حفظ طلب المنتجات في نظام العمليات" }, { status: 500 });
   }
 
-  if (quote.boq_file_name) {
-    try {
-      await attachERPNextFileToDocument(quote.boq_file_name, "Opportunity", opportunity.name);
-    } catch (fileError) {
-      console.error("ERPNext file attachment failed:", fileError);
-    }
-  }
-
-  try {
-    await sendNewQuoteNotification({
-      id: opportunity.name,
+  // إيميلات + استخراج المواد في الخلفية بعد إرسال الرد
+  const opportunityName = opportunity.name;
+  void Promise.allSettled([
+    sendNewQuoteNotification({
+      id: opportunityName,
       project_name: quote.project_name,
       client_name: quote.client_name,
       phone: quote.phone,
       delivery_address: quote.delivery_address,
       materials: quote.materials || quote.boq_file_text || quote.boq_file_url || "ملف كميات مرفق",
-    });
-    if (quote.client_email) {
-      await sendQuoteConfirmationToClient({
-        project_name: quote.project_name,
-        client_name: quote.client_name,
-        client_email: quote.client_email,
-      });
-    }
-  } catch (emailError) {
-    console.error("Quote notification failed:", emailError);
-  }
+    }),
+    quote.client_email
+      ? sendQuoteConfirmationToClient({
+          project_name: quote.project_name,
+          client_name: quote.client_name,
+          client_email: quote.client_email,
+        })
+      : Promise.resolve(),
+    quote.boq_file_name
+      ? attachERPNextFileToDocument(quote.boq_file_name, "Opportunity", opportunityName)
+      : Promise.resolve(),
+    extractMaterialItems({
+      materials: quote.materials,
+      notes: quote.notes,
+      boq_file_url: quote.boq_file_url,
+      boq_file_text: quote.boq_file_text,
+    }).then((items) => {
+      if (!items.length) return;
+      // تحديث الـ Opportunity بنتائج الاستخراج بعد الإرسال
+      return updateERPNextDocument("Opportunity", opportunityName, {
+        build_material_extraction_status: "Extracted",
+        build_material_extraction_summary: `Extracted ${items.length} material item(s).`,
+        build_extracted_material_items: items.map((item: ERPNextMaterialItem, index: number) => ({
+          doctype: "Build Request Material Item",
+          idx: index + 1,
+          build_item_name: item.item_name,
+          build_description: item.description,
+          build_quantity: item.quantity,
+          build_uom: item.uom,
+          build_category: item.category,
+          build_specifications: item.specifications,
+          build_confidence: item.confidence,
+          build_source: item.source,
+          build_review_status: "Needs Review",
+        })),
+      }).catch((e: unknown) => console.error("Background extraction update failed:", e));
+    }),
+  ]).catch(() => {});
 
   return NextResponse.json({ ok: true, id: opportunity.name });
 }

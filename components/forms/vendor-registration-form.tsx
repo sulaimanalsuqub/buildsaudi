@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Loader2, Search, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -224,6 +224,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const [step, setStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [regionSearch, setRegionSearch] = useState("");
 
@@ -260,6 +261,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const onSubmit = form.handleSubmit(async (data) => {
     setSubmitError("");
+    setIsLoading(true);
     try {
       const res = await fetch("/api/vendors/register", {
         method: "POST",
@@ -288,6 +290,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     } catch (error) {
       const fallback = isRtl ? "حدث خطأ أثناء الإرسال. حاول مجدداً." : "Something went wrong. Please try again.";
       setSubmitError(error instanceof Error ? error.message : fallback);
+    } finally {
+      setIsLoading(false);
     }
   }, () => {
     // عند فشل validation — نرجع لأول خطوة فيها خطأ
@@ -307,7 +311,22 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           <CheckCircle2 className="h-7 w-7" />
         </div>
         <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{t.submitStateTitle}</h2>
-        <p className="type-body mx-auto mt-4 text-brand-dark/80">{t.submitStateBody}</p>
+        <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{t.submitStateBody}</p>
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={() => { form.reset(defaultValues); setIsSubmitted(false); setStep(0); setSubmitError(""); }}
+            className="rounded-full border border-brand-dark/20 px-8 py-3 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04]"
+          >
+            {isRtl ? "تسجيل مورد آخر" : "Register Another Supplier"}
+          </button>
+          <a
+            href={isRtl ? "/ar" : "/"}
+            className="rounded-full bg-brand-primary px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+          >
+            {isRtl ? "العودة للرئيسية" : "Back to Home"}
+          </a>
+        </div>
       </section>
     );
   }
@@ -546,9 +565,9 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             {isRtl ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
           </Button>
         ) : (
-          <Button type="submit" size="lg" className="type-button gap-2 rounded-full bg-brand-primary px-7 hover:bg-brand-dark">
-            {t.actions.submit}
-            <CheckCircle2 className="h-4 w-4" />
+          <Button type="submit" size="lg" disabled={isLoading} className="type-button gap-2 rounded-full bg-brand-primary px-7 hover:bg-brand-dark disabled:opacity-60">
+            {isLoading ? (isRtl ? "جارٍ الإرسال..." : "Submitting...") : t.actions.submit}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           </Button>
         )}
       </div>

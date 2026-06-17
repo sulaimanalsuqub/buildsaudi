@@ -153,8 +153,12 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -195,6 +199,8 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
         stream: false,
       }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(await response.text());

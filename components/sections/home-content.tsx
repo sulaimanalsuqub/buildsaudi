@@ -205,26 +205,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       {/* ── How it works ─────────────────────────────── */}
       <HowItWorks isRtl={isRtl} />
 
-      {/* ── Final CTA ────────────────────────────────── */}
-      <section className="pb-20 pt-10 md:pb-32">
-        <Container>
-          <div className="relative overflow-hidden rounded-2xl bg-brand-dark px-8 py-16 text-center md:rounded-[3rem] md:px-16 md:py-24">
-            
-            <div className="relative z-10 mx-auto max-w-2xl">
-              <h2 className="text-3xl font-black text-white md:text-5xl">{t.ctaTitle}</h2>
-              <p className="mt-6 text-lg text-white/70">{t.ctaBody}</p>
-              <div className="mt-10">
-                <Link
-                  href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                  className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-brand-dark transition hover:bg-white"
-                >
-                  {t.card1Cta}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
+
     </main>
   );
 }

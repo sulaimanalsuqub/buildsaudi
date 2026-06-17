@@ -157,6 +157,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     email: "",
     contactMethod: "whatsapp" as "email" | "whatsapp",
     materials: "",
+    sheetLink: "",
     deliveryAddress: "",
     deliveryDate: "",
     notes: "",
@@ -198,14 +199,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       } else if (!isValidSaudiPhone(form.phone)) {
         e.phone = copy.invalidPhone;
       }
-      if (!form.email.trim()) {
-        e.email = copy.required;
-      } else if (!isValidEmail(form.email)) {
+      if (form.email.trim() && !isValidEmail(form.email)) {
         e.email = copy.invalidEmail;
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
-      if (!form.materials.trim() && selectedFiles.length === 0) e.materials = copy.required;
+      if (!form.materials.trim() && selectedFiles.length === 0 && !form.sheetLink.trim()) e.materials = copy.required;
       if (selectedFiles.some((f) => f.size > 10 * 1024 * 1024)) e.boqFile = copy.fileTooLarge;
     } else if (s === 2) {
       if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
@@ -261,24 +260,38 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         }
       }
 
-      const quoteRes = await fetch("/api/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-        project_name: form.projectName,
-        client_name: form.clientName,
-        phone: form.phone,
-        client_email: form.email,
-        contact_method: form.contactMethod,
-        materials: form.materials,
-delivery_address: form.deliveryAddress,
-        delivery_date: form.deliveryDate,
-        notes: form.notes || null,
-        boq_file_url: boqFileUrl,
-        boq_file_name: boqFileName,
-        boq_file_text: boqExtractedText,
-        }),
-      });
+      const quoteController = new AbortController();
+      const quoteTimeout = setTimeout(() => quoteController.abort(), 20000);
+      let quoteRes: Response;
+      try {
+        quoteRes = await fetch("/api/quotes", {
+          method: "POST",
+          signal: quoteController.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            project_name: form.projectName,
+            client_name: form.clientName,
+            phone: form.phone,
+            client_email: form.email,
+            contact_method: form.contactMethod,
+            materials: form.materials,
+            delivery_address: form.deliveryAddress,
+            delivery_date: form.deliveryDate,
+            notes: form.notes || null,
+            boq_file_url: boqFileUrl ?? (form.sheetLink.trim() || null),
+            boq_file_name: boqFileName,
+            boq_file_text: boqExtractedText,
+          }),
+        });
+      } catch (fetchErr) {
+        const msg = fetchErr instanceof Error ? fetchErr.message : "";
+        if (msg.includes("abort") || msg.includes("timeout")) {
+          throw new Error(isRtl ? "استغرق الطلب وقتاً طويلاً. تحقق من اتصالك وحاول مجدداً." : "Request timed out. Please check your connection and try again.");
+        }
+        throw new Error(isRtl ? "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت." : "Cannot connect to server. Please check your internet connection.");
+      } finally {
+        clearTimeout(quoteTimeout);
+      }
       const quoteData = await quoteRes.json().catch(() => null) as { id?: string; error?: string } | null;
       if (!quoteRes.ok || !quoteData?.id) {
         throw new Error(quoteData?.error ?? "تعذر إرسال الطلب");
@@ -304,7 +317,7 @@ delivery_address: form.deliveryAddress,
     setSelectedFiles([]);
     setErrors({});
     setStep(0);
-    setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -379,7 +392,10 @@ delivery_address: form.deliveryAddress,
           <p className="text-xs font-semibold text-brand-dark/65">
             {copy.stepText} {step + 1} {copy.ofText} {TOTAL_STEPS}
           </p>
-          <p className="text-xs font-semibold text-brand-dark">{copy.steps[step]}</p>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-brand-dark/35">{isRtl ? "✓ تُحفظ تلقائياً" : "✓ Auto-saved"}</span>
+            <p className="text-xs font-semibold text-brand-dark">{copy.steps[step]}</p>
+          </div>
         </div>
         <div className="h-1.5 w-full rounded-full bg-brand-dark/10" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
           <motion.div
@@ -428,7 +444,7 @@ delivery_address: form.deliveryAddress,
                   dir="ltr"
                 />
               </Field>
-              <Field label={copy.email} error={errors.email} required>
+              <Field label={copy.email} error={errors.email}>
                 <input
                   type="email"
                   placeholder={copy.emailPlaceholder}
@@ -534,6 +550,21 @@ delivery_address: form.deliveryAddress,
               />
               {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
             </Field>
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-brand-dark/10" />
+              <span className="text-xs font-semibold text-brand-dark/40">{copy.orDivider}</span>
+              <div className="h-px flex-1 bg-brand-dark/10" />
+            </div>
+            <Field label={copy.sheetLink}>
+              <input
+                type="url"
+                placeholder={copy.sheetLinkPlaceholder}
+                value={form.sheetLink}
+                onChange={(e) => set("sheetLink", e.target.value)}
+                className={inputCls(false)}
+                dir="ltr"
+              />
+            </Field>
           </>
         )}
 
@@ -583,6 +614,7 @@ delivery_address: form.deliveryAddress,
               <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
               <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
               {selectedFiles.length > 0 && <ReviewRow label={copy.boqFile} value={selectedFiles.map((f) => f.name).join("، ")} />}
+              {form.sheetLink && <ReviewRow label={copy.sheetLink} value={form.sheetLink} dir="ltr" />}
               <ReviewRow label={copy.deliveryAddress} value={form.deliveryAddress || copy.notProvided} />
               <ReviewRow label={copy.deliveryDate} value={form.deliveryDate || copy.notProvided} dir="ltr" />
               {form.notes && <ReviewRow label={copy.notes} value={form.notes} className="sm:col-span-2" />}

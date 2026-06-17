@@ -43,16 +43,30 @@ function getERPNextConfig() {
 
 async function erpnextRequest<T>(path: string, options: ERPNextRequestOptions = {}): Promise<T> {
   const { baseUrl, apiToken } = getERPNextConfig();
-  const res = await fetch(`${baseUrl}${path}`, {
-    method: options.method ?? "GET",
-    headers: {
-      Authorization: `token ${apiToken}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}${path}`, {
+      method: options.method ?? "GET",
+      headers: {
+        Authorization: `token ${apiToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("abort") || msg.includes("signal")) {
+      throw new Error(`ERPNext request timed out: ${path}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;
@@ -215,6 +229,41 @@ export async function createERPNextSupplierRegistration(vendor: {
   });
 }
 
+export async function resolveOrCreateLead(params: {
+  client_name: string;
+  phone: string;
+  client_email?: string;
+}): Promise<{ name: string }> {
+  const [byEmailPhone, byPhone] = await Promise.all([
+    params.client_email
+      ? getERPNextList<{ name: string }>("Lead", {
+          fields: ["name"],
+          filters: [
+            ["Lead", "email_id", "=", params.client_email],
+            ["Lead", "mobile_no", "=", params.phone],
+          ],
+          limit: 1,
+        })
+      : Promise.resolve([] as { name: string }[]),
+    getERPNextList<{ name: string }>("Lead", {
+      fields: ["name"],
+      filters: [["Lead", "mobile_no", "=", params.phone]],
+      limit: 1,
+    }),
+  ]);
+
+  const existing = byEmailPhone[0] ?? byPhone[0];
+  if (existing) return existing;
+
+  return createERPNextDocument<{ name: string }>("Lead", {
+    lead_name: params.client_name,
+    company_name: params.client_name,
+    email_id: params.client_email || undefined,
+    mobile_no: params.phone,
+    status: "Lead",
+  });
+}
+
 export async function createERPNextProductOpportunity(quote: {
   project_name: string;
   client_name: string;
@@ -227,49 +276,15 @@ export async function createERPNextProductOpportunity(quote: {
   notes?: string;
   boq_file_url?: string | null;
   extracted_items?: ERPNextMaterialItem[];
+  resolved_lead?: { name: string };
 }) {
   const materialSummary = quote.materials || "يرجى مراجعة ملف الكميات أو الرابط المرفق.";
-  // ابحث بالإيميل والجوال معاً أولاً لتفادي الخلط بين عملاء مختلفين
-  let lead: { name: string } | undefined;
 
-  if (quote.client_email) {
-    lead = (await getERPNextList<{ name: string }>("Lead", {
-      fields: ["name"],
-      filters: [
-        ["Lead", "email_id", "=", quote.client_email],
-        ["Lead", "mobile_no", "=", quote.phone],
-      ],
-      limit: 1,
-    }))[0];
-
-    // إن لم يوجد تطابق مشترك، ابحث بالإيميل فقط
-    if (!lead) {
-      lead = (await getERPNextList<{ name: string }>("Lead", {
-        fields: ["name"],
-        filters: [["Lead", "email_id", "=", quote.client_email]],
-        limit: 1,
-      }))[0];
-    }
-  }
-
-  // إن لم يوجد بالإيميل، ابحث بالجوال
-  if (!lead) {
-    lead = (await getERPNextList<{ name: string }>("Lead", {
-      fields: ["name"],
-      filters: [["Lead", "mobile_no", "=", quote.phone]],
-      limit: 1,
-    }))[0];
-  }
-
-  if (!lead) {
-    lead = await createERPNextDocument<{ name: string }>("Lead", {
-      lead_name: quote.client_name,
-      company_name: quote.client_name,
-      email_id: quote.client_email || undefined,
-      mobile_no: quote.phone,
-      status: "Lead",
-    });
-  }
+  const lead = quote.resolved_lead ?? await resolveOrCreateLead({
+    client_name: quote.client_name,
+    phone: quote.phone,
+    client_email: quote.client_email,
+  });
 
   const extractedItems = quote.extracted_items || [];
 
@@ -279,6 +294,7 @@ export async function createERPNextProductOpportunity(quote: {
     title: quote.project_name,
     opportunity_type: "Build Product Request",
     status: "Open",
+    company: "ايفاد",
     build_request_source: "Build Website",
     build_request_stage: "New Product Request",
     build_project_name: quote.project_name,
