@@ -3,12 +3,14 @@ import { z } from "zod";
 import { createERPNextSupplierRegistration } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendVendorRegistrationConfirmation } from "@/lib/email";
+import { verifyEmailToken } from "@/lib/otp";
 
 const vendorSchema = z.object({
   establishment_name: z.string().trim().min(2),
   manager_name: z.string().trim().min(2),
   contact_number: z.string().trim().min(8),
   email: z.string().trim().email(),
+  email_verified_token: z.string(),
   cr_number: z.string().trim().regex(/^\d{10,15}$/),
   vendor_type: z.string().trim().min(1),
   represented_brands: z.string().trim().optional().or(z.literal("")),
@@ -19,6 +21,9 @@ const vendorSchema = z.object({
   credit_limit: z.number().nonnegative().nullable().optional(),
   payment_terms: z.array(z.string().trim().min(1)).min(1),
   worked_on_gov_projects: z.boolean(),
+}).refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
+  path: ["email"],
+  message: "يجب التحقق من البريد الإلكتروني أولاً",
 });
 
 export async function POST(req: NextRequest) {

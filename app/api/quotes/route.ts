@@ -4,6 +4,7 @@ import { attachERPNextFileToDocument, createERPNextProductOpportunity, resolveOr
 import { extractMaterialItems } from "@/lib/material-extraction";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
+import { verifyEmailToken } from "@/lib/otp";
 
 const optionalText = z.preprocess(
   (value) => (value === null ? "" : value),
@@ -21,6 +22,7 @@ const quoteSchema = z.object({
   client_name: z.string().trim().min(2),
   phone: z.string().trim().min(8),
   client_email: optionalEmail,
+  email_verified_token: z.string().optional(),
   contact_method: z.enum(["email", "whatsapp"]).default("whatsapp"),
   materials: optionalText,
   delivery_address: z.string().trim().min(2),
@@ -32,6 +34,12 @@ const quoteSchema = z.object({
 }).refine((data) => Boolean(data.materials || data.boq_file_url || data.boq_file_text), {
   path: ["materials"],
   message: "Materials or quantity file is required",
+}).refine((data) => {
+  if (!data.client_email) return true;
+  return data.email_verified_token && verifyEmailToken(data.client_email, data.email_verified_token);
+}, {
+  path: ["client_email"],
+  message: "يجب التحقق من البريد الإلكتروني أولاً",
 });
 
 export async function POST(req: NextRequest) {

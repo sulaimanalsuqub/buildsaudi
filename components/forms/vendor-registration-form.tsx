@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, Loader2, Search, ShieldCheck } from "lucide-react";
+import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -227,6 +228,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [regionSearch, setRegionSearch] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [emailToken, setEmailToken] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -236,6 +239,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const progress = ((step + 1) / t.stepLabels.length) * 100;
   const values = form.watch();
+  const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
 
   const visibleRegions = useMemo(() => {
     const query = regionSearch.trim().toLowerCase();
@@ -252,6 +256,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const handleNext = async () => {
     const valid = await form.trigger(stepFields[step]);
     if (!valid) return;
+    if (step === 0 && !emailVerified) {
+      form.setError("email", { message: "required" });
+      setSubmitError(isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first");
+      return;
+    }
+    setSubmitError("");
     setStep((prev) => Math.min(prev + 1, t.stepLabels.length - 1));
   };
 
@@ -271,6 +281,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           manager_name: data.managerName,
           contact_number: data.contactNumber,
           email: data.email,
+          email_verified_token: emailToken,
           cr_number: data.crNumber,
           vendor_type: data.vendorType,
           represented_brands: data.representedBrands || "",
@@ -368,30 +379,88 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       </div>
 
       <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-6">
-        {step === 0 && (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Field label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
-              <Input {...form.register("establishmentName")} autoComplete="organization" className="h-12 text-base" />
-              <ErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
-            </Field>
-            <Field label={t.labels.managerName}>
-              <Input {...form.register("managerName")} autoComplete="name" className="h-12 text-base" />
-              <ErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
-            </Field>
-            <Field label={t.labels.contactNumber}>
-              <Input {...form.register("contactNumber")} autoComplete="tel" className="h-12 text-base" dir="ltr" placeholder="05xxxxxxxx" />
-              <ErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
-            </Field>
-            <Field label={t.labels.email}>
-              <Input type="email" {...form.register("email")} autoComplete="email" className="h-12 text-base" dir="ltr" placeholder="example@company.com" />
-              <ErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-            </Field>
-            <Field label={t.labels.crNumber} className="md:col-span-2">
-              <Input {...form.register("crNumber")} inputMode="numeric" className="h-12 text-base" dir="ltr" placeholder="1234567890" />
-              <ErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
-            </Field>
-          </div>
-        )}
+        {step === 0 && (() => {
+          const showManager = values.establishmentName.trim().length >= 2;
+          const showPhone = showManager && values.managerName.trim().length >= 2;
+          const showEmail = showPhone && saudiPhoneRegex.test(values.contactNumber.replace(/\s/g, ""));
+          const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
+          const showCR = showEmail;
+          return (
+            <div className="space-y-5">
+              <Field label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
+                <Input {...form.register("establishmentName")} autoComplete="organization" className="h-12 text-base" autoFocus />
+                <ErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
+              </Field>
+
+              <AnimatePresence>
+                {showManager && (
+                  <motion.div key="manager" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={t.labels.managerName}>
+                      <Input {...form.register("managerName")} autoComplete="name" className="h-12 text-base" />
+                      <ErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showPhone && (
+                  <motion.div key="phone" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={t.labels.contactNumber}>
+                      <Input {...form.register("contactNumber")} autoComplete="tel" className="h-12 text-base" dir="ltr" placeholder="05xxxxxxxx" />
+                      <ErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showEmail && (
+                  <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
+                    <Field label={t.labels.email}>
+                      <Input type="email" {...form.register("email")} autoComplete="email" className="h-12 text-base" dir="ltr" placeholder="example@company.com" />
+                      <ErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
+                    </Field>
+                    <AnimatePresence mode="wait">
+                      {emailVerified ? (
+                        <motion.div key="verified" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                            <span className="font-semibold">{isRtl ? "تم التحقق من البريد الإلكتروني ✓" : "Email verified ✓"}</span>
+                          </div>
+                        </motion.div>
+                      ) : showVerify ? (
+                        <motion.div key="verify-widget" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                          <EmailVerify
+                            email={values.email.trim()}
+                            isRtl={isRtl}
+                            onVerified={(token) => {
+                              setVerifiedEmail(values.email.trim().toLowerCase());
+                              setEmailToken(token);
+                              form.clearErrors("email");
+                              setSubmitError("");
+                            }}
+                          />
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showCR && (
+                  <motion.div key="cr" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={t.labels.crNumber}>
+                      <Input {...form.register("crNumber")} inputMode="numeric" className="h-12 text-base" dir="ltr" placeholder="1234567890" />
+                      <ErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })()}
 
         {step === 1 && (
           <div className="content-stack">

@@ -636,6 +636,36 @@ const ACTION_LABELS: Record<string, { label: string; color: string; icon: string
   modification_requested: { label: "طلب تعديل",      color: "#f59e0b", icon: "✏️" },
 };
 
+// ─────────────────────────────────────────────
+//  OTP — التحقق من البريد الإلكتروني
+// ─────────────────────────────────────────────
+export async function sendEmailVerificationOTP(params: { email: string; code: string }) {
+  return sendEmail({
+    from: FROM,
+    to: params.email,
+    subject: "رمز التحقق — Build Saudi",
+    html: emailShell({
+      previewText: `رمز التحقق الخاص بك: ${params.code}`,
+      accentColor: "#09B14B",
+      badgeIcon: "🔐",
+      badgeLabel: "التحقق من البريد الإلكتروني",
+      content: `
+        <h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1D3F1F;">رمز التحقق</h2>
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          أدخل الرمز أدناه لإكمال التحقق من بريدك الإلكتروني على منصة Build Saudi.
+        </p>
+        <div style="background:#f0f9f3;border:2px solid #09B14B33;border-radius:16px;padding:28px;text-align:center;margin:0 0 24px;">
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;letter-spacing:.5px;">رمز التحقق</p>
+          <p style="margin:0;font-size:40px;font-weight:800;color:#1D3F1F;letter-spacing:10px;font-variant-numeric:tabular-nums;" dir="ltr">${esc(params.code)}</p>
+        </div>
+        <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">
+          هذا الرمز صالح لمدة <strong>5 دقائق</strong>. لا تشاركه مع أي شخص.
+        </p>
+      `,
+    }),
+  });
+}
+
 export async function sendClientResponseNotification(data: {
   project_name: string;
   client_name: string;

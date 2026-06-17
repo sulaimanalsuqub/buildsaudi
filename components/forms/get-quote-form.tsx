@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileUp, MailCheck, SearchCheck, Send, Truck } from "lucide-react";
+import { EmailVerify } from "@/components/ui/email-verify";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
 function isValidSaudiPhone(phone: string): boolean {
@@ -149,6 +150,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [emailToken, setEmailToken] = useState("");
 
   const [form, setForm] = useState({
     projectName: "",
@@ -185,6 +188,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     }
   }, [form]);
 
+  const emailVerified = !!verifiedEmail && verifiedEmail === form.email.trim().toLowerCase() && !!emailToken;
+
   const set = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }));
     setErrors((p) => ({ ...p, [field]: "" }));
@@ -199,8 +204,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       } else if (!isValidSaudiPhone(form.phone)) {
         e.phone = copy.invalidPhone;
       }
-      if (form.email.trim() && !isValidEmail(form.email)) {
+      if (!form.email.trim()) {
+        e.email = copy.required;
+      } else if (!isValidEmail(form.email)) {
         e.email = copy.invalidEmail;
+      } else if (!emailVerified) {
+        e.email = isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first";
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
@@ -273,6 +282,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             client_name: form.clientName,
             phone: form.phone,
             client_email: form.email,
+            email_verified_token: emailToken || undefined,
             contact_method: form.contactMethod,
             materials: form.materials,
             delivery_address: form.deliveryAddress,
@@ -317,6 +327,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setSelectedFiles([]);
     setErrors({});
     setStep(0);
+    setVerifiedEmail("");
+    setEmailToken("");
     setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
@@ -421,65 +433,115 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
       {/* Step Content */}
       <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-5">
-        {/* الخطوة 1: معلومات العميل */}
-        {step === 0 && (
-          <>
-            <Field label={copy.clientName} error={errors.clientName} required>
-              <input
-                type="text"
-                placeholder={copy.clientNamePlaceholder}
-                value={form.clientName}
-                onChange={(e) => set("clientName", e.target.value)}
-                className={inputCls(!!errors.clientName)}
-              />
-            </Field>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label={copy.phone} error={errors.phone} required>
+        {/* الخطوة 1: معلومات العميل — Progressive Disclosure */}
+        {step === 0 && (() => {
+          const showPhone = form.clientName.trim().length >= 2;
+          const showEmail = showPhone && isValidSaudiPhone(form.phone);
+          const showVerify = showEmail && form.email.trim() && isValidEmail(form.email) && !emailVerified;
+          const showContactMethod = showEmail;
+          return (
+            <>
+              <Field label={copy.clientName} error={errors.clientName} required>
                 <input
-                  type="tel"
-                  placeholder={copy.phonePlaceholder}
-                  value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  className={inputCls(!!errors.phone)}
-                  dir="ltr"
+                  type="text"
+                  placeholder={copy.clientNamePlaceholder}
+                  value={form.clientName}
+                  onChange={(e) => set("clientName", e.target.value)}
+                  className={inputCls(!!errors.clientName)}
+                  autoFocus
                 />
               </Field>
-              <Field label={copy.email} error={errors.email}>
-                <input
-                  type="email"
-                  placeholder={copy.emailPlaceholder}
-                  value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  className={inputCls(!!errors.email)}
-                  dir="ltr"
-                />
-              </Field>
-              <Field label={copy.contactMethod} className="sm:col-span-2">
-                <div className="grid grid-cols-2 gap-3">
-                  {(["whatsapp", "email"] as const).map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => set("contactMethod", method)}
-                      className={[
-                        "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
-                        form.contactMethod === method
-                          ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
-                          : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
-                      ].join(" ")}
-                    >
-                      {method === "whatsapp" ? "📱" : "📧"}
-                      {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            </div>
-          </>
-        )}
 
-        {/* الخطوة 2: تفاصيل المشروع */}
-        {step === 1 && (
+              <AnimatePresence>
+                {showPhone && (
+                  <motion.div key="phone" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={copy.phone} error={errors.phone} required>
+                      <input
+                        type="tel"
+                        placeholder={copy.phonePlaceholder}
+                        value={form.phone}
+                        onChange={(e) => set("phone", e.target.value)}
+                        className={inputCls(!!errors.phone)}
+                        dir="ltr"
+                      />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showEmail && (
+                  <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
+                    <Field label={copy.email} error={errors.email} required>
+                      <input
+                        type="email"
+                        placeholder={copy.emailPlaceholder}
+                        value={form.email}
+                        onChange={(e) => set("email", e.target.value)}
+                        className={inputCls(!!errors.email)}
+                        dir="ltr"
+                      />
+                    </Field>
+                    <AnimatePresence mode="wait">
+                      {emailVerified ? (
+                        <motion.div key="verified" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                            <span className="font-semibold">{isRtl ? "تم التحقق من البريد الإلكتروني ✓" : "Email verified ✓"}</span>
+                          </div>
+                        </motion.div>
+                      ) : showVerify ? (
+                        <motion.div key="verify-widget" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                          <EmailVerify
+                            email={form.email.trim()}
+                            isRtl={isRtl}
+                            onVerified={(token) => {
+                              setVerifiedEmail(form.email.trim().toLowerCase());
+                              setEmailToken(token);
+                              setErrors((p) => ({ ...p, email: "" }));
+                            }}
+                          />
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showContactMethod && (
+                  <motion.div key="contact" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={copy.contactMethod}>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(["whatsapp", "email"] as const).map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => set("contactMethod", method)}
+                            className={[
+                              "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
+                              form.contactMethod === method
+                                ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
+                                : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
+                            ].join(" ")}
+                          >
+                            {method === "whatsapp" ? "📱" : "📧"}
+                            {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          );
+        })()}
+
+        {/* الخطوة 2: تفاصيل المشروع — Progressive Disclosure */}
+        {step === 1 && (() => {
+          const showMaterials = form.projectName.trim().length >= 2;
+          return (
           <>
             <Field label={copy.projectName} error={errors.projectName} required>
               <input
@@ -488,8 +550,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                 value={form.projectName}
                 onChange={(e) => set("projectName", e.target.value)}
                 className={inputCls(!!errors.projectName)}
+                autoFocus
               />
             </Field>
+            <AnimatePresence>
+            {showMaterials && (
+            <motion.div key="materials-section" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-5">
             <Field label={copy.materials} error={errors.materials} required>
               <textarea
                 rows={3}
@@ -565,11 +631,18 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                 dir="ltr"
               />
             </Field>
+            </motion.div>
+            )}
+            </AnimatePresence>
           </>
-        )}
+          );
+        })()}
 
-        {/* الخطوة 3: التوصيل */}
-        {step === 2 && (
+        {/* الخطوة 3: التوصيل — Progressive Disclosure */}
+        {step === 2 && (() => {
+          const showDate = form.deliveryAddress.trim().length >= 3;
+          const showNotes = showDate && !!form.deliveryDate;
+          return (
           <>
             <Field label={copy.deliveryAddress} error={errors.deliveryAddress} required>
               <input
@@ -578,29 +651,43 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                 value={form.deliveryAddress}
                 onChange={(e) => set("deliveryAddress", e.target.value)}
                 className={inputCls(!!errors.deliveryAddress)}
+                autoFocus
               />
             </Field>
-            <Field label={copy.deliveryDate} error={errors.deliveryDate} required>
-              <input
-                type="date"
-                value={form.deliveryDate}
-                onChange={(e) => set("deliveryDate", e.target.value)}
-                className={inputCls(!!errors.deliveryDate)}
-                dir="ltr"
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </Field>
-            <Field label={copy.notes}>
-              <textarea
-                rows={3}
-                placeholder={copy.notesPlaceholder}
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-                className={inputCls(false) + " resize-none"}
-              />
-            </Field>
+            <AnimatePresence>
+              {showDate && (
+                <motion.div key="date" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                  <Field label={copy.deliveryDate} error={errors.deliveryDate} required>
+                    <input
+                      type="date"
+                      value={form.deliveryDate}
+                      onChange={(e) => set("deliveryDate", e.target.value)}
+                      className={inputCls(!!errors.deliveryDate)}
+                      dir="ltr"
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </Field>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {showNotes && (
+                <motion.div key="notes" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                  <Field label={copy.notes}>
+                    <textarea
+                      rows={3}
+                      placeholder={copy.notesPlaceholder}
+                      value={form.notes}
+                      onChange={(e) => set("notes", e.target.value)}
+                      className={inputCls(false) + " resize-none"}
+                    />
+                  </Field>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
-        )}
+          );
+        })()}
 
         {/* الخطوة 4: مراجعة */}
         {step === 3 && (
