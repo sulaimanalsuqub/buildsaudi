@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadERPNextFile } from "@/lib/erpnext";
-import { extractTextFromProcurementFile } from "@/lib/file-text";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { createUploadAttachToken } from "@/lib/upload-token";
 
@@ -12,16 +11,23 @@ const ALLOWED_TYPES = [
   "text/csv",
 ];
 
+function isPdfMagic(head: Uint8Array) {
+  return head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
+}
+
 // التحقق من Magic Bytes للتأكد أن محتوى الملف يطابق نوعه المُعلَن
-async function isValidFileContent(file: File): Promise<boolean> {
+async function isValidFileContent(file: File, head: Uint8Array): Promise<boolean> {
   // CSV: ملف نصي، لا magic bytes مطلوبة
   if (file.type === "text/csv") return true;
 
-  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  const looksPdf =
+    file.type === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf") ||
+    isPdfMagic(head);
 
   // PDF: %PDF = 25 50 44 46
-  if (file.type === "application/pdf") {
-    return head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46;
+  if (looksPdf) {
+    return isPdfMagic(head);
   }
 
   // XLSX (ZIP format): PK\x03\x04 = 50 4B 03 04
@@ -58,20 +64,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "حجم الملف أكبر من 10MB" }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    const isPdfByMagic = isPdfMagic(head);
+    const isPdfUpload = isPdfByMagic || file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isBoqUpload = String(formData.get("folder") || "") === "boq";
+
+    if (!isBoqUpload && !isPdfUpload) {
+      return NextResponse.json({ error: "نوع الملف غير مسموح — ارفع ملف PDF فقط" }, { status: 400 });
+    }
+
+    if (isBoqUpload && file.type && !ALLOWED_TYPES.includes(file.type) && !isPdfByMagic) {
       return NextResponse.json({ error: "نوع الملف غير مسموح" }, { status: 400 });
     }
 
-    const contentValid = await isValidFileContent(file);
+    const contentValid = await isValidFileContent(file, head);
     if (!contentValid) {
       return NextResponse.json({ error: "محتوى الملف لا يتطابق مع نوعه" }, { status: 400 });
     }
 
     let extractedText = "";
-    try {
-      extractedText = await extractTextFromProcurementFile(file);
-    } catch (extractError) {
-      console.error("BOQ text extraction failed:", extractError);
+    if (isBoqUpload) {
+      try {
+        const { extractTextFromProcurementFile } = await import("@/lib/file-text");
+        extractedText = await extractTextFromProcurementFile(file);
+      } catch (extractError) {
+        console.error("BOQ text extraction failed:", extractError);
+      }
     }
 
     const uploaded = await uploadERPNextFile(file);
@@ -85,6 +103,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     console.error("Upload route error:", e);
-    return NextResponse.json({ error: "حدث خطأ" }, { status: 500 });
+    const message = e instanceof Error ? e.message : "";
+    if (message.includes("401")) {
+      return NextResponse.json({ error: "تعذر الاتصال بنظام الملفات — تواصل مع الدعم" }, { status: 500 });
+    }
+    if (message.includes("upload error: 500") || message.toLowerCase().includes("pdf")) {
+      return NextResponse.json(
+        { error: "تعذر معالجة ملف PDF — تأكد أن الملف سليم أو أعد تصديره كـ PDF" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ error: "فشل رفع الملف — حاول مرة أخرى" }, { status: 500 });
   }
 }

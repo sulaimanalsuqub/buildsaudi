@@ -146,12 +146,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "upload failed");
+      if (!res.ok) throw new Error((data.error as string) || "upload failed");
       const entry = { name: data.fileName as string, token: data.attachToken as string };
       if (kind === "cr") setCrFile(entry);
       else setBankFile(entry);
-    } catch {
-      setSubmitError(isRtl ? "فشل رفع الملف" : "File upload failed");
+      setSubmitError("");
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : isRtl ? "فشل رفع الملف" : "File upload failed");
     } finally {
       setUploading(null);
     }
