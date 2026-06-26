@@ -87,12 +87,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          establishment_name: data.establishmentName,
-          manager_name: data.managerName,
-          contact_number: data.contactNumber,
-          email: data.email,
+          establishment_name: data.establishmentName.trim(),
+          manager_name: data.managerName.trim(),
+          contact_number: data.contactNumber.replace(/[\s-]/g, ""),
+          email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
-          cr_number: data.crNumber,
+          cr_number: data.crNumber.replace(/\D/g, ""),
         }),
       });
       const result = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -173,7 +173,19 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           {showEmail && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
               <VendorField label={t.labels.email}>
-                <Input type="email" {...form.register("email")} className="h-12 text-base" dir="ltr" />
+                <Input
+                  type="email"
+                  {...form.register("email", {
+                    onChange: () => {
+                      if (emailVerified) {
+                        setVerifiedEmail("");
+                        setEmailToken("");
+                      }
+                    },
+                  })}
+                  className="h-12 text-base"
+                  dir="ltr"
+                />
                 <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
               </VendorField>
               {emailVerified ? (

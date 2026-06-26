@@ -5,17 +5,27 @@ import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-
 import { sendNewVendorRegistrationNotification, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { verifyEmailToken } from "@/lib/otp";
 
-const basicVendorSchema = z.object({
-  establishment_name: z.string().trim().min(2),
-  manager_name: z.string().trim().min(2),
-  contact_number: z.string().trim().min(8),
-  email: z.string().trim().email(),
-  email_verified_token: z.string(),
-  cr_number: z.string().trim().regex(/^\d{10,15}$/),
-}).refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
-  path: ["email"],
-  message: "يجب التحقق من البريد الإلكتروني أولاً",
-});
+const basicVendorSchema = z
+  .object({
+    establishment_name: z.string().trim().min(2, "اسم المنشأة مطلوب"),
+    manager_name: z.string().trim().min(2, "اسم المسؤول مطلوب"),
+    contact_number: z
+      .string()
+      .trim()
+      .transform((v) => v.replace(/[\s-]/g, ""))
+      .pipe(z.string().min(8, "رقم التواصل غير صحيح")),
+    email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
+    email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
+    cr_number: z
+      .string()
+      .trim()
+      .transform((v) => v.replace(/\D/g, ""))
+      .pipe(z.string().regex(/^\d{10,15}$/, "رقم السجل يجب أن يكون 10-15 رقم")),
+  })
+  .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
+    path: ["email"],
+    message: "انتهت صلاحية التحقق من البريد — أعد إرسال رمز OTP والتحقق مرة أخرى",
+  });
 
 export async function POST(req: NextRequest) {
   const clientId = getClientIdentifier(req);
@@ -24,7 +34,8 @@ export async function POST(req: NextRequest) {
 
   const parsed = basicVendorSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
-    return NextResponse.json({ error: "بيانات المورد غير مكتملة أو غير صحيحة" }, { status: 400 });
+    const firstError = parsed.error.issues[0]?.message || "بيانات المورد غير مكتملة أو غير صحيحة";
+    return NextResponse.json({ error: firstError }, { status: 400 });
   }
 
   const vendor = parsed.data;

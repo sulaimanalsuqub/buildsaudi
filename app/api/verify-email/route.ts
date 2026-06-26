@@ -4,13 +4,15 @@ import { generateOTP, verifyOTP, generateVerifiedToken } from "@/lib/otp";
 import { sendEmailVerificationOTP } from "@/lib/email";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
+const emailField = z.string().trim().toLowerCase().email();
+
 const sendSchema = z.object({
-  email: z.string().email(),
+  email: emailField,
   action: z.literal("send"),
 });
 
 const verifySchema = z.object({
-  email: z.string().email(),
+  email: emailField,
   code: z.string().length(6),
   action: z.literal("verify"),
 });

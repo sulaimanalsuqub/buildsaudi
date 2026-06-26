@@ -44,14 +44,14 @@ export function generateVerifiedToken(email: string): string {
   return `${ts}.${sig}`;
 }
 
-// Returns true if token is valid and was issued within 15 minutes
+// Returns true if token is valid and was issued within 30 minutes
 export function verifyEmailToken(email: string, token: string): boolean {
   const parts = token.split(".");
   if (parts.length !== 2) return false;
   const ts = parseInt(parts[0], 10);
   if (isNaN(ts)) return false;
   const age = Math.floor(Date.now() / 1000) - ts;
-  if (age < 0 || age > 900) return false;
+  if (age < 0 || age > 1800) return false;
   const expected = createHmac("sha256", getSecret())
     .update(`verified:${email.toLowerCase().trim()}:${ts}`)
     .digest("hex")
