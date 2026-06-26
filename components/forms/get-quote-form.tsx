@@ -246,6 +246,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       // رفع الملفات عبر API server-side
       let boqFileUrl: string | null = null;
       let boqFileName: string | null = null;
+      let boqAttachToken: string | null = null;
       let boqExtractedText = "";
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
@@ -262,6 +263,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           if (!boqFileUrl) {
             boqFileUrl = uploadData.url;
             boqFileName = uploadData.fileName ?? null;
+            boqAttachToken = uploadData.attachToken ?? null;
           }
           if (uploadData.extractedText) {
             boqExtractedText += (boqExtractedText ? "\n\n---\n\n" : "") + uploadData.extractedText;
@@ -290,6 +292,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             notes: form.notes || null,
             boq_file_url: boqFileUrl ?? (form.sheetLink.trim() || null),
             boq_file_name: boqFileName,
+            boq_attach_token: boqAttachToken,
             boq_file_text: boqExtractedText,
           }),
         });

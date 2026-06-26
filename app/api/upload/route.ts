@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadERPNextFile } from "@/lib/erpnext";
 import { extractTextFromProcurementFile } from "@/lib/file-text";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { createUploadAttachToken } from "@/lib/upload-token";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       url: uploaded.fileUrl,
       fileName: uploaded.name,
       originalName: uploaded.fileName,
+      attachToken: createUploadAttachToken(uploaded.name),
       extractedText,
     });
   } catch (e) {

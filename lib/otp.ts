@@ -1,7 +1,14 @@
 import { createHmac } from "crypto";
 
 function getSecret(): string {
-  return process.env.OTP_SECRET ?? process.env.ERPNEXT_API_TOKEN ?? "build-otp-fallback";
+  const secret = process.env.OTP_SECRET ?? process.env.ERPNEXT_WEBHOOK_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OTP_SECRET is required in production");
+    }
+    return "build-otp-dev-only";
+  }
+  return secret;
 }
 
 const STEP_SECONDS = 60;

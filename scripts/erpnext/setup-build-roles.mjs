@@ -66,19 +66,24 @@ async function upsert(doctype, name, doc) {
 
 const ROLES = [
   {
-    name: "Build Manager",
+    name: "Build Team",
+    role_name: "Build Team",
     desk_access: 1,
-    home_page: "Build",
+  },
+  {
+    name: "Build Manager",
+    role_name: "Build Manager",
+    desk_access: 1,
   },
   {
     name: "Build Operations",
+    role_name: "Build Operations",
     desk_access: 1,
-    home_page: "Build",
   },
   {
     name: "Build Supplier",
+    role_name: "Build Supplier",
     desk_access: 1,
-    home_page: "Request for Quotation",
   },
 ];
 
@@ -96,7 +101,14 @@ async function setupRoles() {
  * Each entry: { doctype, role, perms }
  * perms keys: read, write, create, delete, submit, cancel, amend, report, export, import, share, print, email
  */
+const STANDARD_ROLES = [
+  { doctype: "Opportunity", role: "System Manager", perms: { read:1, write:1, create:1, delete:1, submit:1, cancel:1, amend:1, report:1, export:1, print:1, email:1 } },
+  { doctype: "Opportunity", role: "Sales Manager",  perms: { read:1, write:1, create:1, delete:1, submit:1, cancel:1, amend:1, report:1, export:1, print:1, email:1 } },
+  { doctype: "Opportunity", role: "Sales User",     perms: { read:1, write:1, create:1, report:1, print:1, email:1 } },
+];
+
 const PERMISSIONS = [
+  ...STANDARD_ROLES,
   // ── Opportunity ──
   { doctype: "Opportunity", role: "Build Manager",    perms: { read:1, write:1, create:1, delete:1, report:1, export:1, print:1, email:1 } },
   { doctype: "Opportunity", role: "Build Operations", perms: { read:1, write:1, create:1, report:1, print:1, email:1 } },
@@ -121,7 +133,7 @@ const PERMISSIONS = [
 
   // ── Sales Order ──
   { doctype: "Sales Order", role: "Build Manager",    perms: { read:1, write:1, create:1, delete:1, submit:1, cancel:1, amend:1, report:1, print:1 } },
-  { doctype: "Sales Order", role: "Build Operations", perms: { read:1, write:1, submit:1, report:1, print:1 } },
+  { doctype: "Sales Order", role: "Build Operations", perms: { read:1, write:1, create:1, submit:1, cancel:1, amend:1, report:1, print:1 } },
 
   // ── Purchase Order ──
   { doctype: "Purchase Order", role: "Build Manager",    perms: { read:1, write:1, create:1, delete:1, submit:1, cancel:1, amend:1, report:1, print:1 } },
@@ -143,23 +155,28 @@ const PERMISSIONS = [
 ];
 
 async function setPermission(doctype, role, perms) {
-  // Delete all existing rows for this doctype+role, then create fresh
+  // Delete all existing custom permission rows for this doctype+role, then create fresh
   try {
     const existing = await api(
       "GET",
-      `/api/resource/Custom DocPerm?filters=[["Custom DocPerm","document_type","=","${doctype}"],["Custom DocPerm","role","=","${role}"]]&fields=["name"]&limit=50`
+      `/api/resource/Custom%20DocPerm?filters=${encodeURIComponent(JSON.stringify([
+        ["Custom DocPerm", "parent", "=", doctype],
+        ["Custom DocPerm", "role", "=", role],
+      ]))}&fields=${encodeURIComponent(JSON.stringify(["name"]))}&limit_page_length=50`
     );
     const rows = Array.isArray(existing) ? existing : [];
     for (const row of rows) {
-      await api("DELETE", `/api/resource/Custom DocPerm/${row.name}`);
+      await api("DELETE", `/api/resource/Custom%20DocPerm/${encodeURIComponent(row.name)}`);
     }
   } catch (_) {
     // ignore if none
   }
 
-  // Create new permission row
+  // Create new permission row linked to the DocType
   const doc = {
-    document_type: doctype,
+    parent: doctype,
+    parenttype: "DocType",
+    parentfield: "permissions",
     role,
     permlevel: 0,
     read: perms.read ?? 0,
@@ -221,7 +238,9 @@ async function setupUsers() {
       language: u.language,
       send_welcome_email: 0,
       new_password: "BuildSaudi@2026!",
-      roles: [{ role: u.role }],
+      home_settings: JSON.stringify({ workspace: "Build" }),
+      roles: [{ role: u.role }, { role: "Build Team" }],
+      module_profile: "Build Operations",
     };
 
     if (await exists("User", u.email)) {

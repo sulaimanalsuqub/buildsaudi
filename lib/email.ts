@@ -310,38 +310,56 @@ export async function sendContractSignLink(vendor: {
 }
 
 // ─────────────────────────────────────────────
-//  4. إشعار المورد — تفعيل الحساب
+//  4. إشعار المورد — بدء رحلة التوريد (بعد موافقة الأدمن)
 // ─────────────────────────────────────────────
+export async function sendVendorJourneyStartedEmail(vendor: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  onboarding_url: string;
+}) {
+  const completeUrl = safeUrl(vendor.onboarding_url);
+  return sendEmail({
+    from: FROM,
+    to: vendor.email,
+    subject: "رحلة توريد منتجاتك بدأت — Build Saudi",
+    html: emailShell({
+      previewText: `تمت الموافقة على طلب انضمام ${vendor.establishment_name} — أكمل ملفك لبدء استقبال فرص التوريد`,
+      accentColor: "#09B14B",
+      badgeIcon: "🚀",
+      badgeLabel: "رحلة التوريد بدأت",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          تمت <strong style="color:#09B14B;">الموافقة على طلب انضمامكم</strong> إلى شبكة موردي Build Saudi.
+          الخطوة التالية: أكملوا ملف التوريد الخاص بمنشأتكم.
+        </p>
+        ${highlightBox("ستحتاجون للتحقق من بريدكم الإلكتروني برمز OTP ثم إكمال: فئات المنتجات، التغطية، البيانات المالية، والمستندات.")}
+        ${sectionTitle("ما المطلوب؟")}
+        <ul style="margin:0 0 24px;padding-right:20px;color:#4b5563;font-size:14px;line-height:2;">
+          <li>فئات المنتجات ومناطق التغطية</li>
+          <li>شروط الدفع والائتمان</li>
+          <li>بيانات الحساب البنكي (IBAN)</li>
+          <li>نسخة السجل التجاري وخطاب البنك</li>
+        </ul>
+        ${ctaButton(completeUrl, "إكمال ملف التوريد")}
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.7;">
+          الرابط صالح لمدة 14 يوماً. إذا لم يعمل الزر، انسخ الرابط:<br/>
+          <span dir="ltr" style="word-break:break-all;color:#6b7280;">${completeUrl}</span>
+        </p>
+      `,
+    }),
+  });
+}
+
+/** @deprecated Use sendVendorJourneyStartedEmail after admin approval */
 export async function sendVendorActivatedEmail(vendor: {
   establishment_name: string;
   manager_name: string;
   email: string;
 }) {
-  return sendEmail({
-    from: FROM,
-    to: vendor.email,
-    subject: "تم تفعيل حسابك كمورد — Build Saudi",
-    html: emailShell({
-      previewText: `مبروك! تم تفعيل حساب ${vendor.establishment_name} كمورد معتمد في Build Saudi`,
-      accentColor: "#09B14B",
-      badgeIcon: "🎉",
-      badgeLabel: "تم تفعيل الحساب",
-      content: `
-        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
-        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          يسعدنا إبلاغكم بأن منشأتكم أصبحت <strong style="color:#09B14B;">موردًا معتمدًا</strong> في منصة Build Saudi.
-        </p>
-        ${highlightBox("سنتواصل معكم قريبًا عند توفر فرص توريد مناسبة لتخصصاتكم ومناطق التغطية.")}
-        ${sectionTitle("ما التالي؟")}
-        <ul style="margin:0 0 24px;padding-right:20px;color:#4b5563;font-size:14px;line-height:2;">
-          <li>سيتواصل معكم فريقنا لإتمام إجراءات الشراكة</li>
-          <li>ستصلكم طلبات عروض الأسعار (RFQ) عبر البريد الإلكتروني</li>
-          <li>يمكنكم التواصل معنا في أي وقت للاستفسار</li>
-        </ul>
-        <p style="margin:0;font-size:14px;color:#6b7280;">شكرًا لثقتكم بنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
-      `,
-    }),
-  });
+  const onboardingUrl = `${BASE_URL}/ar/register/complete`;
+  return sendVendorJourneyStartedEmail({ ...vendor, onboarding_url: onboardingUrl });
 }
 
 // ─────────────────────────────────────────────
@@ -598,7 +616,55 @@ export async function sendQuoteStatusToClient(params: {
 }
 
 // ─────────────────────────────────────────────
-//  9. تأكيد تسجيل المورد
+//  9. إشعار الأدمن — تسجيل مورد جديد
+// ─────────────────────────────────────────────
+export async function sendNewVendorRegistrationNotification(vendor: {
+  id: string;
+  establishment_name: string;
+  manager_name: string;
+  contact_number: string;
+  email: string;
+  cr_number: string;
+  vendor_type: string;
+  product_categories: string[];
+  coverage_regions: string[];
+}) {
+  const supplierUrl = erpnextDocUrl("supplier", vendor.id);
+
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `مورد جديد — ${vendor.establishment_name}`,
+    html: emailShell({
+      previewText: `تسجيل مورد جديد: ${vendor.establishment_name}`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "🏗️",
+      badgeLabel: "مورد جديد من الموقع",
+      content: `
+        ${greeting(vendor.establishment_name, "طلب انضمام جديد من build.sa")}
+        ${sectionTitle("بيانات المنشأة")}
+        ${infoTable(
+          infoRow("المنشأة", esc(vendor.establishment_name)) +
+          infoRow("المسؤول", esc(vendor.manager_name)) +
+          infoRow("الجوال", esc(vendor.contact_number), "ltr") +
+          infoRow("البريد", esc(vendor.email), "ltr") +
+          infoRow("السجل التجاري", esc(vendor.cr_number), "ltr") +
+          infoRow("نوع النشاط", esc(vendor.vendor_type))
+        )}
+        ${sectionTitle("التخصص والتغطية")}
+        ${infoTable(
+          infoRow("الفئات", esc(vendor.product_categories.join("، "))) +
+          infoRow("المناطق", esc(vendor.coverage_regions.join("، ")))
+        )}
+        ${highlightBox("الخطوة التالية: افتح المورد في ERPNext → <strong>Review</strong> → راجع البيانات → <strong>Approve</strong> أو <strong>Reject</strong>.")}
+        ${ctaButton(supplierUrl, "مراجعة المورد في ERPNext")}
+      `,
+    }),
+  });
+}
+
+// ─────────────────────────────────────────────
+//  10. تأكيد تسجيل المورد
 // ─────────────────────────────────────────────
 export async function sendVendorRegistrationConfirmation(vendor: {
   establishment_name: string;

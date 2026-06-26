@@ -80,6 +80,8 @@ async function create_build_customer_quotation(frm, values) {
     build_service_fee_percent: values.service_fee_type === "Percentage" ? flt(values.service_fee_percent || 0) : 0,
     build_service_fee_amount: serviceFee,
     build_final_notes: values.notes || "",
+    build_contact_email: opportunity.build_contact_email || "",
+    build_project_name: opportunity.build_project_name || opportunity.title || "",
     items: (frm.doc.items || []).map((item) => {
       const qty = flt(item.qty || 1) || 1;
       const itemCost = flt(item.amount || item.rate || 0);

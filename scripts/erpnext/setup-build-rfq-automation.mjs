@@ -45,11 +45,14 @@ async function create_build_rfq_from_opportunity(frm) {
         item.build_category ? __("الفئة") + ": " + item.build_category : "",
       ].filter(Boolean);
 
+      const uom = item.build_uom || "Nos";
       return {
         item_code: item.build_item_code || "BUILD-MATERIALS-REQUEST",
         description: descriptionParts.join("\n"),
         qty,
-        uom: item.build_uom || "Nos",
+        uom,
+        stock_uom: uom,
+        conversion_factor: 1,
         schedule_date: deliveryDate,
       };
     })
@@ -59,6 +62,8 @@ async function create_build_rfq_from_opportunity(frm) {
         description: requiredMaterials,
         qty: 1,
         uom: "Nos",
+        stock_uom: "Nos",
+        conversion_factor: 1,
         schedule_date: deliveryDate,
       },
     ];
@@ -270,16 +275,12 @@ if (serverScriptName) {
   });
 }
 
-const clientScriptName = await findByFilters("Client Script", [
-  ["Client Script", "dt", "=", "Opportunity"],
-]);
-
-const savedClientScript = await upsert("Client Script", clientScriptName, {
+const savedClientScript = await upsert("Client Script", "Build Opportunity RFQ Button", {
   dt: "Opportunity",
   view: "Form",
   enabled: 1,
   script: clientScript.trim(),
-}, "Build Opportunity RFQ Button");
+});
 
 console.log(JSON.stringify({
   ok: true,

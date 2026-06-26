@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  sendVendorActivatedEmail,
+  sendVendorJourneyStartedEmail,
   sendVendorRejectedEmail,
   sendQuoteStatusToClient,
   getClientNotifiableStatuses,
 } from "@/lib/email";
+import { generateVendorOnboardingToken } from "@/lib/vendor-onboarding-token";
 
 const WEBHOOK_SECRET = process.env.ERPNEXT_WEBHOOK_SECRET;
 
 type SupplierPayload = {
   event: "supplier.approved" | "supplier.rejected";
+  supplier_id: string;
   supplier_name: string;
   manager_name: string;
   email: string;
@@ -54,13 +56,22 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (payload.event) {
-      case "supplier.approved":
-        await sendVendorActivatedEmail({
+      case "supplier.approved": {
+        const baseUrl = (
+          process.env.NEXT_PUBLIC_APP_URL ??
+          process.env.NEXT_PUBLIC_SITE_URL ??
+          "https://www.build.sa"
+        ).replace(/\/$/, "");
+        const token = generateVendorOnboardingToken(payload.supplier_id, payload.email);
+        const locale = "/ar/register/complete";
+        await sendVendorJourneyStartedEmail({
           establishment_name: payload.supplier_name,
           manager_name: payload.manager_name,
           email: payload.email,
+          onboarding_url: `${baseUrl}${locale}?token=${token}`,
         });
         break;
+      }
 
       case "supplier.rejected":
         await sendVendorRejectedEmail({
