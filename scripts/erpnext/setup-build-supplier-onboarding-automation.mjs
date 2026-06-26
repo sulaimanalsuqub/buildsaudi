@@ -108,7 +108,7 @@ frappe.ui.form.on("Supplier", {
       "Pre Registration": {
         msg: "📋 مورد جديد — راجع البيانات الأساسية ثم Review",
         color: "#e8f5e9",
-        steps: ["تحقق من السجل التجاري والجوال والبريد", "اضغط Review من شريط Workflow", "ثم Approve لإرسال رابط إكمال الملف"],
+        steps: ["تحقق من السجل التجاري والجوال والبريد", "اضغط «إعادة النظر» (Review) من شريط Workflow", "ثم «موافقة» (Approve) لإرسال رابط إكمال الملف"],
       },
       "Under Review": {
         msg: profileDone
@@ -116,8 +116,8 @@ frappe.ui.form.on("Supplier", {
           : "🔍 مراجعة أولية — وافق لإرسال رابط إكمال الملف للمورد",
         color: "#fff3e0",
         steps: profileDone
-          ? ["راجع build_product_categories والبنك والمرفقات", "Approve = اعتماد نهائي لـ RFQ", "Reject = رفض مع سبب"]
-          : ["تأكد من بيانات التواصل والسجل", "Approve = إرسال رابط إكمال الملف فقط", "Reject = رفض الطلب"],
+          ? ["راجع مطابقة الاسم (السجل + البنك + التسجيل)", "تحقق من الرقم الضريبي والعنوان الوطني في build_agent_summary", "Approve = اعتماد نهائي لـ RFQ", "Reject = رفض مع سبب"]
+          : ["تأكد من بيانات التواصل والسجل", "«موافقة» (Approve) = إرسال رابط إكمال الملف فقط — ليس اعتماداً نهائياً", "«رفض» (Reject) = رفض الطلب"],
       },
       Approved: {
         msg: profileDone

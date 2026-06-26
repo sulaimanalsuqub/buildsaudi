@@ -9,6 +9,14 @@ import {
 } from "@/lib/erpnext";
 import { sendVendorProfileSubmittedNotification } from "@/lib/email";
 import { runSupplierAgent } from "@/lib/build-agents";
+import {
+  identityVerificationErrorMessage,
+  isValidNationalAddress,
+  isValidSaudiVat,
+  normalizeNationalAddress,
+  normalizeSaudiVat,
+  runSupplierIdentityVerification,
+} from "@/lib/supplier-identity-verification";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyVendorOnboardingToken } from "@/lib/vendor-onboarding-token";
@@ -28,6 +36,19 @@ const completeSchema = z.object({
   worked_on_gov_projects: z.boolean(),
   bank_name: z.string().trim().min(2),
   iban: z.string().trim().regex(/^SA\d{22}$/i),
+  iban_account_name: z.string().trim().min(2, "اسم صاحب الحساب في خطاب البنك مطلوب"),
+  cr_name_on_document: z.string().trim().min(2, "اسم المنشأة في السجل التجاري مطلوب"),
+  tax_number: z
+    .string()
+    .trim()
+    .transform((v) => normalizeSaudiVat(v))
+    .refine(isValidSaudiVat, { message: "الرقم الضريبي يجب أن يكون 15 رقم يبدأ وينتهي بـ 3" }),
+  national_address: z
+    .string()
+    .trim()
+    .refine(isValidNationalAddress, {
+      message: "أدخل العنوان الوطني (الرمز المختصر مثل RRRD2929 أو العنوان الكامل مع الرمز البريدي)",
+    }),
   cr_document_name: z.string().optional(),
   cr_attach_token: z.string().optional(),
   bank_letter_name: z.string().optional(),
@@ -77,6 +98,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "يجب التحقق من البريد الإلكتروني أولاً" }, { status: 400 });
   }
 
+  const identity = runSupplierIdentityVerification({
+    establishment_name: supplier.supplier_name,
+    cr_number: supplier.build_cr_number || "",
+    cr_name_on_document: data.cr_name_on_document,
+    iban_account_name: data.iban_account_name,
+    tax_number: data.tax_number,
+    national_address: data.national_address,
+    iban: data.iban,
+  });
+
+  const identityError = identityVerificationErrorMessage(identity);
+  if (identityError) {
+    return NextResponse.json({ error: identityError }, { status: 400 });
+  }
+
   const agent = runSupplierAgent({
     establishment_name: supplier.supplier_name,
     cr_number: supplier.build_cr_number || "",
@@ -86,6 +122,13 @@ export async function POST(req: NextRequest) {
     offers_credit: data.offers_credit,
     worked_on_gov_projects: data.worked_on_gov_projects,
     payment_terms: data.payment_terms,
+    identity: {
+      cr_name_on_document: data.cr_name_on_document,
+      iban_account_name: data.iban_account_name,
+      tax_number: data.tax_number,
+      national_address: normalizeNationalAddress(data.national_address),
+      iban: data.iban,
+    },
   });
 
   try {
@@ -101,6 +144,15 @@ export async function POST(req: NextRequest) {
       worked_on_gov_projects: data.worked_on_gov_projects,
       bank_name: data.bank_name,
       iban: data.iban,
+      iban_account_name: data.iban_account_name,
+      cr_document_name: data.cr_name_on_document,
+      tax_number: data.tax_number,
+      national_address: normalizeNationalAddress(data.national_address),
+      identity_match_score: identity.matchScore,
+      verification_status:
+        identity.verificationStatus === "Verified"
+          ? "Profile Submitted"
+          : "Needs More Information",
       agent_summary: agent.summary,
       agent_score: agent.score,
       agent_catalog_groups: agent.catalogGroups.join(", "),

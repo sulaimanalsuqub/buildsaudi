@@ -1,4 +1,8 @@
 import { getERPNextList } from "@/lib/erpnext";
+import {
+  runSupplierIdentityVerification,
+  type IdentityVerificationInput,
+} from "@/lib/supplier-identity-verification";
 
 // Maps website supplier categories → ERPNext Item Groups
 const CATEGORY_TO_ITEM_GROUP: Record<string, string> = {
@@ -108,6 +112,7 @@ export function runSupplierAgent(vendor: {
   worked_on_gov_projects: boolean;
   payment_terms: string[];
   establishment_name: string;
+  identity?: Omit<IdentityVerificationInput, "establishment_name" | "cr_number">;
 }): SupplierAgentResult {
   const checks: string[] = [];
   let score = 0;
@@ -156,8 +161,27 @@ export function runSupplierAgent(vendor: {
   if (score >= 55) priority = "Preferred";
   if (score < 15) priority = "Do Not Use";
 
-  const verificationStatus: SupplierAgentResult["verificationStatus"] =
+  let verificationStatus: SupplierAgentResult["verificationStatus"] =
     score < 15 ? "Needs More Information" : "Pending";
+
+  const identitySummary: string[] = [];
+  if (vendor.identity) {
+    const identity = runSupplierIdentityVerification({
+      establishment_name: vendor.establishment_name,
+      cr_number: vendor.cr_number,
+      ...vendor.identity,
+    });
+    identitySummary.push(...identity.summaryLines);
+    if (identity.verificationStatus === "Failed") {
+      verificationStatus = "Failed";
+    } else if (identity.verificationStatus === "Needs More Information") {
+      verificationStatus = "Needs More Information";
+    }
+    if (!identity.allCriticalPassed) {
+      score = Math.min(score, 40);
+      if (priority !== "Do Not Use" && score < 55) priority = "Standard";
+    }
+  }
 
   const summary = [
     `📊 تقييم تلقائي للملف — ${vendor.establishment_name}`,
@@ -166,6 +190,7 @@ export function runSupplierAgent(vendor: {
     "",
     ...checks,
     "",
+    ...(identitySummary.length ? [...identitySummary, ""] : []),
     "⏳ الخطوة التالية: راجع الملف والمستندات ثم اعتمد نهائياً من Workflow",
   ].join("\n");
 

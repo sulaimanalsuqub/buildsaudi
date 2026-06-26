@@ -74,6 +74,16 @@ export const saudiBanks: VendorOption[] = [
 export const saudiPhoneRegex = /^(05\d{8}|\+9665\d{8}|009665\d{8})$/;
 export const crNumberRegex = /^\d{10,15}$/;
 export const saudiIbanRegex = /^SA\d{22}$/i;
+export const saudiVatRegex = /^3\d{13}3$/;
+export const nationalAddressShortCodeRegex = /^[A-Za-z]{4}\d{4}$/;
+
+export function normalizeSaudiVatInput(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+export function normalizeNationalAddressInput(value: string): string {
+  return value.trim();
+}
 
 export const vendorDialCodes = [
   { code: "+966", labelAr: "السعودية", labelEn: "Saudi Arabia" },

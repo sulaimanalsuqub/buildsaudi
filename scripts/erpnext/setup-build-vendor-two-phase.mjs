@@ -89,6 +89,42 @@ const PROFILE_FIELDS = [
     insert_after: "build_cr_document_url",
     read_only: 1,
   },
+  {
+    dt: "Supplier",
+    fieldname: "build_iban_account_name",
+    fieldtype: "Data",
+    label: "IBAN Account Name",
+    insert_after: "build_bank_letter_url",
+  },
+  {
+    dt: "Supplier",
+    fieldname: "build_cr_document_name",
+    fieldtype: "Data",
+    label: "CR Name On Document",
+    insert_after: "build_iban_account_name",
+  },
+  {
+    dt: "Supplier",
+    fieldname: "build_tax_number",
+    fieldtype: "Data",
+    label: "Tax Number (VAT)",
+    insert_after: "build_cr_document_name",
+  },
+  {
+    dt: "Supplier",
+    fieldname: "build_national_address",
+    fieldtype: "Data",
+    label: "National Address",
+    insert_after: "build_tax_number",
+  },
+  {
+    dt: "Supplier",
+    fieldname: "build_identity_match_score",
+    fieldtype: "Int",
+    label: "Identity Match Score",
+    insert_after: "build_national_address",
+    read_only: 1,
+  },
 ];
 
 async function disableDuplicateApprovalEmail() {

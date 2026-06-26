@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import {
+  normalizeNationalAddressInput,
+  normalizeSaudiVatInput,
   optionLabel,
   optionValuesToLabels,
   paymentTerms,
@@ -21,10 +23,16 @@ import {
   regions,
   saudiBanks,
   saudiIbanRegex,
+  saudiVatRegex,
   textByLang,
   vendorTypes,
   yesNoOptions,
 } from "@/lib/vendor-options";
+import {
+  isValidNationalAddress,
+  isValidSaudiVat,
+  nameSimilarity,
+} from "@/lib/supplier-identity-verification";
 import {
   VendorErrorText,
   VendorField,
@@ -54,6 +62,18 @@ const schema = z
     workedOnGovProjects: z.enum(["yes", "no"]),
     bankName: z.string().min(2, "required"),
     iban: z.string().regex(saudiIbanRegex, "invalidIban"),
+    ibanAccountName: z.string().trim().min(2, "required"),
+    crNameOnDocument: z.string().trim().min(2, "required"),
+    taxNumber: z
+      .string()
+      .trim()
+      .transform((v) => normalizeSaudiVatInput(v))
+      .refine((v) => saudiVatRegex.test(v), { message: "invalidVat" }),
+    nationalAddress: z
+      .string()
+      .trim()
+      .transform((v) => normalizeNationalAddressInput(v))
+      .refine(isValidNationalAddress, { message: "invalidNationalAddress" }),
   })
   .superRefine((v, ctx) => {
     if (v.vendorType === "importer" && !v.representedBrands?.trim()) {
@@ -69,7 +89,7 @@ type FormValues = z.infer<typeof schema>;
 const stepFields: (keyof FormValues)[][] = [
   ["productCategories", "vendorType", "representedBrands"],
   ["coverageRegions", "hasWarehouseInKsa", "offersCredit", "paymentTerms", "creditLimit", "workedOnGovProjects"],
-  ["bankName", "iban"],
+  ["bankName", "iban", "ibanAccountName", "crNameOnDocument", "taxNumber", "nationalAddress"],
   [],
 ];
 
@@ -120,6 +140,10 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       workedOnGovProjects: "yes",
       bankName: "",
       iban: "",
+      ibanAccountName: "",
+      crNameOnDocument: "",
+      taxNumber: "",
+      nationalAddress: "",
     },
     mode: "onBlur",
   });
@@ -158,6 +182,28 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     }
   }
 
+  const validateIdentityMatches = (data: FormValues): string | null => {
+    const crMatch = nameSimilarity(establishmentName, data.crNameOnDocument);
+    const ibanMatch = nameSimilarity(establishmentName, data.ibanAccountName);
+    if (crMatch < 0.5) {
+      return isRtl
+        ? "اسم المنشأة في السجل التجاري لا يطابق اسم التسجيل"
+        : "CR document name does not match registered establishment name";
+    }
+    if (ibanMatch < 0.5) {
+      return isRtl
+        ? "اسم صاحب الحساب في البنك لا يطابق اسم التسجيل"
+        : "Bank account name does not match registered establishment name";
+    }
+    if (!isValidSaudiVat(data.taxNumber)) {
+      return isRtl ? "الرقم الضريبي غير صحيح" : "Invalid tax number";
+    }
+    if (!isValidNationalAddress(data.nationalAddress)) {
+      return isRtl ? "العنوان الوطني غير صحيح" : "Invalid national address";
+    }
+    return null;
+  };
+
   const handleNext = async () => {
     if (!emailVerified) return;
     if (step === 2) {
@@ -168,6 +214,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     }
     const valid = await form.trigger(stepFields[step]);
     if (!valid) return;
+    if (step === 2) {
+      const identityError = validateIdentityMatches(form.getValues());
+      if (identityError) {
+        setSubmitError(identityError);
+        return;
+      }
+    }
     setSubmitError("");
     setStep((s) => Math.min(s + 1, t.stepLabels.length - 1));
   };
@@ -175,6 +228,11 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   const onSubmit = form.handleSubmit(async (data) => {
     if (!crFile || !bankFile) {
       setSubmitError(isRtl ? "المستندات مطلوبة" : "Documents required");
+      return;
+    }
+    const identityError = validateIdentityMatches(data);
+    if (identityError) {
+      setSubmitError(identityError);
       return;
     }
     setIsLoading(true);
@@ -197,6 +255,10 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
           worked_on_gov_projects: data.workedOnGovProjects === "yes",
           bank_name: data.bankName,
           iban: data.iban.toUpperCase(),
+          iban_account_name: data.ibanAccountName,
+          cr_name_on_document: data.crNameOnDocument,
+          tax_number: data.taxNumber,
+          national_address: data.nationalAddress,
           cr_document_name: crFile.name,
           cr_attach_token: crFile.token,
           bank_letter_name: bankFile.name,
@@ -355,6 +417,50 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
 
             {step === 2 && (
               <>
+                <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-4 text-sm text-brand-dark/80">
+                  <p className="font-semibold text-brand-dark">
+                    {textByLang(isRtl, "Registered establishment (must match documents)", "اسم المنشأة المسجل — يجب أن يطابق المستندات")}
+                  </p>
+                  <p className="mt-1 font-medium" dir="rtl">{establishmentName}</p>
+                  <p className="mt-2 text-xs text-brand-dark/65">
+                    {textByLang(
+                      isRtl,
+                      "Enter names exactly as they appear on the CR and bank letter. Tax number and national address are verified automatically.",
+                      "أدخل الأسماء كما هي في السجل التجاري وخطاب البنك. الرقم الضريبي والعنوان الوطني يُتحقق منهما تلقائياً."
+                    )}
+                  </p>
+                </div>
+                <VendorField label={textByLang(isRtl, "Name on Commercial Registration", "اسم المنشأة في السجل التجاري")}>
+                  <Input {...form.register("crNameOnDocument")} className="h-12" dir="rtl" placeholder={establishmentName} />
+                  <VendorErrorText text={form.formState.errors.crNameOnDocument?.message} isRtl={isRtl} />
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "Tax Number (VAT)", "الرقم الضريبي")}>
+                  <Input {...form.register("taxNumber")} className="h-12" dir="ltr" placeholder="300000000000003" inputMode="numeric" />
+                  <VendorErrorText
+                    text={
+                      form.formState.errors.taxNumber?.message === "invalidVat"
+                        ? textByLang(isRtl, "15 digits starting and ending with 3", "15 رقم يبدأ وينتهي بـ 3")
+                        : form.formState.errors.taxNumber?.message
+                    }
+                    isRtl={isRtl}
+                  />
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "National Address", "العنوان الوطني")}>
+                  <Input
+                    {...form.register("nationalAddress")}
+                    className="h-12 uppercase"
+                    dir="ltr"
+                    placeholder={textByLang(isRtl, "RRRD2929 or full address", "RRRD2929 أو العنوان الكامل")}
+                  />
+                  <VendorErrorText
+                    text={
+                      form.formState.errors.nationalAddress?.message === "invalidNationalAddress"
+                        ? textByLang(isRtl, "Short code (RRRD2929) or full address with postal code", "الرمز المختصر أو العنوان الكامل مع الرمز البريدي")
+                        : form.formState.errors.nationalAddress?.message
+                    }
+                    isRtl={isRtl}
+                  />
+                </VendorField>
                 <VendorField label={textByLang(isRtl, "Bank Name", "اسم البنك")}>
                   <select
                     value={values.bankName}
@@ -373,6 +479,10 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                 <VendorField label="IBAN">
                   <Input {...form.register("iban")} className="h-12 uppercase" dir="ltr" placeholder="SA0000000000000000000000" />
                   <VendorErrorText text={form.formState.errors.iban?.message} isRtl={isRtl} />
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "Account Name on Bank Letter", "اسم صاحب الحساب في خطاب البنك")}>
+                  <Input {...form.register("ibanAccountName")} className="h-12" dir="rtl" placeholder={establishmentName} />
+                  <VendorErrorText text={form.formState.errors.ibanAccountName?.message} isRtl={isRtl} />
                 </VendorField>
                 <VendorField label={textByLang(isRtl, "CR Document (PDF)", "نسخة السجل التجاري")}>
                   <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
@@ -397,7 +507,11 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
               <dl className="grid gap-3 md:grid-cols-2">
                 <VendorReviewRow label="Email" value={email} />
                 <VendorReviewRow label={textByLang(isRtl, "Categories", "الفئات")} value={optionValuesToLabels(isRtl, productCategories, values.productCategories)} />
+                <VendorReviewRow label={textByLang(isRtl, "CR Name", "اسم السجل")} value={values.crNameOnDocument || t.notProvided} />
+                <VendorReviewRow label={textByLang(isRtl, "Tax Number", "الرقم الضريبي")} value={values.taxNumber || t.notProvided} />
+                <VendorReviewRow label={textByLang(isRtl, "National Address", "العنوان الوطني")} value={values.nationalAddress || t.notProvided} />
                 <VendorReviewRow label="IBAN" value={values.iban || t.notProvided} />
+                <VendorReviewRow label={textByLang(isRtl, "Bank Account Name", "اسم الحساب")} value={values.ibanAccountName || t.notProvided} />
                 <VendorReviewRow
                   label={textByLang(isRtl, "Bank", "البنك")}
                   value={values.bankName ? optionLabel(isRtl, saudiBanks, values.bankName) : t.notProvided}

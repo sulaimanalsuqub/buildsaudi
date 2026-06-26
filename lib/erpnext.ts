@@ -274,12 +274,18 @@ export async function completeERPNextSupplierProfile(
     worked_on_gov_projects: boolean;
     bank_name: string;
     iban: string;
+    iban_account_name?: string;
+    cr_document_name?: string;
+    tax_number?: string;
+    national_address?: string;
+    identity_match_score?: number;
     cr_document_url?: string;
     bank_letter_url?: string;
     agent_summary?: string;
     agent_score?: number;
     agent_catalog_groups?: string;
     rfq_priority?: string;
+    verification_status?: string;
   }
 ) {
   return updateERPNextDocument<{ name: string }>("Supplier", supplierName, {
@@ -294,11 +300,16 @@ export async function completeERPNextSupplierProfile(
     build_gov_projects: vendor.worked_on_gov_projects ? 1 : 0,
     build_bank_name: vendor.bank_name,
     build_iban: vendor.iban.toUpperCase(),
+    build_iban_account_name: vendor.iban_account_name || "",
+    build_cr_document_name: vendor.cr_document_name || "",
+    build_tax_number: vendor.tax_number || "",
+    build_national_address: vendor.national_address || "",
+    build_identity_match_score: vendor.identity_match_score ?? 0,
     build_cr_document_url: vendor.cr_document_url || "",
     build_bank_letter_url: vendor.bank_letter_url || "",
     build_profile_completed: 1,
     build_profile_completed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-    build_verification_status: "Profile Submitted",
+    build_verification_status: vendor.verification_status || "Profile Submitted",
     build_preferred_for_rfq: 0,
     build_rfq_priority: "Standard",
     build_agent_summary: vendor.agent_summary,

@@ -132,38 +132,15 @@ frappe.ui.form.on("Opportunity", {
 });
 `;
 
+// Summary card only — workflow guidance lives in Build Supplier Next Action.
 const supplierAgentScript = String.raw`
-function build_supplier_stage_updates(frm) {
-  const stage = frm.doc.build_supplier_stage;
-  const today = frappe.datetime.get_today();
-  const reviewer = frappe.session.user_fullname || frappe.session.user;
-  const base = { build_review_date: today, build_reviewed_by: reviewer };
-
-  if (stage === "Approved") {
-    return { ...base, supplier_group: "Build Approved Suppliers", build_verification_status: "Verified", build_preferred_for_rfq: 1, build_rfq_priority: frm.doc.build_rfq_priority || "Preferred" };
-  }
-  if (stage === "Rejected") {
-    return { ...base, supplier_group: "Build Rejected Suppliers", build_verification_status: "Failed", build_preferred_for_rfq: 0, build_rfq_priority: "Do Not Use" };
-  }
-  if (stage === "Under Review") {
-    return { ...base, build_verification_status: "Pending" };
-  }
-  return {};
-}
-
-async function build_sync_supplier_stage_fields(frm) {
-  const updates = build_supplier_stage_updates(frm);
-  if (!Object.keys(updates).length) return;
-  await frappe.db.set_value("Supplier", frm.doc.name, updates);
-  await frm.reload_doc();
-}
-
 function build_render_supplier_agent(frm) {
   $("#build-supplier-agent").remove();
   const summary = frm.doc.build_agent_summary;
   if (!summary) return;
 
   const stage = frm.doc.build_supplier_stage;
+  const profileDone = !!frm.doc.build_profile_completed;
   const colors = {
     "Pre Registration": "#e8f5e9",
     "Under Review": "#fff3e0",
@@ -181,11 +158,15 @@ function build_render_supplier_agent(frm) {
   });
 
   const title = stage === "Pre Registration"
-    ? "📊 ملخص تلقائي — راجع البيانات ثم Review"
+    ? "📊 ملخص تلقائي من الموقع"
     : stage === "Under Review"
-      ? "🔍 قيد المراجعة — Approve أو Reject"
+      ? profileDone
+        ? "📋 ملف التوريد مكتمل — جاهز للاعتماد النهائي"
+        : "🔍 مراجعة أولية — الخطوة التالية: Approve"
       : stage === "Approved"
-        ? "✅ مورد معتمد"
+        ? profileDone
+          ? "✅ مورد معتمد نهائياً"
+          : "📨 بانتظار إكمال ملف التوريد"
         : "❌ مورد مرفوض";
 
   div.append($("<div></div>").css({ fontWeight: "700", marginBottom: "8px", color: "#1D3F1F" }).text(title));
@@ -204,34 +185,11 @@ function build_render_supplier_agent(frm) {
 }
 
 frappe.ui.form.on("Supplier", {
-  onload(frm) {
-    frm._build_last_supplier_stage = frm.doc.build_supplier_stage;
-  },
-
-  async refresh(frm) {
+  refresh(frm) {
     build_render_supplier_agent(frm);
-
-    if (!frm.is_new() && frm._build_last_supplier_stage !== frm.doc.build_supplier_stage) {
-      try {
-        await build_sync_supplier_stage_fields(frm);
-      } catch (error) {
-        frappe.msgprint({ title: __("تعذر تحديث المورد"), indicator: "red", message: error.message || error });
-      }
-      frm._build_last_supplier_stage = frm.doc.build_supplier_stage;
-    }
-
-    if (stage === "Rejected" && !frm.doc.build_rejection_reason) {
-      frm.set_intro(__("يرجى تعبئة سبب الرفض"), "orange");
-    }
   },
 });
 `;
-
-// Fix supplier script - stage variable reference
-const supplierAgentScriptFixed = supplierAgentScript.replace(
-  'if (stage === "Rejected"',
-  'if (frm.doc.build_supplier_stage === "Rejected"'
-);
 
 async function main() {
   console.log(`\nBuild Agents ERP UI — ${BASE}\n`);
@@ -244,8 +202,8 @@ async function main() {
     dt: "Opportunity", view: "Form", enabled: 1, script: mergedOpportunity,
   });
 
-  await upsert("Client Script", "Build Supplier Next Action", {
-    dt: "Supplier", view: "Form", enabled: 1, script: supplierAgentScriptFixed.trim(),
+  await upsert("Client Script", "Build Supplier Agent Summary", {
+    dt: "Supplier", view: "Form", enabled: 1, script: supplierAgentScript.trim(),
   });
 
   await upsert("Client Script", "Build Opportunity Next Action", {
