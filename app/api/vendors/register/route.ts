@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       `المنشأة: ${vendor.establishment_name}`,
       `الجوال: ${vendor.contact_number}`,
       `السجل: ${vendor.cr_number}`,
-      "⏳ الخطوة التالية: Review → Approve لإرسال رابط إكمال الملف",
+      "⏳ Review → Approve = إرسال رابط إكمال الملف فقط",
       "⚠️ الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات",
     ].join("\n"),
   }).catch((e) => console.error("Supplier agent summary failed:", e));
