@@ -4,7 +4,14 @@ import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { RadioGroupItem } from "@/components/ui/radio-group";
-import { localizeVendorError, type VendorOption } from "@/lib/vendor-options";
+import {
+  composeVendorPhone,
+  localizeVendorError,
+  parseVendorPhone,
+  textByLang,
+  vendorDialCodes,
+  type VendorOption,
+} from "@/lib/vendor-options";
 
 export function VendorField({
   label,
@@ -113,6 +120,62 @@ export function VendorBinaryField({
         ))}
       </div>
     </VendorField>
+  );
+}
+
+export function VendorPhoneInput({
+  value,
+  onChange,
+  isRtl = false,
+  hasError,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  isRtl?: boolean;
+  hasError?: boolean;
+}) {
+  const parsed = parseVendorPhone(value);
+  const dialCode = parsed.dialCode;
+  const localNumber = parsed.localNumber;
+
+  const setDial = (code: string) => onChange(composeVendorPhone(code, localNumber));
+  const setLocal = (digits: string) => onChange(composeVendorPhone(dialCode, digits));
+
+  const placeholder =
+    dialCode === "+966"
+      ? textByLang(isRtl, "5X XXX XXXX", "5X XXX XXXX")
+      : textByLang(isRtl, "Mobile number", "رقم الجوال");
+
+  return (
+    <div
+      className={cn(
+        "flex h-12 overflow-hidden rounded-xl border bg-white transition focus-within:ring-2 focus-within:ring-brand-primary/20",
+        hasError ? "border-red-300 focus-within:border-red-400" : "border-brand-dark/15 focus-within:border-brand-primary"
+      )}
+      dir="ltr"
+    >
+      <select
+        value={dialCode}
+        onChange={(e) => setDial(e.target.value)}
+        className="h-full min-w-[7.5rem] max-w-[9.5rem] shrink-0 border-0 border-r border-brand-dark/10 bg-brand-light/40 px-2.5 text-sm font-semibold text-brand-dark outline-none"
+        aria-label={textByLang(isRtl, "Country code", "رمز الدولة")}
+      >
+        {vendorDialCodes.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.code} {isRtl ? c.labelAr : c.labelEn}
+          </option>
+        ))}
+      </select>
+      <input
+        type="tel"
+        inputMode="numeric"
+        autoComplete="tel-national"
+        value={localNumber}
+        onChange={(e) => setLocal(e.target.value.replace(/\D/g, "").slice(0, 15))}
+        placeholder={placeholder}
+        className="h-full min-w-0 flex-1 border-0 bg-transparent px-4 text-base text-brand-dark outline-none placeholder:text-brand-dark/35"
+      />
+    </div>
   );
 }
 

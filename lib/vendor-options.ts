@@ -75,28 +75,59 @@ export const saudiPhoneRegex = /^(05\d{8}|\+9665\d{8}|009665\d{8})$/;
 export const crNumberRegex = /^\d{10,15}$/;
 export const saudiIbanRegex = /^SA\d{22}$/i;
 
-/** Normalize phone input: strip spaces/dashes, convert 00 prefix to + */
+export const vendorDialCodes = [
+  { code: "+966", labelAr: "السعودية", labelEn: "Saudi Arabia" },
+  { code: "+971", labelAr: "الإمارات", labelEn: "UAE" },
+  { code: "+965", labelAr: "الكويت", labelEn: "Kuwait" },
+  { code: "+973", labelAr: "البحرين", labelEn: "Bahrain" },
+  { code: "+968", labelAr: "عُمان", labelEn: "Oman" },
+  { code: "+974", labelAr: "قطر", labelEn: "Qatar" },
+  { code: "+962", labelAr: "الأردن", labelEn: "Jordan" },
+  { code: "+20", labelAr: "مصر", labelEn: "Egypt" },
+  { code: "+91", labelAr: "الهند", labelEn: "India" },
+  { code: "+86", labelAr: "الصين", labelEn: "China" },
+] as const;
+
+/** Normalize phone to E.164 (+country + number) */
 export function normalizeVendorPhone(value: string): string {
   let v = value.trim().replace(/[\s().-]/g, "");
   if (v.startsWith("00")) v = `+${v.slice(2)}`;
+  if (/^05\d{8}$/.test(v)) v = `+966${v.slice(1)}`;
+  if (!v.startsWith("+") && /^[1-9]\d{7,14}$/.test(v)) v = `+${v}`;
   return v;
 }
 
-/** Saudi local (05…) or international E.164 (+country code, 8–15 digits) */
+export function composeVendorPhone(dialCode: string, localNumber: string): string {
+  const local = localNumber.replace(/\D/g, "");
+  if (!local) return "";
+  return normalizeVendorPhone(`${dialCode}${local}`);
+}
+
+export function parseVendorPhone(value: string): { dialCode: string; localNumber: string } {
+  const normalized = normalizeVendorPhone(value);
+  if (!normalized.startsWith("+")) return { dialCode: "+966", localNumber: value.replace(/\D/g, "") };
+
+  const match = vendorDialCodes
+    .map((c) => c.code)
+    .sort((a, b) => b.length - a.length)
+    .find((code) => normalized.startsWith(code));
+
+  if (match) {
+    return { dialCode: match, localNumber: normalized.slice(match.length) };
+  }
+
+  return { dialCode: "+966", localNumber: normalized.replace(/\D/g, "") };
+}
+
+/** Valid E.164 mobile number */
 export function isValidVendorPhone(value: string): boolean {
   const v = normalizeVendorPhone(value);
-  if (/^05\d{8}$/.test(v)) return true;
-  if (/^\+[1-9]\d{7,14}$/.test(v)) return true;
-  if (/^[1-9]\d{7,14}$/.test(v)) return true;
-  return false;
+  return /^\+[1-9]\d{7,14}$/.test(v);
 }
 
 export const vendorErrorMessages: Record<string, { en: string; ar: string }> = {
   required: { en: "This field is required", ar: "هذا الحقل مطلوب" },
-  invalidPhone: {
-    en: "Invalid phone — Saudi (05xxxxxxxx) or international (+country code)",
-    ar: "رقم غير صحيح — سعودي (05xxxxxxxx) أو دولي (+رمز الدولة)",
-  },
+  invalidPhone: { en: "Enter a valid mobile number", ar: "أدخل رقم جوال صحيح" },
   invalidEmail: { en: "Invalid email address", ar: "البريد الإلكتروني غير صحيح" },
   invalidCR: { en: "CR number must be 10-15 digits", ar: "رقم السجل يجب أن يكون 10-15 رقم" },
   invalidIban: { en: "Invalid Saudi IBAN (SA + 22 digits)", ar: "رقم الآيبان غير صحيح (SA + 22 رقم)" },

@@ -14,7 +14,7 @@ const basicVendorSchema = z
       .string()
       .trim()
       .transform((v) => normalizeVendorPhone(v))
-      .refine(isValidVendorPhone, { message: "رقم التواصل غير صحيح — سعودي أو دولي بصيغة +رمز الدولة" }),
+      .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
     email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
     email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
     cr_number: z
