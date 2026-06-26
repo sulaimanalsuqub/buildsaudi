@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { completeERPNextSupplierProfile, getERPNextDocument, attachERPNextFileToDocument } from "@/lib/erpnext";
+import {
+  applyERPNextWorkflow,
+  completeERPNextSupplierProfile,
+  getERPNextDocument,
+  attachERPNextFileToDocument,
+  updateERPNextDocument,
+} from "@/lib/erpnext";
+import { sendVendorProfileSubmittedNotification } from "@/lib/email";
 import { runSupplierAgent } from "@/lib/build-agents";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
@@ -115,6 +122,22 @@ export async function POST(req: NextRequest) {
     ) {
       await attachERPNextFileToDocument(data.bank_letter_name, "Supplier", supplier.name);
     }
+
+    try {
+      await applyERPNextWorkflow("Supplier", supplier.name, "Review");
+    } catch (workflowError) {
+      console.error("Supplier profile workflow transition failed:", workflowError);
+      await updateERPNextDocument("Supplier", supplier.name, {
+        build_supplier_stage: "Under Review",
+        build_verification_status: "Profile Submitted",
+      });
+    }
+
+    void sendVendorProfileSubmittedNotification({
+      id: supplier.name,
+      establishment_name: supplier.supplier_name,
+      email: supplier.build_email || "",
+    }).catch((e) => console.error("Profile submitted notification failed:", e));
   } catch (error) {
     console.error("Supplier profile completion failed:", error);
     return NextResponse.json({ error: "تعذر حفظ ملف التوريد" }, { status: 500 });

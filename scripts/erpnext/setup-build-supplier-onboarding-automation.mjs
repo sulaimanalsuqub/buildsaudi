@@ -19,7 +19,8 @@ const headers = {
 };
 
 const clientScript = String.raw`
-function build_supplier_stage_updates(stage) {
+function build_supplier_stage_updates(doc) {
+  const stage = doc.build_supplier_stage;
   const today = frappe.datetime.get_today();
   const reviewer = frappe.session.user_fullname || frappe.session.user;
   const base = {
@@ -28,12 +29,22 @@ function build_supplier_stage_updates(stage) {
   };
 
   if (stage === "Approved") {
+    if (doc.build_profile_completed) {
+      const score = doc.build_agent_score || 0;
+      return {
+        ...base,
+        supplier_group: "Build Approved Suppliers",
+        build_verification_status: "Verified",
+        build_preferred_for_rfq: 1,
+        build_rfq_priority: score >= 70 ? "Preferred" : "Standard",
+      };
+    }
     return {
       ...base,
-      supplier_group: "Build Approved Suppliers",
-      build_verification_status: "Verified",
-      build_preferred_for_rfq: 1,
-      build_rfq_priority: "Preferred",
+      supplier_group: "Build Pre-Registered Suppliers",
+      build_verification_status: "Invited",
+      build_preferred_for_rfq: 0,
+      build_rfq_priority: "Standard",
     };
   }
 
@@ -50,7 +61,7 @@ function build_supplier_stage_updates(stage) {
   if (stage === "Under Review") {
     return {
       ...base,
-      build_verification_status: "Pending",
+      build_verification_status: doc.build_profile_completed ? "Profile Submitted" : "Pending",
     };
   }
 
@@ -58,7 +69,7 @@ function build_supplier_stage_updates(stage) {
 }
 
 async function build_sync_supplier_stage_fields(frm) {
-  const updates = build_supplier_stage_updates(frm.doc.build_supplier_stage);
+  const updates = build_supplier_stage_updates(frm.doc);
   if (!Object.keys(updates).length) {
     return;
   }
@@ -92,21 +103,30 @@ frappe.ui.form.on("Supplier", {
     }
 
     const stage = frm.doc.build_supplier_stage;
+    const profileDone = !!frm.doc.build_profile_completed;
     const actions = {
       "Pre Registration": {
-        msg: "📋 مورد جديد من الموقع — راجع السجل التجاري والفئات ثم اضغط Review",
+        msg: "📋 مورد جديد — راجع البيانات الأساسية ثم Review",
         color: "#e8f5e9",
-        steps: ["تحقق من رقم السجل التجاري", "راجع فئات المنتجات والمناطق", "اضغط Review من شريط Workflow"],
+        steps: ["تحقق من السجل التجاري والجوال والبريد", "اضغط Review من شريط Workflow", "ثم Approve لإرسال رابط إكمال الملف"],
       },
       "Under Review": {
-        msg: "🔍 قيد المراجعة — بعد التحقق اختر Approve أو Reject",
+        msg: profileDone
+          ? "📋 ملف التوريد مكتمل — راجع الفئات والبنك والمستندات ثم اعتمد نهائياً"
+          : "🔍 مراجعة أولية — وافق لإرسال رابط إكمال الملف للمورد",
         color: "#fff3e0",
-        steps: ["تأكد من بيانات التواصل", "قيّم ملاءمة المورد", "Approve أو Reject"],
+        steps: profileDone
+          ? ["راجع build_product_categories والبنك والمرفقات", "Approve = اعتماد نهائي لـ RFQ", "Reject = رفض مع سبب"]
+          : ["تأكد من بيانات التواصل والسجل", "Approve = إرسال رابط إكمال الملف فقط", "Reject = رفض الطلب"],
       },
       Approved: {
-        msg: "✅ مورد معتمد — ينتظر إكمال ملف التوريد من الموقع",
-        color: "#e3f2fd",
-        steps: ["يصل المورد بريد «رحلة توريد منتجاتك بدأت»", "بعد إكمال الملف يظهر في اقتراحات RFQ", "أضفه في طلبات RFQ عند الجاهزية"],
+        msg: profileDone
+          ? "✅ مورد معتمد نهائياً — جاهز لإضافته في RFQ"
+          : "📨 بانتظار إكمال ملف التوريد من الموقع",
+        color: profileDone ? "#e8f5e9" : "#e3f2fd",
+        steps: profileDone
+          ? ["أضفه في طلبات RFQ", "يظهر في اقتراحات الوكيل", "build_preferred_for_rfq مفعّل"]
+          : ["يصل المورد بريد رابط إكمال الملف", "بعد الإرسال يرجع للمراجعة النهائية", "لا يُضاف في RFQ قبل الاعتماد النهائي"],
       },
       Rejected: {
         msg: "❌ مورد مرفوض — يمكن إعادة فتحه بـ Review",

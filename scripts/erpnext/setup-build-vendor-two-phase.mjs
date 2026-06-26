@@ -102,35 +102,32 @@ async function disableDuplicateApprovalEmail() {
   }
 }
 
-async function patchSupplierClientScript() {
-  const name = "Build Supplier Next Action";
-  let script;
-  try {
-    script = await api("GET", `/api/resource/Client%20Script/${encodeURIComponent(name)}`);
-  } catch {
-    console.log("  ⚠ Client Script not found — run setup-build-supplier-onboarding-automation.mjs first");
-    return;
+const BUILD_ROLES = ["Build Manager", "Build Operations", "Build Team", "System Manager"];
+
+async function addProfileReviewWorkflowTransition() {
+  const wf = await api("GET", `/api/resource/Workflow/${encodeURIComponent("Build Supplier Onboarding")}`);
+  const transitions = wf.transitions || [];
+  const filtered = transitions.filter(
+    (t) => !(t.state === "Approved" && t.action === "Review" && t.next_state === "Under Review")
+  );
+  let idx = filtered.length;
+  for (const role of BUILD_ROLES) {
+    idx += 1;
+    filtered.push({
+      idx,
+      state: "Approved",
+      action: "Review",
+      next_state: "Under Review",
+      allowed: role,
+      allow_self_approval: 1,
+      condition: "doc.build_profile_completed",
+    });
   }
 
-  const updated = (script.script || "")
-    .replace(
-      /Approved:\s*\{[\s\S]*?steps:\s*\[[^\]]*\]/,
-      `Approved: {
-        msg: "✅ مورد معتمد — ينتظر إكمال ملف التوريد من الموقع",
-        color: "#e3f2fd",
-        steps: ["يصل المورد بريد «رحلة توريد منتجاتك بدأت»", "بعد إكمال الملف يظهر في اقتراحات RFQ", "أضفه في طلبات RFQ عند الجاهزية"]`
-    )
-    .replace(
-      /"يصله بريد تفعيل تلقائياً"/g,
-      '"يصله بريد رابط إكمال الملف تلقائياً"'
-    );
-
-  if (updated !== script.script) {
-    await api("PUT", `/api/resource/Client%20Script/${encodeURIComponent(name)}`, { script: updated });
-    console.log("  ✓ updated Build Supplier Next Action copy for two-phase flow");
-  } else {
-    console.log("  ↻ Build Supplier Next Action already reflects two-phase flow");
-  }
+  await api("PUT", `/api/resource/Workflow/${encodeURIComponent("Build Supplier Onboarding")}`, {
+    transitions: filtered,
+  });
+  console.log("  ✓ workflow: Approved → Review → Under Review (when profile completed)");
 }
 
 async function main() {
@@ -141,13 +138,27 @@ async function main() {
     await upsert("Custom Field", `${f.dt}-${f.fieldname}`, { ...f, module: "Custom" });
   }
 
+  try {
+    const existing = await api("GET", `/api/resource/Custom%20Field?filters=${encodeURIComponent(JSON.stringify([["Custom Field", "dt", "=", "Supplier"], ["Custom Field", "fieldname", "=", "build_verification_status"]]))}&fields=${encodeURIComponent(JSON.stringify(["name"]))}`);
+    const cfName = existing?.[0]?.name;
+    if (cfName) {
+      await api("PUT", `/api/resource/Custom%20Field/${encodeURIComponent(cfName)}`, {
+        options: "Pending\nInvited\nProfile Submitted\nVerified\nNeeds More Information\nFailed",
+      });
+      console.log("  ✓ Supplier-build_verification_status options extended");
+    }
+  } catch (e) {
+    console.log(`  ⚠ verification status options: ${e.message}`);
+  }
+
   console.log("\n── Notifications ──");
   await disableDuplicateApprovalEmail();
 
-  console.log("\n── Client Script ──");
-  await patchSupplierClientScript();
+  console.log("\n── Workflow ──");
+  await addProfileReviewWorkflowTransition();
 
-  console.log("\n✅ Two-phase vendor fields active.\n");
+  console.log("\n✅ Two-phase vendor fields + workflow active.\n");
+  console.log("  Run setup-build-supplier-onboarding-automation.mjs to refresh client script copy.\n");
 }
 
 main().catch((e) => {

@@ -683,10 +683,41 @@ export async function sendVendorRegistrationConfirmation(vendor: {
       content: `
         ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          شكرًا لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi. تم استلام طلبكم وسيتم مراجعته من قبل فريقنا.
+          شكرًا لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi. تم استلام بياناتكم الأساسية وسيراجعها فريقنا.
         </p>
-        ${highlightBox("سنوافيكم بنتيجة المراجعة في أقرب وقت ممكن، عادةً خلال <strong>3-5 أيام عمل</strong>.")}
+        ${highlightBox("بعد الموافقة الأولية، يصلكم رابط لإكمال ملف التوريد (الفئات، البنك، والمستندات). الاعتماد النهائي بعد مراجعة الملف الكامل.")}
         <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
+export async function sendVendorProfileSubmittedNotification(vendor: {
+  id: string;
+  establishment_name: string;
+  email: string;
+}) {
+  const supplierUrl = erpnextDocUrl("supplier", vendor.id);
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `ملف توريد مكتمل — ${vendor.establishment_name}`,
+    html: emailShell({
+      previewText: `المورد ${vendor.establishment_name} أكمل ملف التوريد — مراجعة نهائية مطلوبة`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "📋",
+      badgeLabel: "ملف توريد جاهز للمراجعة",
+      content: `
+        ${greeting("فريق Build", "ملف توريد مكتمل")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          أكمل المورد <strong>${esc(vendor.establishment_name)}</strong> ملف التوريد من الموقع.
+          راجع الفئات والبنك والمستندات ثم اعتمد نهائياً من ERPNext.
+        </p>
+        ${infoTable(
+          infoRow("المنشأة", esc(vendor.establishment_name)) +
+            infoRow("البريد", esc(vendor.email), "ltr")
+        )}
+        ${ctaButton(supplierUrl, "مراجعة المورد في ERPNext")}
       `,
     }),
   });

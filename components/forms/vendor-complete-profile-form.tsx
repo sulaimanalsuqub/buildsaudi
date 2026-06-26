@@ -99,8 +99,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     successTitle: textByLang(isRtl, "Profile Completed", "تم إكمال ملف التوريد"),
     successBody: textByLang(
       isRtl,
-      "Your supply profile is complete. Build will contact you when matching RFQ opportunities are available.",
-      "اكتمل ملف التوريد. سيتواصل معكم فريق بيلد عند توفر فرص توريد مناسبة."
+      "Your supply profile was submitted. Build will review your file and documents, then confirm final approval before RFQ matching.",
+      "تم إرسال ملف التوريد. سيراجعه فريق بيلد مع المستندات، ثم يؤكد الاعتماد النهائي قبل إضافتكم في فرص التوريد."
     ),
     notProvided: textByLang(isRtl, "Not provided", "غير محدد"),
     selected: textByLang(isRtl, "selected", "محدد"),

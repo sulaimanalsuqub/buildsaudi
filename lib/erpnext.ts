@@ -95,6 +95,26 @@ export async function createERPNextDocument<T>(doctype: string, data: Record<str
   return response.data;
 }
 
+export async function applyERPNextWorkflow<T extends Record<string, unknown>>(
+  doctype: string,
+  name: string,
+  action: string
+): Promise<T> {
+  const doc = await getERPNextDocument<T>(doctype, name);
+  if (!doc) throw new Error(`${doctype} not found: ${name}`);
+  const response = await erpnextRequest<{ message: T }>("/api/method/frappe.model.workflow.apply_workflow", {
+    method: "POST",
+    body: { doc, action },
+  });
+  return response.message;
+}
+
+export async function deleteERPNextDocument(doctype: string, name: string) {
+  await erpnextRequest(`/api/resource/${encodeDocType(doctype)}/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateERPNextDocument<T>(
   doctype: string,
   name: string,
@@ -278,10 +298,12 @@ export async function completeERPNextSupplierProfile(
     build_bank_letter_url: vendor.bank_letter_url || "",
     build_profile_completed: 1,
     build_profile_completed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    build_verification_status: "Profile Submitted",
+    build_preferred_for_rfq: 0,
+    build_rfq_priority: "Standard",
     build_agent_summary: vendor.agent_summary,
     build_agent_score: vendor.agent_score,
     build_agent_catalog_groups: vendor.agent_catalog_groups,
-    build_rfq_priority: vendor.rfq_priority,
   });
 }
 

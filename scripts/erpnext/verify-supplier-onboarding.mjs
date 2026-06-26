@@ -54,10 +54,10 @@ function stageUpdates(stage) {
   if (stage === "Approved") {
     return {
       ...base,
-      supplier_group: "Build Approved Suppliers",
-      build_verification_status: "Verified",
-      build_preferred_for_rfq: 1,
-      build_rfq_priority: "Preferred",
+      supplier_group: "Build Pre-Registered Suppliers",
+      build_verification_status: "Invited",
+      build_preferred_for_rfq: 0,
+      build_rfq_priority: "Standard",
     };
   }
   if (stage === "Rejected") {
@@ -127,15 +127,15 @@ async function main() {
     const approved = await applyWorkflow(supplier.name, "Approve");
     const checks = [
       approved.build_supplier_stage === "Approved",
-      approved.supplier_group === "Build Approved Suppliers",
-      approved.build_verification_status === "Verified",
-      approved.build_preferred_for_rfq === 1,
-      approved.build_rfq_priority === "Preferred",
+      approved.supplier_group === "Build Pre-Registered Suppliers",
+      approved.build_verification_status === "Invited",
+      approved.build_preferred_for_rfq === 0,
+      approved.build_rfq_priority === "Standard",
       Boolean(approved.build_review_date),
       Boolean(approved.build_reviewed_by),
     ];
     if (checks.every(Boolean)) {
-      pass("Approve automation", `group=${approved.supplier_group}, rfq=${approved.build_rfq_priority}`);
+      pass("Approve automation (invite only)", `group=${approved.supplier_group}, stage=${approved.build_supplier_stage}`);
     } else {
       fail("Approve automation", JSON.stringify({
         stage: approved.build_supplier_stage,

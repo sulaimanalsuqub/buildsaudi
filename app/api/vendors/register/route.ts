@@ -54,11 +54,12 @@ export async function POST(req: NextRequest) {
 
   void updateERPNextDocument("Supplier", createdSupplier.name, {
     build_agent_summary: [
-      "🤖 تقييم أولي — طلب تسجيل أساسي",
+      "📋 طلب تسجيل أساسي من الموقع",
       `المنشأة: ${vendor.establishment_name}`,
-      "✅ السجل التجاري بصيغة صحيحة",
-      "⏳ في انتظار موافقة الأدمن من ERPNext",
-      "📋 بعد الموافقة: يصل للمورد رابط إكمال الملف",
+      `الجوال: ${vendor.contact_number}`,
+      `السجل: ${vendor.cr_number}`,
+      "⏳ الخطوة التالية: Review → Approve لإرسال رابط إكمال الملف",
+      "⚠️ الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات",
     ].join("\n"),
   }).catch((e) => console.error("Supplier agent summary failed:", e));
 

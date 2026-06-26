@@ -48,8 +48,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     submitStateTitle: textByLang(isRtl, "Application Received", "تم استلام طلب الانضمام"),
     submitStateBody: textByLang(
       isRtl,
-      "We received your basic details. After approval, you will get an email with a link to complete your supply profile and upload documents.",
-      "استلمنا بياناتكم الأساسية. بعد الموافقة، يصلكم بريد فيه رابط لإكمال ملف التوريد ورفع المستندات."
+      "We received your basic details. After our initial review, you will get a link to complete your full supply profile. Final approval comes after we review your complete file and documents.",
+      "استلمنا بياناتكم الأساسية. بعد المراجعة الأولية يصلكم رابط لإكمال ملف التوريد. الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات."
     ),
     labels: {
       establishmentName: textByLang(isRtl, "Establishment Name", "اسم المنشأة"),
