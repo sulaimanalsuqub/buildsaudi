@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { crNumberRegex, saudiPhoneRegex, textByLang } from "@/lib/vendor-options";
+import { crNumberRegex, isValidVendorPhone, normalizeVendorPhone, textByLang } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField } from "@/components/forms/vendor-form-shared";
 
 type VendorRegistrationFormProps = {
@@ -20,7 +20,7 @@ type VendorRegistrationFormProps = {
 const formSchema = z.object({
   establishmentName: z.string().min(2, "required"),
   managerName: z.string().min(2, "required"),
-  contactNumber: z.string().regex(saudiPhoneRegex, "invalidPhone"),
+  contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   email: z.string().email("invalidEmail"),
   crNumber: z.string().regex(crNumberRegex, "invalidCR"),
 });
@@ -60,6 +60,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     },
     helpers: {
       establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
+      contactNumber: textByLang(
+        isRtl,
+        "Saudi: 05xxxxxxxx — International: +country code (e.g. +971501234567)",
+        "سعودي: 05xxxxxxxx — دولي: +رمز الدولة (مثال: +971501234567)"
+      ),
     },
     submit: textByLang(isRtl, "Submit Application", "إرسال طلب الانضمام"),
   };
@@ -89,7 +94,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         body: JSON.stringify({
           establishment_name: data.establishmentName.trim(),
           manager_name: data.managerName.trim(),
-          contact_number: data.contactNumber.replace(/[\s-]/g, ""),
+          contact_number: normalizeVendorPhone(data.contactNumber),
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
           cr_number: data.crNumber.replace(/\D/g, ""),
@@ -122,7 +127,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const showManager = values.establishmentName.trim().length >= 2;
   const showPhone = showManager && values.managerName.trim().length >= 2;
-  const showEmail = showPhone && saudiPhoneRegex.test(values.contactNumber.replace(/\s/g, ""));
+  const showEmail = showPhone && isValidVendorPhone(values.contactNumber);
   const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
   const showCR = showEmail;
 
@@ -161,8 +166,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         <AnimatePresence>
           {showPhone && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={t.labels.contactNumber}>
-                <Input {...form.register("contactNumber")} className="h-12 text-base" dir="ltr" placeholder="05xxxxxxxx" />
+              <VendorField label={t.labels.contactNumber} helper={t.helpers.contactNumber}>
+                <Input
+                  {...form.register("contactNumber")}
+                  className="h-12 text-base"
+                  dir="ltr"
+                  placeholder={textByLang(isRtl, "+9665xxxxxxxx or +971...", "+9665xxxxxxxx أو +971...")}
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
                 <VendorErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
               </VendorField>
             </motion.div>

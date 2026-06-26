@@ -75,9 +75,28 @@ export const saudiPhoneRegex = /^(05\d{8}|\+9665\d{8}|009665\d{8})$/;
 export const crNumberRegex = /^\d{10,15}$/;
 export const saudiIbanRegex = /^SA\d{22}$/i;
 
+/** Normalize phone input: strip spaces/dashes, convert 00 prefix to + */
+export function normalizeVendorPhone(value: string): string {
+  let v = value.trim().replace(/[\s().-]/g, "");
+  if (v.startsWith("00")) v = `+${v.slice(2)}`;
+  return v;
+}
+
+/** Saudi local (05…) or international E.164 (+country code, 8–15 digits) */
+export function isValidVendorPhone(value: string): boolean {
+  const v = normalizeVendorPhone(value);
+  if (/^05\d{8}$/.test(v)) return true;
+  if (/^\+[1-9]\d{7,14}$/.test(v)) return true;
+  if (/^[1-9]\d{7,14}$/.test(v)) return true;
+  return false;
+}
+
 export const vendorErrorMessages: Record<string, { en: string; ar: string }> = {
   required: { en: "This field is required", ar: "هذا الحقل مطلوب" },
-  invalidPhone: { en: "Invalid Saudi phone (e.g. 05xxxxxxxx)", ar: "رقم الهاتف غير صحيح (مثال: 05xxxxxxxx)" },
+  invalidPhone: {
+    en: "Invalid phone — Saudi (05xxxxxxxx) or international (+country code)",
+    ar: "رقم غير صحيح — سعودي (05xxxxxxxx) أو دولي (+رمز الدولة)",
+  },
   invalidEmail: { en: "Invalid email address", ar: "البريد الإلكتروني غير صحيح" },
   invalidCR: { en: "CR number must be 10-15 digits", ar: "رقم السجل يجب أن يكون 10-15 رقم" },
   invalidIban: { en: "Invalid Saudi IBAN (SA + 22 digits)", ar: "رقم الآيبان غير صحيح (SA + 22 رقم)" },

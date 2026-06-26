@@ -4,6 +4,7 @@ import { createERPNextSupplierBasicRegistration, updateERPNextDocument } from "@
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewVendorRegistrationNotification, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { verifyEmailToken } from "@/lib/otp";
+import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
 
 const basicVendorSchema = z
   .object({
@@ -12,8 +13,8 @@ const basicVendorSchema = z
     contact_number: z
       .string()
       .trim()
-      .transform((v) => v.replace(/[\s-]/g, ""))
-      .pipe(z.string().min(8, "رقم التواصل غير صحيح")),
+      .transform((v) => normalizeVendorPhone(v))
+      .refine(isValidVendorPhone, { message: "رقم التواصل غير صحيح — سعودي أو دولي بصيغة +رمز الدولة" }),
     email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
     email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
     cr_number: z
