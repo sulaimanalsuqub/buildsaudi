@@ -398,10 +398,15 @@ export async function createERPNextProductOpportunity(quote: {
   delivery_date: string;
   notes?: string;
   boq_file_url?: string | null;
+  boq_file_text?: string;
   extracted_items?: ERPNextMaterialItem[];
   resolved_lead?: { name: string };
 }) {
-  const materialSummary = quote.materials || "يرجى مراجعة ملف الكميات أو الرابط المرفق.";
+  const materialSummary =
+    quote.materials?.trim() ||
+    quote.boq_file_text?.trim().slice(0, 500) ||
+    (quote.boq_file_url ? "ملف كميات مرفق — راجع المرفق" : "") ||
+    "يرجى مراجعة ملف الكميات أو الرابط المرفق.";
 
   const lead = quote.resolved_lead ?? await resolveOrCreateLead({
     client_name: quote.client_name,
