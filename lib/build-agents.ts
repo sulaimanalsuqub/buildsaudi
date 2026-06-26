@@ -160,12 +160,13 @@ export function runSupplierAgent(vendor: {
     score < 15 ? "Needs More Information" : "Pending";
 
   const summary = [
-    `🤖 تقييم وكيل المورد — ${vendor.establishment_name}`,
+    `📊 تقييم تلقائي للملف — ${vendor.establishment_name}`,
     `الدرجة: ${score}/100 | الأولوية المقترحة: ${priority}`,
+    "(قواعد ثابتة — بدون استهلاك توكن)",
     "",
     ...checks,
     "",
-    "⏳ في انتظار موافقتك: Review → Approve أو Reject",
+    "⏳ الخطوة التالية: راجع الملف والمستندات ثم اعتمد نهائياً من Workflow",
   ].join("\n");
 
   return { score, priority, verificationStatus, catalogGroups, summary, checks };
@@ -315,19 +316,19 @@ export function runOpportunityAgent(params: {
   });
 
   const summary = [
-    `🤖 تقييم وكيل الطلب — ${params.project_name}`,
+    `📊 ملخص تلقائي للطلب — ${params.project_name}`,
     `العميل: ${params.client_name}`,
     deliveryRegion ? `منطقة التسليم: ${deliveryRegion}` : "منطقة التسليم: غير محددة",
     "",
     "── المواد ──",
-    ...(materialNotes.length ? materialNotes : ["لا توجد مواد مستخرجة"]),
+    ...(materialNotes.length ? materialNotes : ["لا توجد مواد مستخرجة — راجع النص الأصلي"]),
     "",
-    `تلقائي: ${autoApprovedItems} | يحتاج مراجعة: ${needsReviewItems}`,
+    `جاهز تلقائياً: ${autoApprovedItems} | يحتاج مراجعة: ${needsReviewItems}`,
     "",
-    "── موردون مقترحون ──",
-    ...(supplierLines.length ? supplierLines : ["لا يوجد موردون معتمدون مطابقون — راجع قائمة الموردين"]),
+    "── موردون مقترحون (مطابقة فئات + منطقة) ──",
+    ...(supplierLines.length ? supplierLines : ["لا يوجد مورد معتمد نهائياً مطابق — راجع قائمة الموردين"]),
     "",
-    "⏳ في انتظار موافقتك: Start Review من Workflow",
+    "⏳ الخطوة التالية: Start Review من Workflow",
   ].join("\n");
 
   return {

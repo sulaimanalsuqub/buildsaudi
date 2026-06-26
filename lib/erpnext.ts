@@ -439,6 +439,6 @@ export async function createERPNextProductOpportunity(quote: {
       quote.notes ? `Notes: ${quote.notes}` : "",
       quote.boq_file_url ? `BOQ File: ${quote.boq_file_url}` : "",
     ].filter(Boolean).join("\n\n"),
-    build_agent_summary: "🤖 جاري تحليل الطلب بواسطة وكيل Build...",
+    build_agent_summary: "📊 جاري تحليل الطلب تلقائياً...",
   });
 }

@@ -64,7 +64,7 @@ async function build_show_supplier_suggestions(frm) {
   if (!suggestions.length) {
     const approved = await frappe.db.get_list("Supplier", {
       fields: ["name", "supplier_name", "build_product_categories", "build_coverage_regions", "build_rfq_priority"],
-      filters: [["Supplier", "build_supplier_stage", "=", "Approved"], ["Supplier", "build_rfq_priority", "!=", "Do Not Use"]],
+      filters: [["Supplier", "build_supplier_stage", "=", "Approved"], ["Supplier", "build_profile_completed", "=", 1], ["Supplier", "build_rfq_priority", "!=", "Do Not Use"]],
       limit: 10,
     });
     suggestions = approved.map((s) => ({
@@ -95,7 +95,7 @@ async function build_show_supplier_suggestions(frm) {
   }).join("");
 
   const dialog = new frappe.ui.Dialog({
-    title: __("🤖 موردون مقترحون من وكيل Build"),
+    title: __("📊 موردون مقترحون (مطابقة تلقائية)"),
     size: "large",
     fields: [{ fieldtype: "HTML", fieldname: "html", options:
       '<div class="table-responsive"><table class="table table-bordered"><thead><tr>'
@@ -111,7 +111,7 @@ async function build_show_supplier_suggestions(frm) {
 }
 
 const STAGE_GUIDE = {
-  "New Product Request": { color: "#e8f5e9", title: "📥 طلب جديد — راجع تقرير الوكيل ثم اضغط Start Review", action: "Start Review" },
+  "New Product Request": { color: "#e8f5e9", title: "📥 طلب جديد — راجع الملخص التلقائي ثم Start Review", action: "Start Review" },
   "Reviewing Request": { color: "#fff3e0", title: "🔍 قيد المراجعة — راجع المواد ثم Source Suppliers", action: "Source Suppliers" },
   "Sourcing Suppliers": { color: "#fffde7", title: "📨 جاري التسعير — أنشئ RFQ وأرسله للموردين المقترحين", action: "Send Quote" },
   "Quoted to Customer": { color: "#e3f2fd", title: "💰 عرض أُرسل للعميل — بعد موافقة العميل أنشئ أوامر التنفيذ", action: "Mark Fulfilled" },
@@ -127,7 +127,7 @@ frappe.ui.form.on("Opportunity", {
     const guide = STAGE_GUIDE[stage] || {};
     build_render_agent_card(frm, frm.doc.build_agent_summary, guide.color, guide.title);
 
-    frm.add_custom_button(__("🤖 موردون مقترحون"), () => build_show_supplier_suggestions(frm), __("Build Agent"));
+    frm.add_custom_button(__("📊 موردون مقترحون"), () => build_show_supplier_suggestions(frm), __("Build"));
   },
 });
 `;
@@ -181,7 +181,7 @@ function build_render_supplier_agent(frm) {
   });
 
   const title = stage === "Pre Registration"
-    ? "🤖 وكيل Build — راجع التقييم ثم اضغط Review"
+    ? "📊 ملخص تلقائي — راجع البيانات ثم Review"
     : stage === "Under Review"
       ? "🔍 قيد المراجعة — Approve أو Reject"
       : stage === "Approved"

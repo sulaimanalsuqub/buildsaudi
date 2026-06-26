@@ -139,7 +139,31 @@ function normalizeItems(items: Array<Omit<ExtractedMaterialItem, "source">>, sou
     }));
 }
 
+/** Use paid LLM only when structured extraction is likely worth the cost */
+export function shouldUseAiMaterialExtraction(input: ExtractionInput): boolean {
+  if (process.env.DEEPSEEK_MATERIAL_EXTRACTION_ENABLED === "false") return false;
+
+  const boq = (input.boq_file_text || "").trim();
+  const materials = (input.materials || "").trim();
+  const lineCount = materials.split(/\n/).filter((l) => l.trim().length >= 2).length;
+
+  // BOQ / Excel / PDF text → AI helps
+  if (boq.length >= 400) return true;
+  // Multi-line typed list → AI helps
+  if (lineCount >= 3) return true;
+  // Long single blob (paste from spreadsheet) → AI helps
+  if (materials.length >= 500) return true;
+  if (boq.length + materials.length >= 900) return true;
+
+  // Short requests like "اسمنت وحديد" → free keyword fallback is enough
+  return false;
+}
+
 export async function extractMaterialItems(input: ExtractionInput): Promise<ExtractedMaterialItem[]> {
+  if (!shouldUseAiMaterialExtraction(input)) {
+    return fallbackExtract(input);
+  }
+
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     return fallbackExtract(input);
