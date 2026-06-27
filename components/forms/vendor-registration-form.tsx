@@ -10,24 +10,33 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { crNumberRegex, isValidVendorPhone, normalizeVendorPhone, parseVendorPhone, textByLang } from "@/lib/vendor-options";
+import { crNumberRegex, intlRegistrationRegex, isSaudiSupplierCountry, isValidVendorPhone, normalizeVendorPhone, optionLabel, parseVendorPhone, supplierCountries, textByLang } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type VendorRegistrationFormProps = {
   isRtl?: boolean;
 };
 
-const formSchema = z.object({
-  establishmentName: z.string().min(2, "required"),
-  managerName: z.string().min(2, "required"),
-  contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
-  email: z.string().email("invalidEmail"),
-  crNumber: z.string().regex(crNumberRegex, "invalidCR"),
-});
+const formSchema = z
+  .object({
+    country: z.string().min(1, "required"),
+    establishmentName: z.string().min(2, "required"),
+    managerName: z.string().min(2, "required"),
+    contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
+    email: z.string().email("invalidEmail"),
+    crNumber: z.string().min(1, "required"),
+  })
+  .superRefine((v, ctx) => {
+    const valid = isSaudiSupplierCountry(v.country)
+      ? crNumberRegex.test(v.crNumber.replace(/\D/g, ""))
+      : intlRegistrationRegex.test(v.crNumber.trim());
+    if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["crNumber"], message: "invalidCR" });
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const defaultValues: FormValues = {
+  country: "sa",
   establishmentName: "",
   managerName: "",
   contactNumber: "",
@@ -57,6 +66,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       contactNumber: textByLang(isRtl, "Mobile Number", "رقم الجوال"),
       email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
       crNumber: textByLang(isRtl, "Commercial Registration Number", "رقم السجل"),
+      country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
     },
     helpers: {
       establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
@@ -72,6 +82,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
+  const isSaudi = isSaudiSupplierCountry(values.country);
   const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -92,7 +103,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           contact_number: normalizeVendorPhone(data.contactNumber),
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
-          cr_number: data.crNumber.replace(/\D/g, ""),
+          country: data.country,
+          cr_number: isSaudi ? data.crNumber.replace(/\D/g, "") : data.crNumber.trim(),
         }),
       });
       const result = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -143,6 +155,20 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       </div>
 
       <div className="space-y-5">
+        <VendorField label={t.labels.country}>
+          <select
+            value={values.country}
+            onChange={(e) => form.setValue("country", e.target.value, { shouldValidate: true })}
+            className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          >
+            {supplierCountries.map((c) => (
+              <option key={c.value} value={c.value}>
+                {optionLabel(isRtl, supplierCountries, c.value)}
+              </option>
+            ))}
+          </select>
+        </VendorField>
+
         <VendorField label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
           <Input {...form.register("establishmentName")} autoComplete="organization" className="h-12 text-base" autoFocus />
           <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
@@ -217,8 +243,14 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         <AnimatePresence>
           {showCR && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={t.labels.crNumber}>
-                <Input {...form.register("crNumber")} inputMode="numeric" className="h-12 text-base" dir="ltr" />
+              <VendorField label={isSaudi ? t.labels.crNumber : textByLang(isRtl, "Company Registration Number", "رقم تسجيل الشركة")}>
+                <Input
+                  {...form.register("crNumber")}
+                  inputMode={isSaudi ? "numeric" : "text"}
+                  className="h-12 text-base"
+                  dir="ltr"
+                  placeholder={isSaudi ? "" : textByLang(isRtl, "Company / trade license No.", "رقم السجل / الرخصة التجارية")}
+                />
                 <VendorErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
               </VendorField>
             </motion.div>

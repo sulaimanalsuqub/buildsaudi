@@ -251,6 +251,7 @@ export function runSupplierIdentityVerification(
     });
   }
 
+  const ibanCompact = (input.iban || "").replace(/\s/g, "");
   if (isValidSaudiIban(input.iban)) {
     checks.push({
       id: "iban_format",
@@ -258,12 +259,20 @@ export function runSupplierIdentityVerification(
       status: "pass",
       detail: `✅ IBAN سعودي صحيح (${input.iban.toUpperCase()})`,
     });
+  } else if (/^[A-Za-z0-9]{8,40}$/.test(ibanCompact)) {
+    // آيبان/حساب دولي — مقبول شكليًا، يُراجع يدويًا
+    checks.push({
+      id: "iban_format",
+      label: "IBAN",
+      status: "pass",
+      detail: `✅ آيبان/حساب دولي (${ibanCompact.toUpperCase()}) — راجع خطاب البنك`,
+    });
   } else {
     checks.push({
       id: "iban_format",
       label: "IBAN",
       status: "fail",
-      detail: "❌ IBAN غير صحيح — يجب أن يبدأ بـ SA ويتكون من 24 حرفاً",
+      detail: "❌ رقم الآيبان/الحساب غير صحيح",
     });
   }
 

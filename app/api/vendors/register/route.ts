@@ -4,7 +4,7 @@ import { createERPNextSupplierBasicRegistration, updateERPNextDocument } from "@
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { sendNewVendorRegistrationNotification, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { verifyEmailToken } from "@/lib/otp";
-import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
+import { intlRegistrationRegex, isSaudiSupplierCountry, isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
 
 const basicVendorSchema = z
   .object({
@@ -17,15 +17,26 @@ const basicVendorSchema = z
       .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
     email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
     email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
-    cr_number: z
-      .string()
-      .trim()
-      .transform((v) => v.replace(/\D/g, ""))
-      .pipe(z.string().regex(/^\d{10,15}$/, "رقم السجل يجب أن يكون 10-15 رقم")),
+    country: z.string().trim().min(1).default("sa"),
+    cr_number: z.string().trim().min(1, "رقم التسجيل مطلوب"),
   })
   .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
     path: ["email"],
     message: "انتهت صلاحية التحقق من البريد — أعد إرسال رمز OTP والتحقق مرة أخرى",
+  })
+  .superRefine((data, ctx) => {
+    const valid = isSaudiSupplierCountry(data.country)
+      ? /^\d{10,15}$/.test(data.cr_number.replace(/\D/g, ""))
+      : intlRegistrationRegex.test(data.cr_number);
+    if (!valid) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["cr_number"],
+        message: isSaudiSupplierCountry(data.country)
+          ? "رقم السجل يجب أن يكون 10-15 رقم"
+          : "رقم تسجيل الشركة غير صحيح",
+      });
+    }
   });
 
 export async function POST(req: NextRequest) {
@@ -40,10 +51,13 @@ export async function POST(req: NextRequest) {
   }
 
   const vendor = parsed.data;
+  const crNumber = isSaudiSupplierCountry(vendor.country)
+    ? vendor.cr_number.replace(/\D/g, "")
+    : vendor.cr_number.trim();
 
   let createdSupplier: { name: string };
   try {
-    createdSupplier = await createERPNextSupplierBasicRegistration(vendor);
+    createdSupplier = await createERPNextSupplierBasicRegistration({ ...vendor, cr_number: crNumber });
   } catch (error) {
     if (error instanceof Error && error.name === "DuplicateSupplier") {
       return NextResponse.json({ error: error.message }, { status: 409 });
@@ -56,8 +70,9 @@ export async function POST(req: NextRequest) {
     build_agent_summary: [
       "📋 طلب تسجيل أساسي من الموقع",
       `المنشأة: ${vendor.establishment_name}`,
+      `الدولة: ${vendor.country}`,
       `الجوال: ${vendor.contact_number}`,
-      `السجل: ${vendor.cr_number}`,
+      `السجل: ${crNumber}`,
       "⏳ Review → Approve = إرسال رابط إكمال الملف فقط",
       "⚠️ الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات",
     ].join("\n"),
@@ -75,7 +90,7 @@ export async function POST(req: NextRequest) {
       manager_name: vendor.manager_name,
       contact_number: vendor.contact_number,
       email: vendor.email,
-      cr_number: vendor.cr_number,
+      cr_number: crNumber,
       vendor_type: "pending",
       product_categories: [],
       coverage_regions: [],

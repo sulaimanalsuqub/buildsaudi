@@ -14,13 +14,14 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import {
+  isFlexibleIban,
   optionLabel,
   optionValuesToLabels,
   paymentTerms,
   productCategories,
   regions,
   saudiBanks,
-  saudiIbanRegex,
+  shippingArrangements,
   textByLang,
   vendorTypes,
   yesNoOptions,
@@ -54,7 +55,9 @@ const schema = z
     creditLimit: z.string().optional(),
     workedOnGovProjects: z.enum(["yes", "no"]),
     bankName: z.string().min(2, "required"),
-    iban: z.string().regex(saudiIbanRegex, "invalidIban"),
+    iban: z.string().trim().refine(isFlexibleIban, "invalidIban"),
+    swiftBic: z.string().trim().optional().or(z.literal("")),
+    shippingArrangement: z.string().optional().or(z.literal("")),
     ibanAccountName: z.string().trim().min(2, "required"),
     crNameOnDocument: z.string().trim().min(2, "required"),
     // الرقم الضريبي والعنوان الوطني لم يعودا إدخالًا يدويًا — يُرفعان كمستندات ويُستخلصان آليًا (يُراجعان بعد التقديم)
@@ -126,6 +129,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       workedOnGovProjects: "yes",
       bankName: "",
       iban: "",
+      swiftBic: "",
+      shippingArrangement: "",
       ibanAccountName: "",
       crNameOnDocument: "",
     },
@@ -261,6 +266,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
           worked_on_gov_projects: data.workedOnGovProjects === "yes",
           bank_name: data.bankName,
           iban: data.iban.toUpperCase(),
+          swift_bic: data.swiftBic || "",
+          shipping_arrangement: data.shippingArrangement || "",
           iban_account_name: data.ibanAccountName,
           cr_name_on_document: data.crNameOnDocument,
           cr_document_name: crFile.name,
@@ -465,9 +472,26 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                   </select>
                   <VendorErrorText text={form.formState.errors.bankName?.message} isRtl={isRtl} />
                 </VendorField>
-                <VendorField label="IBAN">
-                  <Input {...form.register("iban")} className="h-12 uppercase" dir="ltr" placeholder="SA0000000000000000000000" />
+                <VendorField label={textByLang(isRtl, "IBAN / International Account No.", "الآيبان / رقم الحساب الدولي")}>
+                  <Input {...form.register("iban")} className="h-12 uppercase" dir="ltr" placeholder="SA… / DE… / account no." />
                   <VendorErrorText text={form.formState.errors.iban?.message} isRtl={isRtl} />
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "SWIFT / BIC (international suppliers)", "SWIFT / BIC (للموردين الدوليين)")}>
+                  <Input {...form.register("swiftBic")} className="h-12 uppercase" dir="ltr" placeholder="ARAISARIXXX" />
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "Shipping arrangement (international)", "ترتيب الشحن (دولي)")}>
+                  <select
+                    value={values.shippingArrangement || ""}
+                    onChange={(e) => form.setValue("shippingArrangement", e.target.value)}
+                    className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                  >
+                    <option value="">{textByLang(isRtl, "Not applicable / domestic", "غير منطبق / محلي")}</option>
+                    {shippingArrangements.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {optionLabel(isRtl, shippingArrangements, s.value)}
+                      </option>
+                    ))}
+                  </select>
                 </VendorField>
                 <VendorField label={textByLang(isRtl, "Account Name on Bank Letter", "اسم صاحب الحساب في خطاب البنك")}>
                   <Input {...form.register("ibanAccountName")} className="h-12" dir="rtl" placeholder={establishmentName} />

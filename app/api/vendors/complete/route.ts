@@ -34,7 +34,9 @@ const completeSchema = z.object({
   payment_terms: z.array(z.string().trim().min(1)).min(1),
   worked_on_gov_projects: z.boolean(),
   bank_name: z.string().trim().min(2),
-  iban: z.string().trim().regex(/^SA\d{22}$/i),
+  iban: z.string().trim().refine((v) => /^[A-Za-z0-9]{8,40}$/.test(v.replace(/\s/g, "")), "رقم الآيبان/الحساب غير صحيح"),
+  swift_bic: z.string().trim().optional().or(z.literal("")),
+  shipping_arrangement: z.string().trim().optional().or(z.literal("")),
   iban_account_name: z.string().trim().min(2, "اسم صاحب الحساب في خطاب البنك مطلوب"),
   cr_name_on_document: z.string().trim().min(2, "اسم المنشأة في السجل التجاري مطلوب"),
   // الرقم الضريبي والعنوان الوطني لم يعودا إدخالًا يدويًا — يُستخلصان من المستندات المرفوعة
@@ -125,6 +127,14 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // بيانات دولية (لا حقول مخصّصة لها في ERPNext) — تُحفظ في الملخص للمراجعة
+  const intlNotes = [
+    data.swift_bic ? `SWIFT/BIC: ${data.swift_bic}` : "",
+    data.shipping_arrangement ? `ترتيب الشحن: ${data.shipping_arrangement}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   // حفظ سريع للملف — بدون أي تنزيل مستندات (يتفادى مهلة الدالة). الإرفاق والاستخلاص والتدقيق في الخلفية.
   try {
     await completeERPNextSupplierProfile(supplier.name, {
@@ -145,7 +155,7 @@ export async function POST(req: NextRequest) {
       national_address: "",
       identity_match_score: identity.matchScore,
       verification_status: "Needs More Information",
-      agent_summary: `${agent.summary}\n\n⏳ يُستخلص الرقم الضريبي والعنوان الوطني وتُدقّق المستندات تلقائيًا — للمراجعة.`,
+      agent_summary: `${agent.summary}${intlNotes ? `\n\n── بيانات دولية ──\n${intlNotes}` : ""}\n\n⏳ يُستخلص الرقم الضريبي والعنوان الوطني وتُدقّق المستندات تلقائيًا — للمراجعة.`,
       agent_score: agent.score,
       agent_catalog_groups: agent.catalogGroups.join(", "),
       rfq_priority: agent.priority,

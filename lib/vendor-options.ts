@@ -77,6 +77,42 @@ export const saudiIbanRegex = /^SA\d{22}$/i;
 export const saudiVatRegex = /^3\d{13}3$/;
 export const nationalAddressShortCodeRegex = /^[A-Za-z]{4}\d{4}$/;
 
+// ── المورد الأجنبي ───────────────────────────────────────────────
+export const supplierCountries: VendorOption[] = [
+  { value: "sa", en: "Saudi Arabia", ar: "السعودية" },
+  { value: "ae", en: "United Arab Emirates", ar: "الإمارات" },
+  { value: "cn", en: "China", ar: "الصين" },
+  { value: "tr", en: "Türkiye", ar: "تركيا" },
+  { value: "in", en: "India", ar: "الهند" },
+  { value: "eg", en: "Egypt", ar: "مصر" },
+  { value: "de", en: "Germany", ar: "ألمانيا" },
+  { value: "it", en: "Italy", ar: "إيطاليا" },
+  { value: "other", en: "Other country", ar: "دولة أخرى" },
+];
+
+/** السعودية هي الافتراضي عند غياب القيمة (توافق رجعي مع الموردين الحاليين) */
+export function isSaudiSupplierCountry(country: string | undefined | null): boolean {
+  return !country || country === "sa";
+}
+
+export const shippingArrangements: VendorOption[] = [
+  { value: "build_freight", en: "Build's freight agent collects from supplier", ar: "وكيل شحن بيلد يستلم من المورد" },
+  { value: "supplier_ships", en: "Supplier ships to KSA", ar: "المورد يشحن إلى السعودية" },
+  { value: "supplier_agent", en: "Supplier's own freight agent", ar: "وكيل شحن خاص بالمورد" },
+];
+
+// رقم تسجيل شركة دولي (أحرف/أرقام/شرطات) — أوسع من السجل السعودي
+export const intlRegistrationRegex = /^[A-Za-z0-9\-/]{3,30}$/;
+// SWIFT/BIC: 8 أو 11 خانة
+export const swiftBicRegex = /^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/;
+// IBAN/رقم حساب دولي عام
+export const intlAccountRegex = /^[A-Za-z0-9 ]{8,40}$/;
+// آيبان مرن: يقبل السعودي والدولي وأرقام الحسابات (يُتحقّق بعد إزالة المسافات)
+export const flexibleIbanRegex = /^[A-Za-z0-9]{8,40}$/;
+export function isFlexibleIban(value: string): boolean {
+  return flexibleIbanRegex.test((value || "").replace(/\s/g, ""));
+}
+
 export function normalizeSaudiVatInput(value: string): string {
   return value.replace(/\D/g, "");
 }

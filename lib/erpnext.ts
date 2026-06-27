@@ -256,6 +256,7 @@ export async function createERPNextSupplierBasicRegistration(vendor: {
   contact_number: string;
   email: string;
   cr_number: string;
+  country?: string;
 }) {
   if (await findSupplierByCrNumber(vendor.cr_number)) {
     const error = new Error("رقم السجل التجاري مسجل مسبقاً");
@@ -279,7 +280,8 @@ export async function createERPNextSupplierBasicRegistration(vendor: {
       `Responsible Person: ${vendor.manager_name}`,
       `Contact Number: ${vendor.contact_number}`,
       `Email: ${vendor.email}`,
-      `CR Number: ${vendor.cr_number}`,
+      `Country: ${vendor.country || "sa"}`,
+      `Registration No.: ${vendor.cr_number}`,
       "Registration Phase: Basic (awaiting admin approval)",
     ].join("\n"),
   });
