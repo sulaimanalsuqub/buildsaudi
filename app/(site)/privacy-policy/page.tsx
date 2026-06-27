@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-
 import { LegalPageContent } from "@/components/sections/legal-page-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "Privacy policy for Build supplier and project request workflows.",
-};
+export const metadata = pageMetadata({
+  lang: "en",
+  path: "/privacy-policy",
+  title: "Privacy Policy | Build Saudi",
+  description:
+    "How Build handles customer and supplier data when requesting building material supply or registering for services, and our commitment to protecting information under applicable regulations.",
+});
 
 export default function PrivacyPolicyPage() {
   return (

@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-
 import { LegalPageContent } from "@/components/sections/legal-page-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms & Conditions",
-  description: "Terms and conditions for Build supplier and request workflows.",
-};
+export const metadata = pageMetadata({
+  lang: "en",
+  path: "/terms-conditions",
+  title: "Terms & Conditions | Build Saudi",
+  description:
+    "Terms governing the use of Build services for building material supply requests and supplier registration across Saudi Arabia.",
+});
 
 export default function TermsPage() {
   return (

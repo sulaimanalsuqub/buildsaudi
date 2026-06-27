@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import Script from "next/script";
 import { Toaster } from "sonner";
 
@@ -24,8 +25,8 @@ const gtAmericaArabic = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "Build | Construction Material Supply Saudi Arabia — DDP Delivery",
-    template: "%s | Build Saudi"
+    default: "Build | Building Materials Supplier — Saudi Arabia",
+    template: "%s | Build Saudi",
   },
   description: siteConfig.description,
   keywords: siteConfig.keywords,
@@ -39,10 +40,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   alternates: {
-    canonical: siteConfig.url,
     languages: {
-      "en": siteConfig.url,
-      "ar": `${siteConfig.url}/ar`,
+      en: siteConfig.url,
+      ar: `${siteConfig.url}/ar`,
     },
   },
   icons: {
@@ -69,9 +69,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const lang = pathname === "/ar" || pathname.startsWith("/ar/") ? "ar" : "en";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <OrganizationSchema />
         <WebsiteSchema />

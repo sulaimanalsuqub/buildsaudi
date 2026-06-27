@@ -1,25 +1,16 @@
-import { Metadata } from "next";
-
 import { HomeContent } from "@/components/sections/home-content";
 import { ServiceSchema } from "@/components/seo/schema-org";
+import { pageMetadata } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: { absolute: "بيلد | مورد مواد البناء في السعودية" },
-  description: siteConfig.descriptionAr,
+export const metadata = pageMetadata({
+  lang: "ar",
+  path: "/ar",
+  title: "بيلد | مورد مواد بناء السعودية — توريد للمشاريع الإنشائية",
+  description:
+    "مورد مواد بناء للمشاريع في الرياض وجدة وجميع مناطق المملكة. طلب عرض سعر، جدول كميات، وتوريد حديد وإسمنت ومواد التشطيب مع التسليم لموقع المشروع.",
   keywords: siteConfig.keywordsAr,
-  alternates: {
-    canonical: `${siteConfig.url}/ar`,
-    languages: { en: siteConfig.url },
-  },
-  openGraph: {
-    title: "بيلد | مورد مواد البناء في السعودية",
-    description: siteConfig.descriptionAr,
-    url: `${siteConfig.url}/ar`,
-    locale: "ar_SA",
-    type: "website",
-  },
-};
+});
 
 export default function ArabicHomePage() {
   return (

@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-
 import { LegalPageContent } from "@/components/sections/legal-page-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "سياسة ملفات الارتباط",
-  description: "سياسة ملفات الارتباط الخاصة بموقع بيلد.",
-};
+export const metadata = pageMetadata({
+  lang: "ar",
+  path: "/ar/cookies-policy",
+  title: "سياسة ملفات الارتباط | بيلد",
+  description:
+    "توضح هذه السياسة أنواع ملفات الارتباط المستخدمة في موقع بيلد وأغراضها، وكيفية إدارة تفضيلاتك المتعلقة بها.",
+});
 
 export default function ArabicCookiesPolicyPage() {
   return (

@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-
 import { LegalPageContent } from "@/components/sections/legal-page-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "الشروط والأحكام",
-  description: "شروط استخدام بيلد الخاصة بتسجيل الموردين وطلبات المشاريع.",
-};
+export const metadata = pageMetadata({
+  lang: "ar",
+  path: "/ar/terms-conditions",
+  title: "الشروط والأحكام | بيلد",
+  description:
+    "تحدد هذه الشروط حقوق والتزامات المستخدمين عند طلب توريد مواد البناء أو التسجيل في خدمات بيلد، وفق الأحكام والشروط المعتمدة في المملكة.",
+});
 
 export default function ArabicTermsPage() {
   return (

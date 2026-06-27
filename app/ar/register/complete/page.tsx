@@ -1,13 +1,15 @@
-import { Metadata } from "next";
 import { Suspense } from "react";
 
 import { VendorCompleteContent } from "@/components/sections/vendor-complete-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "إكمال ملف التوريد",
-  description: "أكمل ملف التوريد الخاص بمنشأتك بعد الموافقة على طلب الانضمام إلى بيلد.",
-  robots: { index: false, follow: false },
-};
+export const metadata = pageMetadata({
+  lang: "ar",
+  path: "/ar/register/complete",
+  title: "إكمال بيانات المورد | بيلد",
+  description: "أكمل بيانات منشأتك بعد اعتماد طلب التسجيل.",
+  noindex: true,
+});
 
 export default function ArabicRegisterCompletePage() {
   return (

@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-
 import { LegalPageContent } from "@/components/sections/legal-page-content";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Cookies Policy",
-  description: "Cookies policy for Build supplier and request workflows.",
-};
+export const metadata = pageMetadata({
+  lang: "en",
+  path: "/cookies-policy",
+  title: "Cookies Policy | Build Saudi",
+  description:
+    "Types of cookies used on Build's website, their purpose, and how you can manage your preferences.",
+});
 
 export default function CookiesPolicyPage() {
   return (
