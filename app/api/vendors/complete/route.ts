@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import {
   applyERPNextWorkflow,
@@ -90,22 +91,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "يجب التحقق من البريد الإلكتروني أولاً" }, { status: 400 });
   }
 
-  // استخلاص الرقم الضريبي والعنوان الوطني من المستندات المرفوعة (fail-safe — يُراجَع بشريًا)
-  const extracted = await extractSupplierFieldsFromDocs({
-    vatFileName: data.vat_document_name,
-    addressFileName: data.address_document_name,
-  }).catch((e) => {
-    console.error("Supplier field extraction failed:", e);
-    return { taxNumber: "", nationalAddress: "", lines: ["⚠️ تعذّر الاستخلاص الآلي — يُراجَع يدويًا."], complete: false };
-  });
-
+  // فحص الهوية يعتمد على بيانات النموذج فقط (لا تنزيلات) — الضريبة/العنوان informational
   const identity = runSupplierIdentityVerification({
     establishment_name: supplier.supplier_name,
     cr_number: supplier.build_cr_number || "",
     cr_name_on_document: data.cr_name_on_document,
     iban_account_name: data.iban_account_name,
-    tax_number: extracted.taxNumber,
-    national_address: extracted.nationalAddress,
+    tax_number: "",
+    national_address: "",
     iban: data.iban,
   });
 
@@ -126,26 +119,13 @@ export async function POST(req: NextRequest) {
     identity: {
       cr_name_on_document: data.cr_name_on_document,
       iban_account_name: data.iban_account_name,
-      tax_number: extracted.taxNumber,
-      national_address: normalizeNationalAddress(extracted.nationalAddress),
+      tax_number: "",
+      national_address: "",
       iban: data.iban,
     },
   });
 
-  // تدقيق آلي استشاري لمحتوى المستندات المرفوعة (لا يرفض الطلب — يحذّر المراجع)
-  const docCheck = await verifySupplierDocuments({
-    crFileName: data.cr_document_name,
-    bankFileName: data.bank_letter_name,
-    crNumber: supplier.build_cr_number || "",
-    taxNumber: extracted.taxNumber,
-    crNameTyped: data.cr_name_on_document,
-    ibanTyped: data.iban,
-    ibanAccountNameTyped: data.iban_account_name,
-  }).catch((e) => {
-    console.error("Supplier document verification failed:", e);
-    return null;
-  });
-
+  // حفظ سريع للملف — بدون أي تنزيل مستندات (يتفادى مهلة الدالة). الإرفاق والاستخلاص والتدقيق في الخلفية.
   try {
     await completeERPNextSupplierProfile(supplier.name, {
       vendor_type: data.vendor_type,
@@ -161,50 +141,15 @@ export async function POST(req: NextRequest) {
       iban: data.iban,
       iban_account_name: data.iban_account_name,
       cr_document_name: data.cr_name_on_document,
-      tax_number: extracted.taxNumber,
-      national_address: normalizeNationalAddress(extracted.nationalAddress),
+      tax_number: "",
+      national_address: "",
       identity_match_score: identity.matchScore,
-      verification_status:
-        identity.verificationStatus === "Verified" && !docCheck?.hasReadableMismatch && extracted.complete
-          ? "Profile Submitted"
-          : "Needs More Information",
-      agent_summary: `${agent.summary}\n\n${extracted.lines.join("\n")}${docCheck ? `\n\n${docCheck.lines.join("\n")}` : ""}`,
+      verification_status: "Needs More Information",
+      agent_summary: `${agent.summary}\n\n⏳ يُستخلص الرقم الضريبي والعنوان الوطني وتُدقّق المستندات تلقائيًا — للمراجعة.`,
       agent_score: agent.score,
       agent_catalog_groups: agent.catalogGroups.join(", "),
       rfq_priority: agent.priority,
     });
-
-    if (
-      data.cr_document_name &&
-      data.cr_attach_token &&
-      verifyUploadAttachToken(data.cr_document_name, data.cr_attach_token)
-    ) {
-      await attachERPNextFileToDocument(data.cr_document_name, "Supplier", supplier.name);
-    }
-
-    if (
-      data.bank_letter_name &&
-      data.bank_letter_attach_token &&
-      verifyUploadAttachToken(data.bank_letter_name, data.bank_letter_attach_token)
-    ) {
-      await attachERPNextFileToDocument(data.bank_letter_name, "Supplier", supplier.name);
-    }
-
-    if (
-      data.vat_document_name &&
-      data.vat_attach_token &&
-      verifyUploadAttachToken(data.vat_document_name, data.vat_attach_token)
-    ) {
-      await attachERPNextFileToDocument(data.vat_document_name, "Supplier", supplier.name);
-    }
-
-    if (
-      data.address_document_name &&
-      data.address_attach_token &&
-      verifyUploadAttachToken(data.address_document_name, data.address_attach_token)
-    ) {
-      await attachERPNextFileToDocument(data.address_document_name, "Supplier", supplier.name);
-    }
 
     try {
       await applyERPNextWorkflow("Supplier", supplier.name, "Review");
@@ -215,16 +160,64 @@ export async function POST(req: NextRequest) {
         build_verification_status: "Profile Submitted",
       });
     }
-
-    void sendVendorProfileSubmittedNotification({
-      id: supplier.name,
-      establishment_name: supplier.supplier_name,
-      email: supplier.build_email || "",
-    }).catch((e) => console.error("Profile submitted notification failed:", e));
   } catch (error) {
     console.error("Supplier profile completion failed:", error);
     return NextResponse.json({ error: "تعذر حفظ ملف التوريد" }, { status: 500 });
   }
+
+  // العمل الثقيل بعد إرسال الرد: إرفاق المستندات + استخلاص الضريبة/العنوان + تدقيق المحتوى + تحديث الملخص
+  after(async () => {
+    try {
+      const attachDocs: Array<[string | undefined, string | undefined]> = [
+        [data.cr_document_name, data.cr_attach_token],
+        [data.bank_letter_name, data.bank_letter_attach_token],
+        [data.vat_document_name, data.vat_attach_token],
+        [data.address_document_name, data.address_attach_token],
+      ];
+      for (const [name, token] of attachDocs) {
+        if (name && token && verifyUploadAttachToken(name, token)) {
+          await attachERPNextFileToDocument(name, "Supplier", supplier.name).catch((e) =>
+            console.error("Attach failed:", name, e)
+          );
+        }
+      }
+
+      const extracted = await extractSupplierFieldsFromDocs({
+        vatFileName: data.vat_document_name,
+        addressFileName: data.address_document_name,
+      }).catch(() => ({
+        taxNumber: "",
+        nationalAddress: "",
+        lines: ["⚠️ تعذّر الاستخلاص الآلي — يُراجَع يدويًا."],
+        complete: false,
+      }));
+
+      const docCheck = await verifySupplierDocuments({
+        crFileName: data.cr_document_name,
+        bankFileName: data.bank_letter_name,
+        crNumber: supplier.build_cr_number || "",
+        taxNumber: extracted.taxNumber,
+        crNameTyped: data.cr_name_on_document,
+        ibanTyped: data.iban,
+        ibanAccountNameTyped: data.iban_account_name,
+      }).catch(() => null);
+
+      await updateERPNextDocument("Supplier", supplier.name, {
+        build_tax_number: extracted.taxNumber,
+        build_national_address: extracted.nationalAddress ? normalizeNationalAddress(extracted.nationalAddress) : "",
+        build_verification_status: "Needs More Information",
+        build_agent_summary: `${agent.summary}\n\n${extracted.lines.join("\n")}${docCheck ? `\n\n${docCheck.lines.join("\n")}` : ""}`,
+      });
+    } catch (e) {
+      console.error("Supplier background processing failed:", e);
+    }
+  });
+
+  void sendVendorProfileSubmittedNotification({
+    id: supplier.name,
+    establishment_name: supplier.supplier_name,
+    email: supplier.build_email || "",
+  }).catch((e) => console.error("Profile submitted notification failed:", e));
 
   return NextResponse.json({ ok: true, id: supplier.name });
 }

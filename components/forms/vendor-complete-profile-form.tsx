@@ -489,13 +489,6 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                     {uploading === "bank" && <Loader2 className="h-4 w-4 animate-spin" />}
                   </label>
                 </VendorField>
-                <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-3 text-xs text-brand-dark/70">
-                  {textByLang(
-                    isRtl,
-                    "Upload your VAT certificate and national address — the tax number and address are extracted automatically and reviewed by Build.",
-                    "ارفع شهادة الضريبة والعنوان الوطني — يُستخلص الرقم الضريبي والعنوان آليًا ويُراجعان من فريق بيلد."
-                  )}
-                </div>
                 <VendorField label={textByLang(isRtl, "VAT Certificate (PDF)", "شهادة الضريبة (PDF)")}>
                   <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
                     <Upload className="h-5 w-5 text-brand-primary" />
