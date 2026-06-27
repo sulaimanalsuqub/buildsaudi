@@ -1,3 +1,5 @@
+import { hasStructuredBoqContent, parseBoqTableText } from "@/lib/boq-table-parser";
+
 // ── Cache بسيط لتفادي استدعاء DeepSeek مرتين لنفس المحتوى ──────────────────
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 دقائق
 const extractionCache = new Map<string, { result: ExtractedMaterialItem[]; expiresAt: number }>();
@@ -147,6 +149,9 @@ export function shouldUseAiMaterialExtraction(input: ExtractionInput): boolean {
   const materials = (input.materials || "").trim();
   const lineCount = materials.split(/\n/).filter((l) => l.trim().length >= 2).length;
 
+  // Uploaded file text exists → prefer AI for messy PDF/BOQ tables
+  if (boq.length >= 80) return true;
+  if (input.boq_file_url && boq.length >= 20) return true;
   // BOQ / Excel / PDF text → AI helps
   if (boq.length >= 400) return true;
   // Multi-line typed list → AI helps
@@ -159,9 +164,20 @@ export function shouldUseAiMaterialExtraction(input: ExtractionInput): boolean {
   return false;
 }
 
+function tableExtract(input: ExtractionInput): ExtractedMaterialItem[] {
+  const sourceText = [input.boq_file_text, input.materials].filter(Boolean).join("\n");
+  const parsed = parseBoqTableText(sourceText);
+  return parsed.map((item) => ({ ...item, source: item.source as "fallback" }));
+}
+
 export async function extractMaterialItems(input: ExtractionInput): Promise<ExtractedMaterialItem[]> {
+  const tableItems = tableExtract(input);
+  if (tableItems.length >= 2) {
+    return tableItems;
+  }
+
   if (!shouldUseAiMaterialExtraction(input)) {
-    return fallbackExtract(input);
+    return tableItems.length ? tableItems : fallbackExtract(input);
   }
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -178,7 +194,7 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -235,7 +251,7 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
       || extractOutputText(json);
     const parsed = JSON.parse(outputText) as { items?: Array<Omit<ExtractedMaterialItem, "source">> };
     const items = normalizeItems(parsed.items || [], "ai");
-    const result = items.length ? items : fallbackExtract(input);
+    const result = items.length ? items : (tableItems.length ? tableItems : fallbackExtract(input));
 
     // خزّن النتيجة في الـ cache
     extractionCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -243,6 +259,6 @@ export async function extractMaterialItems(input: ExtractionInput): Promise<Extr
     return result;
   } catch (error) {
     console.error("Material extraction failed, using fallback:", error);
-    return fallbackExtract(input);
+    return tableItems.length ? tableItems : fallbackExtract(input);
   }
 }

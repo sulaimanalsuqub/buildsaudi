@@ -131,6 +131,31 @@ export async function updateERPNextDocument<T>(
   return response.data;
 }
 
+export async function downloadERPNextFile(fileUrl: string): Promise<{ buffer: Buffer; fileName: string; mimeType: string }> {
+  const { baseUrl, apiToken } = getERPNextConfig();
+  const path = fileUrl.startsWith("http") ? fileUrl : `${baseUrl}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+  const res = await fetch(path, {
+    headers: { Authorization: `token ${apiToken}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`ERPNext file download failed: ${res.status}`);
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const fileName = decodeURIComponent(fileUrl.split("/").pop() || "file");
+  const mimeType = res.headers.get("content-type") || guessMimeType(fileName);
+  return { buffer, fileName, mimeType };
+}
+
+function guessMimeType(fileName: string): string {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (lower.endsWith(".xls")) return "application/vnd.ms-excel";
+  return "application/octet-stream";
+}
+
 export async function uploadERPNextFile(file: File) {
   const { baseUrl, apiToken } = getERPNextConfig();
   const formData = new FormData();

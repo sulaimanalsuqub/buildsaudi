@@ -16,22 +16,20 @@ function worksheetToText(buffer: Buffer) {
   }).join("\n\n");
 }
 
-export async function extractTextFromProcurementFile(file: File) {
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
+export async function extractTextFromBuffer(fileName: string, mimeType: string, buffer: Buffer) {
+  if (mimeType === "text/csv" || fileName.toLowerCase().endsWith(".csv")) {
     return truncate(buffer.toString("utf8"));
   }
 
   if (
-    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-    file.type === "application/vnd.ms-excel" ||
-    /\.(xlsx|xls)$/i.test(file.name)
+    mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mimeType === "application/vnd.ms-excel" ||
+    /\.(xlsx|xls)$/i.test(fileName)
   ) {
     return truncate(worksheetToText(buffer));
   }
 
-  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+  if (mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf")) {
     const parser = new PDFParse({ data: buffer });
     try {
       const parsed = await parser.getText();
@@ -42,4 +40,9 @@ export async function extractTextFromProcurementFile(file: File) {
   }
 
   return "";
+}
+
+export async function extractTextFromProcurementFile(file: File) {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return extractTextFromBuffer(file.name, file.type, buffer);
 }

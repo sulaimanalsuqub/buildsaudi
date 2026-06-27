@@ -5,6 +5,7 @@ import {
 } from "@/lib/erpnext";
 import { runOpportunityAgent, suggestSuppliersForOpportunity } from "@/lib/build-agents";
 import { extractMaterialItems } from "@/lib/material-extraction";
+import { resolveBoqFileText } from "@/lib/resolve-boq-text";
 import { sendNewQuoteNotification, sendQuoteConfirmationToClient } from "@/lib/email";
 import { verifyUploadAttachToken } from "@/lib/upload-token";
 
@@ -54,12 +55,19 @@ export async function processQuoteBackground(quote: QuoteBackgroundInput): Promi
   }
 
   tasks.push(
-    extractMaterialItems({
-      materials: quote.materials,
-      notes: quote.notes,
-      boq_file_url: quote.boq_file_url,
-      boq_file_text: quote.boq_file_text,
-    })
+    (async () => {
+      const boqFileText = await resolveBoqFileText({
+        boq_file_text: quote.boq_file_text,
+        boq_file_url: quote.boq_file_url,
+        boq_file_name: quote.boq_file_name,
+      });
+      return extractMaterialItems({
+        materials: quote.materials,
+        notes: quote.notes,
+        boq_file_url: quote.boq_file_url,
+        boq_file_text: boqFileText,
+      });
+    })()
       .then(async (items) => {
         const mappedItems = (items || []).map((item: ERPNextMaterialItem, index: number) => ({
           doctype: "Build Request Material Item",
@@ -95,10 +103,15 @@ export async function processQuoteBackground(quote: QuoteBackgroundInput): Promi
         });
 
         await updateERPNextDocument("Opportunity", quote.opportunityName, {
+          build_required_materials:
+            quote.materials?.trim() ||
+            (mappedItems.length
+              ? mappedItems.map((i) => `${i.build_item_name} — ${i.build_quantity} ${i.build_uom}`).join("\n")
+              : "ملف كميات مرفق — راجع البنود المستخرجة"),
           build_material_extraction_status: mappedItems.length ? "Extracted" : "Needs Review",
           build_material_extraction_summary: mappedItems.length
-            ? `Extracted ${mappedItems.length} material item(s). Auto-approved: ${agent.autoApprovedItems}.`
-            : "No structured items extracted. Review raw request or BOQ attachment.",
+            ? `استُخرج ${mappedItems.length} بند مادة/كمية. جاهز تلقائياً: ${agent.autoApprovedItems}.`
+            : "لم تُستخرج بنود structured — راجع المرفق يدوياً.",
           build_extracted_material_items: mappedItems,
           build_agent_summary: agent.summary,
           build_suggested_suppliers: JSON.stringify(suggestedSuppliers, null, 2),
