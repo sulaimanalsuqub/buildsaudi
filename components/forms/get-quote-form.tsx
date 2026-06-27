@@ -204,12 +204,22 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       } else if (!isValidSaudiPhone(form.phone)) {
         e.phone = copy.invalidPhone;
       }
-      if (!form.email.trim()) {
-        e.email = copy.required;
-      } else if (!isValidEmail(form.email)) {
-        e.email = copy.invalidEmail;
-      } else if (!emailVerified) {
-        e.email = isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first";
+      if (form.contactMethod === "email") {
+        // البريد إلزامي ومُتحقَّق منه عند اختياره طريقةً للتواصل
+        if (!form.email.trim()) {
+          e.email = copy.required;
+        } else if (!isValidEmail(form.email)) {
+          e.email = copy.invalidEmail;
+        } else if (!emailVerified) {
+          e.email = isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first";
+        }
+      } else if (form.email.trim()) {
+        // واتساب: البريد اختياري — لكن إن أُدخل وجب أن يكون صحيحًا ومُتحقَّقًا منه (لا نرسل بريدًا غير موثّق)
+        if (!isValidEmail(form.email)) {
+          e.email = copy.invalidEmail;
+        } else if (!emailVerified) {
+          e.email = isRtl ? "تحقق من بريدك أو اتركه فارغًا" : "Verify your email or leave it empty";
+        }
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
@@ -283,8 +293,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             project_name: form.projectName,
             client_name: form.clientName,
             phone: form.phone,
-            client_email: form.email,
-            email_verified_token: emailToken || undefined,
+            client_email: emailVerified ? form.email : "",
+            email_verified_token: emailVerified ? emailToken : undefined,
             contact_method: form.contactMethod,
             materials: form.materials,
             delivery_address: form.deliveryAddress,
@@ -384,9 +394,9 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           </div>
         </div>
 
-        {/* رسالة التواصل */}
+        {/* رسالة التواصل — تعرض القناة التي اختارها العميل فعلًا */}
         <p className="text-sm text-brand-dark/60 text-center max-w-md">
-          {copy.contactMsg} <span className="font-semibold text-brand-dark" dir="ltr">{form.email}</span> {copy.contactTime}
+          {copy.contactMsg} <span className="font-semibold text-brand-dark" dir="ltr">{form.contactMethod === "email" && form.email ? form.email : form.phone}</span> {copy.contactTime}
         </p>
 
         <button
@@ -439,9 +449,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         {/* الخطوة 1: معلومات العميل — Progressive Disclosure */}
         {step === 0 && (() => {
           const showPhone = form.clientName.trim().length >= 2;
-          const showEmail = showPhone && isValidSaudiPhone(form.phone);
+          const showContactMethod = showPhone && isValidSaudiPhone(form.phone);
+          const showEmail = showContactMethod;
+          const isEmailMethod = form.contactMethod === "email";
           const showVerify = showEmail && form.email.trim() && isValidEmail(form.email) && !emailVerified;
-          const showContactMethod = showEmail;
+          const emailLabel = isEmailMethod ? copy.email : `${copy.email} (${isRtl ? "اختياري" : "optional"})`;
           return (
             <>
               <Field label={copy.clientName} error={errors.clientName} required>
@@ -473,9 +485,36 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               </AnimatePresence>
 
               <AnimatePresence>
+                {showContactMethod && (
+                  <motion.div key="contact" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={copy.contactMethod}>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(["whatsapp", "email"] as const).map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => set("contactMethod", method)}
+                            className={[
+                              "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
+                              form.contactMethod === method
+                                ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
+                                : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
+                            ].join(" ")}
+                          >
+                            {method === "whatsapp" ? "📱" : "📧"}
+                            {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
                 {showEmail && (
                   <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
-                    <Field label={copy.email} error={errors.email} required>
+                    <Field label={emailLabel} error={errors.email} required={isEmailMethod}>
                       <input
                         type="email"
                         placeholder={copy.emailPlaceholder}
@@ -484,6 +523,11 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                         className={inputCls(!!errors.email)}
                         dir="ltr"
                       />
+                      {!isEmailMethod && (
+                        <p className="mt-1 text-xs text-brand-dark/45">
+                          {isRtl ? "سنتواصل عبر واتساب على رقمك. أضف بريدك إن رغبت بنسخة مكتوبة." : "We'll reach you on WhatsApp. Add an email if you'd like a written copy."}
+                        </p>
+                      )}
                     </Field>
                     <AnimatePresence mode="wait">
                       {emailVerified ? (
@@ -507,33 +551,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
-                {showContactMethod && (
-                  <motion.div key="contact" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Field label={copy.contactMethod}>
-                      <div className="grid grid-cols-2 gap-3">
-                        {(["whatsapp", "email"] as const).map((method) => (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => set("contactMethod", method)}
-                            className={[
-                              "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
-                              form.contactMethod === method
-                                ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
-                                : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
-                            ].join(" ")}
-                          >
-                            {method === "whatsapp" ? "📱" : "📧"}
-                            {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
-                          </button>
-                        ))}
-                      </div>
-                    </Field>
                   </motion.div>
                 )}
               </AnimatePresence>

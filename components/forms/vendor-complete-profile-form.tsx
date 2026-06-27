@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Search, Upload } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
@@ -14,8 +14,6 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import {
-  normalizeNationalAddressInput,
-  normalizeSaudiVatInput,
   optionLabel,
   optionValuesToLabels,
   paymentTerms,
@@ -23,16 +21,11 @@ import {
   regions,
   saudiBanks,
   saudiIbanRegex,
-  saudiVatRegex,
   textByLang,
   vendorTypes,
   yesNoOptions,
 } from "@/lib/vendor-options";
-import {
-  isValidNationalAddress,
-  isValidSaudiVat,
-  nameSimilarity,
-} from "@/lib/supplier-identity-verification";
+import { nameSimilarity } from "@/lib/supplier-identity-verification";
 import {
   VendorErrorText,
   VendorField,
@@ -64,16 +57,7 @@ const schema = z
     iban: z.string().regex(saudiIbanRegex, "invalidIban"),
     ibanAccountName: z.string().trim().min(2, "required"),
     crNameOnDocument: z.string().trim().min(2, "required"),
-    taxNumber: z
-      .string()
-      .trim()
-      .transform((v) => normalizeSaudiVatInput(v))
-      .refine((v) => saudiVatRegex.test(v), { message: "invalidVat" }),
-    nationalAddress: z
-      .string()
-      .trim()
-      .transform((v) => normalizeNationalAddressInput(v))
-      .refine(isValidNationalAddress, { message: "invalidNationalAddress" }),
+    // الرقم الضريبي والعنوان الوطني لم يعودا إدخالًا يدويًا — يُرفعان كمستندات ويُستخلصان آليًا (يُراجعان بعد التقديم)
   })
   .superRefine((v, ctx) => {
     if (v.vendorType === "importer" && !v.representedBrands?.trim()) {
@@ -89,7 +73,7 @@ type FormValues = z.infer<typeof schema>;
 const stepFields: (keyof FormValues)[][] = [
   ["productCategories", "vendorType", "representedBrands"],
   ["coverageRegions", "hasWarehouseInKsa", "offersCredit", "paymentTerms", "creditLimit", "workedOnGovProjects"],
-  ["bankName", "iban", "ibanAccountName", "crNameOnDocument", "taxNumber", "nationalAddress"],
+  ["bankName", "iban", "ibanAccountName", "crNameOnDocument"],
   [],
 ];
 
@@ -103,7 +87,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   const [submitError, setSubmitError] = useState("");
   const [crFile, setCrFile] = useState<{ name: string; token: string } | null>(null);
   const [bankFile, setBankFile] = useState<{ name: string; token: string } | null>(null);
-  const [uploading, setUploading] = useState<"cr" | "bank" | null>(null);
+  const [vatFile, setVatFile] = useState<{ name: string; token: string } | null>(null);
+  const [addressFile, setAddressFile] = useState<{ name: string; token: string } | null>(null);
+  const [uploading, setUploading] = useState<"cr" | "bank" | "vat" | "address" | null>(null);
 
   const t = {
     stepLabels: isRtl
@@ -142,14 +128,34 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       iban: "",
       ibanAccountName: "",
       crNameOnDocument: "",
-      taxNumber: "",
-      nationalAddress: "",
     },
     mode: "onBlur",
   });
 
   const values = form.watch();
   const progress = ((step + 1) / t.stepLabels.length) * 100;
+
+  // حفظ مسودة تلقائي (قيم الحقول فقط — لا رموز رفع الملفات لأنها قد تنتهي صلاحيتها)
+  const draftKey = `build-vendor-profile-draft:${email}`;
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) form.reset({ ...form.getValues(), ...JSON.parse(saved) });
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const sub = form.watch((v) => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(v));
+      } catch {
+        // ignore
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [form, draftKey]);
 
   const visibleRegions = useMemo(() => {
     const q = regionSearch.trim().toLowerCase();
@@ -163,7 +169,7 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     form.setValue(field, next, { shouldValidate: true });
   };
 
-  async function uploadDoc(file: File, kind: "cr" | "bank") {
+  async function uploadDoc(file: File, kind: "cr" | "bank" | "vat" | "address") {
     setUploading(kind);
     try {
       const fd = new FormData();
@@ -173,7 +179,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       if (!res.ok) throw new Error((data.error as string) || "upload failed");
       const entry = { name: data.fileName as string, token: data.attachToken as string };
       if (kind === "cr") setCrFile(entry);
-      else setBankFile(entry);
+      else if (kind === "bank") setBankFile(entry);
+      else if (kind === "vat") setVatFile(entry);
+      else setAddressFile(entry);
       setSubmitError("");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : isRtl ? "فشل رفع الملف" : "File upload failed");
@@ -195,20 +203,18 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
         ? "اسم صاحب الحساب في البنك لا يطابق اسم التسجيل"
         : "Bank account name does not match registered establishment name";
     }
-    if (!isValidSaudiVat(data.taxNumber)) {
-      return isRtl ? "الرقم الضريبي غير صحيح" : "Invalid tax number";
-    }
-    if (!isValidNationalAddress(data.nationalAddress)) {
-      return isRtl ? "العنوان الوطني غير صحيح" : "Invalid national address";
-    }
     return null;
   };
 
   const handleNext = async () => {
     if (!emailVerified) return;
     if (step === 2) {
-      if (!crFile || !bankFile) {
-        setSubmitError(isRtl ? "يرجى رفع السجل التجاري وخطاب البنك" : "Upload CR and bank letter");
+      if (!crFile || !bankFile || !vatFile || !addressFile) {
+        setSubmitError(
+          isRtl
+            ? "يرجى رفع: السجل التجاري، خطاب البنك، شهادة الضريبة، والعنوان الوطني"
+            : "Upload: CR, bank letter, VAT certificate, and national address"
+        );
         return;
       }
     }
@@ -226,8 +232,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!crFile || !bankFile) {
-      setSubmitError(isRtl ? "المستندات مطلوبة" : "Documents required");
+    if (!crFile || !bankFile || !vatFile || !addressFile) {
+      setSubmitError(isRtl ? "جميع المستندات مطلوبة" : "All documents are required");
       return;
     }
     const identityError = validateIdentityMatches(data);
@@ -257,16 +263,23 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
           iban: data.iban.toUpperCase(),
           iban_account_name: data.ibanAccountName,
           cr_name_on_document: data.crNameOnDocument,
-          tax_number: data.taxNumber,
-          national_address: data.nationalAddress,
           cr_document_name: crFile.name,
           cr_attach_token: crFile.token,
           bank_letter_name: bankFile.name,
           bank_letter_attach_token: bankFile.token,
+          vat_document_name: vatFile.name,
+          vat_attach_token: vatFile.token,
+          address_document_name: addressFile.name,
+          address_attach_token: addressFile.token,
         }),
       });
       const result = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(result?.error || "failed");
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        // ignore
+      }
       setIsSubmitted(true);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "error");
@@ -306,6 +319,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       ) : (
         <>
           <div className="mt-8 space-y-4">
+            <div className="flex justify-end">
+              <span className="text-xs text-brand-dark/35">{isRtl ? "✓ تُحفظ تلقائياً" : "✓ Auto-saved"}</span>
+            </div>
             <VendorStepTabs labels={t.stepLabels} currentStep={step} />
             <div className="h-1.5 rounded-full bg-brand-dark/10">
               <motion.div animate={{ width: `${progress}%` }} className="h-full rounded-full bg-brand-primary" />
@@ -434,33 +450,6 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                   <Input {...form.register("crNameOnDocument")} className="h-12" dir="rtl" placeholder={establishmentName} />
                   <VendorErrorText text={form.formState.errors.crNameOnDocument?.message} isRtl={isRtl} />
                 </VendorField>
-                <VendorField label={textByLang(isRtl, "Tax Number (VAT)", "الرقم الضريبي")}>
-                  <Input {...form.register("taxNumber")} className="h-12" dir="ltr" placeholder="300000000000003" inputMode="numeric" />
-                  <VendorErrorText
-                    text={
-                      form.formState.errors.taxNumber?.message === "invalidVat"
-                        ? textByLang(isRtl, "15 digits starting and ending with 3", "15 رقم يبدأ وينتهي بـ 3")
-                        : form.formState.errors.taxNumber?.message
-                    }
-                    isRtl={isRtl}
-                  />
-                </VendorField>
-                <VendorField label={textByLang(isRtl, "National Address", "العنوان الوطني")}>
-                  <Input
-                    {...form.register("nationalAddress")}
-                    className="h-12 uppercase"
-                    dir="ltr"
-                    placeholder={textByLang(isRtl, "RRRD2929 or full address", "RRRD2929 أو العنوان الكامل")}
-                  />
-                  <VendorErrorText
-                    text={
-                      form.formState.errors.nationalAddress?.message === "invalidNationalAddress"
-                        ? textByLang(isRtl, "Short code (RRRD2929) or full address with postal code", "الرمز المختصر أو العنوان الكامل مع الرمز البريدي")
-                        : form.formState.errors.nationalAddress?.message
-                    }
-                    isRtl={isRtl}
-                  />
-                </VendorField>
                 <VendorField label={textByLang(isRtl, "Bank Name", "اسم البنك")}>
                   <select
                     value={values.bankName}
@@ -500,6 +489,29 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                     {uploading === "bank" && <Loader2 className="h-4 w-4 animate-spin" />}
                   </label>
                 </VendorField>
+                <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-3 text-xs text-brand-dark/70">
+                  {textByLang(
+                    isRtl,
+                    "Upload your VAT certificate and national address — the tax number and address are extracted automatically and reviewed by Build.",
+                    "ارفع شهادة الضريبة والعنوان الوطني — يُستخلص الرقم الضريبي والعنوان آليًا ويُراجعان من فريق بيلد."
+                  )}
+                </div>
+                <VendorField label={textByLang(isRtl, "VAT Certificate (PDF)", "شهادة الضريبة (PDF)")}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
+                    <Upload className="h-5 w-5 text-brand-primary" />
+                    <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && uploadDoc(e.target.files[0], "vat")} />
+                    <span>{vatFile ? "✓ " + vatFile.name : textByLang(isRtl, "Upload PDF", "ارفع PDF")}</span>
+                    {uploading === "vat" && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </label>
+                </VendorField>
+                <VendorField label={textByLang(isRtl, "National Address (PDF)", "العنوان الوطني (PDF)")}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
+                    <Upload className="h-5 w-5 text-brand-primary" />
+                    <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && uploadDoc(e.target.files[0], "address")} />
+                    <span>{addressFile ? "✓ " + addressFile.name : textByLang(isRtl, "Upload PDF", "ارفع PDF")}</span>
+                    {uploading === "address" && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </label>
+                </VendorField>
               </>
             )}
 
@@ -508,8 +520,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                 <VendorReviewRow label="Email" value={email} />
                 <VendorReviewRow label={textByLang(isRtl, "Categories", "الفئات")} value={optionValuesToLabels(isRtl, productCategories, values.productCategories)} />
                 <VendorReviewRow label={textByLang(isRtl, "CR Name", "اسم السجل")} value={values.crNameOnDocument || t.notProvided} />
-                <VendorReviewRow label={textByLang(isRtl, "Tax Number", "الرقم الضريبي")} value={values.taxNumber || t.notProvided} />
-                <VendorReviewRow label={textByLang(isRtl, "National Address", "العنوان الوطني")} value={values.nationalAddress || t.notProvided} />
+                <VendorReviewRow label={textByLang(isRtl, "Tax Number", "الرقم الضريبي")} value={textByLang(isRtl, "Extracted from document", "يُستخلص من المستند")} />
+                <VendorReviewRow label={textByLang(isRtl, "National Address", "العنوان الوطني")} value={textByLang(isRtl, "Extracted from document", "يُستخلص من المستند")} />
                 <VendorReviewRow label="IBAN" value={values.iban || t.notProvided} />
                 <VendorReviewRow label={textByLang(isRtl, "Bank Account Name", "اسم الحساب")} value={values.ibanAccountName || t.notProvided} />
                 <VendorReviewRow

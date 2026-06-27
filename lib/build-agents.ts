@@ -6,6 +6,17 @@ import {
 
 // Maps website supplier categories → ERPNext Item Groups
 const CATEGORY_TO_ITEM_GROUP: Record<string, string> = {
+  // مفردات فئات الاستخراج (lib/material-extraction.ts) — مطابقة دقيقة
+  "مواد بناء وإنشاء": "Building Materials",
+  "أدوات السلامة": "Safety Tools",
+  "دهانات وديكور": "Paint and Finishes",
+  "كهرباء وإنارة": "Electrical and Lighting",
+  "تكييف وتبريد": "HVAC",
+  "أنظمة الأنابيب": "Piping Systems",
+  "مضخات وخزانات": "Pumps and Tanks",
+  "أرضيات وسيراميك": "Flooring and Ceramics",
+  عوازل: "Insulation",
+  "مواد لاصقة": "Adhesives",
   "مواد بناء": "Building Materials",
   "حديد": "Building Materials",
   "أسمنت": "Building Materials",
@@ -42,10 +53,10 @@ const CATEGORY_TO_ITEM_GROUP: Record<string, string> = {
 const REGION_KEYWORDS: Record<string, string[]> = {
   الرياض: ["الرياض", "riyadh", "الدرعية", "الخرج"],
   "مكة المكرمة": ["جدة", "مكة", "jeddah", "makkah", "الطائف", "rabigh"],
-  "المنطقة الشرقية": ["الدمام", "الخبر", "الظهران", "الجبيل", "dammam", "khobar", "dhahran"],
+  "المنطقة الشرقية": ["الدمام", "الخبر", "الظهران", "الجبيل", "dammam", "khobar", "dhahran", "eastern"],
   المدينة: ["المدينة", "madinah", "yanbu", "ينبع"],
   القصيم: ["بريدة", "عنيزة", "buraidah", "qassim"],
-  عسير: ["أبها", "خميس", "abha"],
+  عسير: ["أبها", "خميس", "abha", "asir"],
   تبوك: ["تبوك", "tabuk", "نيوم", "neom"],
 };
 
@@ -211,16 +222,23 @@ function scoreSupplierMatch(
 ): SupplierSuggestion | null {
   if (supplier.build_rfq_priority === "Do Not Use") return null;
 
-  const supCats = normalize(supplier.build_product_categories || "");
   const supRegions = normalize(supplier.build_coverage_regions || "");
   const reasons: string[] = [];
   let score = 0;
 
+  // توحيد الطرفين على Item Groups القانونية: المورد يخزّن قيمًا إنجليزية، والطلب فئات عربية مستخرجة
+  const supplierGroups = new Set(
+    mapCategoriesToItemGroups(
+      (supplier.build_product_categories || "")
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean)
+    )
+  );
+  const requestedGroups = mapCategoriesToItemGroups(categories);
   let categoryHits = 0;
-  for (const cat of categories) {
-    if (supCats.includes(normalize(cat))) {
-      categoryHits++;
-    }
+  for (const group of requestedGroups) {
+    if (supplierGroups.has(group)) categoryHits++;
   }
   if (categoryHits > 0) {
     score += categoryHits * 20;
@@ -239,9 +257,10 @@ function scoreSupplierMatch(
 
   if (deliveryRegion) {
     const regionKeywords = REGION_KEYWORDS[deliveryRegion] || [deliveryRegion];
-    if (regionKeywords.some((kw) => supRegions.includes(normalize(kw)))) {
+    const coversAllKsa = supRegions.includes("all_ksa") || supRegions.includes("كل المملكة");
+    if (coversAllKsa || regionKeywords.some((kw) => supRegions.includes(normalize(kw)))) {
       score += 30;
-      reasons.push(`✅ يغطي منطقة التسليم: ${deliveryRegion}`);
+      reasons.push(coversAllKsa ? "✅ يغطي كل المملكة" : `✅ يغطي منطقة التسليم: ${deliveryRegion}`);
     } else {
       score -= 10;
       reasons.push(`⚠️ خارج منطقة التسليم (${deliveryRegion})`);

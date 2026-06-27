@@ -1,4 +1,4 @@
-import { hasStructuredBoqContent, parseBoqTableText } from "@/lib/boq-table-parser";
+import { parseBoqTableText } from "@/lib/boq-table-parser";
 
 // ── Cache بسيط لتفادي استدعاء DeepSeek مرتين لنفس المحتوى ──────────────────
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 دقائق

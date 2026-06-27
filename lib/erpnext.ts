@@ -343,40 +343,6 @@ export async function completeERPNextSupplierProfile(
   });
 }
 
-/** @deprecated Use createERPNextSupplierBasicRegistration + completeERPNextSupplierProfile */
-export async function createERPNextSupplierRegistration(vendor: {
-  establishment_name: string;
-  manager_name: string;
-  contact_number: string;
-  email: string;
-  cr_number: string;
-  vendor_type: string;
-  represented_brands?: string;
-  product_categories: string[];
-  coverage_regions: string[];
-  has_warehouse: boolean;
-  offers_credit: boolean;
-  credit_limit?: number | null;
-  payment_terms: string[];
-  worked_on_gov_projects: boolean;
-}) {
-  const created = await createERPNextSupplierBasicRegistration(vendor);
-  await completeERPNextSupplierProfile(created.name, {
-    vendor_type: vendor.vendor_type,
-    represented_brands: vendor.represented_brands,
-    product_categories: vendor.product_categories,
-    coverage_regions: vendor.coverage_regions,
-    has_warehouse: vendor.has_warehouse,
-    offers_credit: vendor.offers_credit,
-    credit_limit: vendor.credit_limit,
-    payment_terms: vendor.payment_terms,
-    worked_on_gov_projects: vendor.worked_on_gov_projects,
-    bank_name: "",
-    iban: "",
-  });
-  return created;
-}
-
 export async function resolveOrCreateLead(params: {
   client_name: string;
   phone: string;

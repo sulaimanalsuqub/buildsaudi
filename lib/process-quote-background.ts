@@ -80,7 +80,9 @@ export async function processQuoteBackground(quote: QuoteBackgroundInput): Promi
           build_specifications: item.specifications,
           build_confidence: item.confidence,
           build_source: item.source,
-          build_review_status: item.confidence >= 85 ? "Approved" : "Needs Review",
+          // لا اعتماد آلي: كل البنود تحتاج تأكيدًا بشريًا قبل RFQ (نسبة الثقة محفوظة في build_confidence)
+          // النسخة الآمنة من docs/erpnext-workflow-spec.md#البند-2 — تستخدم قيمة موجودة بدل إدخال Select جديد
+          build_review_status: "Needs Review",
         }));
 
         const categories = [...new Set(mappedItems.map((i) => i.build_category).filter(Boolean))];

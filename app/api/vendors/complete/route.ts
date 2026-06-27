@@ -11,12 +11,10 @@ import { sendVendorProfileSubmittedNotification } from "@/lib/email";
 import { runSupplierAgent } from "@/lib/build-agents";
 import {
   identityVerificationErrorMessage,
-  isValidNationalAddress,
-  isValidSaudiVat,
   normalizeNationalAddress,
-  normalizeSaudiVat,
   runSupplierIdentityVerification,
 } from "@/lib/supplier-identity-verification";
+import { extractSupplierFieldsFromDocs, verifySupplierDocuments } from "@/lib/supplier-document-verification";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyVendorOnboardingToken } from "@/lib/vendor-onboarding-token";
@@ -38,21 +36,15 @@ const completeSchema = z.object({
   iban: z.string().trim().regex(/^SA\d{22}$/i),
   iban_account_name: z.string().trim().min(2, "اسم صاحب الحساب في خطاب البنك مطلوب"),
   cr_name_on_document: z.string().trim().min(2, "اسم المنشأة في السجل التجاري مطلوب"),
-  tax_number: z
-    .string()
-    .trim()
-    .transform((v) => normalizeSaudiVat(v))
-    .refine(isValidSaudiVat, { message: "الرقم الضريبي يجب أن يكون 15 رقم يبدأ وينتهي بـ 3" }),
-  national_address: z
-    .string()
-    .trim()
-    .refine(isValidNationalAddress, {
-      message: "أدخل العنوان الوطني (الرمز المختصر مثل RRRD2929 أو العنوان الكامل مع الرمز البريدي)",
-    }),
+  // الرقم الضريبي والعنوان الوطني لم يعودا إدخالًا يدويًا — يُستخلصان من المستندات المرفوعة
   cr_document_name: z.string().optional(),
   cr_attach_token: z.string().optional(),
   bank_letter_name: z.string().optional(),
   bank_letter_attach_token: z.string().optional(),
+  vat_document_name: z.string().optional(),
+  vat_attach_token: z.string().optional(),
+  address_document_name: z.string().optional(),
+  address_attach_token: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -98,13 +90,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "يجب التحقق من البريد الإلكتروني أولاً" }, { status: 400 });
   }
 
+  // استخلاص الرقم الضريبي والعنوان الوطني من المستندات المرفوعة (fail-safe — يُراجَع بشريًا)
+  const extracted = await extractSupplierFieldsFromDocs({
+    vatFileName: data.vat_document_name,
+    addressFileName: data.address_document_name,
+  }).catch((e) => {
+    console.error("Supplier field extraction failed:", e);
+    return { taxNumber: "", nationalAddress: "", lines: ["⚠️ تعذّر الاستخلاص الآلي — يُراجَع يدويًا."], complete: false };
+  });
+
   const identity = runSupplierIdentityVerification({
     establishment_name: supplier.supplier_name,
     cr_number: supplier.build_cr_number || "",
     cr_name_on_document: data.cr_name_on_document,
     iban_account_name: data.iban_account_name,
-    tax_number: data.tax_number,
-    national_address: data.national_address,
+    tax_number: extracted.taxNumber,
+    national_address: extracted.nationalAddress,
     iban: data.iban,
   });
 
@@ -125,10 +126,24 @@ export async function POST(req: NextRequest) {
     identity: {
       cr_name_on_document: data.cr_name_on_document,
       iban_account_name: data.iban_account_name,
-      tax_number: data.tax_number,
-      national_address: normalizeNationalAddress(data.national_address),
+      tax_number: extracted.taxNumber,
+      national_address: normalizeNationalAddress(extracted.nationalAddress),
       iban: data.iban,
     },
+  });
+
+  // تدقيق آلي استشاري لمحتوى المستندات المرفوعة (لا يرفض الطلب — يحذّر المراجع)
+  const docCheck = await verifySupplierDocuments({
+    crFileName: data.cr_document_name,
+    bankFileName: data.bank_letter_name,
+    crNumber: supplier.build_cr_number || "",
+    taxNumber: extracted.taxNumber,
+    crNameTyped: data.cr_name_on_document,
+    ibanTyped: data.iban,
+    ibanAccountNameTyped: data.iban_account_name,
+  }).catch((e) => {
+    console.error("Supplier document verification failed:", e);
+    return null;
   });
 
   try {
@@ -146,14 +161,14 @@ export async function POST(req: NextRequest) {
       iban: data.iban,
       iban_account_name: data.iban_account_name,
       cr_document_name: data.cr_name_on_document,
-      tax_number: data.tax_number,
-      national_address: normalizeNationalAddress(data.national_address),
+      tax_number: extracted.taxNumber,
+      national_address: normalizeNationalAddress(extracted.nationalAddress),
       identity_match_score: identity.matchScore,
       verification_status:
-        identity.verificationStatus === "Verified"
+        identity.verificationStatus === "Verified" && !docCheck?.hasReadableMismatch && extracted.complete
           ? "Profile Submitted"
           : "Needs More Information",
-      agent_summary: agent.summary,
+      agent_summary: `${agent.summary}\n\n${extracted.lines.join("\n")}${docCheck ? `\n\n${docCheck.lines.join("\n")}` : ""}`,
       agent_score: agent.score,
       agent_catalog_groups: agent.catalogGroups.join(", "),
       rfq_priority: agent.priority,
@@ -173,6 +188,22 @@ export async function POST(req: NextRequest) {
       verifyUploadAttachToken(data.bank_letter_name, data.bank_letter_attach_token)
     ) {
       await attachERPNextFileToDocument(data.bank_letter_name, "Supplier", supplier.name);
+    }
+
+    if (
+      data.vat_document_name &&
+      data.vat_attach_token &&
+      verifyUploadAttachToken(data.vat_document_name, data.vat_attach_token)
+    ) {
+      await attachERPNextFileToDocument(data.vat_document_name, "Supplier", supplier.name);
+    }
+
+    if (
+      data.address_document_name &&
+      data.address_attach_token &&
+      verifyUploadAttachToken(data.address_document_name, data.address_attach_token)
+    ) {
+      await attachERPNextFileToDocument(data.address_document_name, "Supplier", supplier.name);
     }
 
     try {

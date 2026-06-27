@@ -151,6 +151,14 @@ function checkNameMatch(
   };
 }
 
+// الضريبة والعنوان الوطني لم يعودا حاجبين — يُستخلصان من المستندات ويُراجعان بشريًا (informational فقط)
+const CRITICAL_IDENTITY_IDS = new Set([
+  "establishment_vs_cr",
+  "establishment_vs_iban",
+  "cr_number_format",
+  "iban_format",
+]);
+
 export function runSupplierIdentityVerification(
   input: IdentityVerificationInput
 ): IdentityVerificationResult {
@@ -161,7 +169,7 @@ export function runSupplierIdentityVerification(
       "establishment_vs_cr",
       "اسم السجل التجاري",
       "اسم المنشأة المسجل",
-      "اسم السجل في المستند",
+      "اسم السجل (مُدخَل يدويًا)",
       input.establishment_name,
       input.cr_name_on_document
     )
@@ -172,7 +180,7 @@ export function runSupplierIdentityVerification(
       "establishment_vs_iban",
       "اسم الحساب البنكي",
       "اسم المنشأة المسجل",
-      "اسم الحساب في خطاب البنك",
+      "اسم الحساب (مُدخَل يدويًا)",
       input.establishment_name,
       input.iban_account_name
     )
@@ -182,8 +190,8 @@ export function runSupplierIdentityVerification(
     checkNameMatch(
       "cr_vs_iban",
       "السجل والبنك",
-      "اسم السجل في المستند",
-      "اسم الحساب في خطاب البنك",
+      "اسم السجل (مُدخَل يدويًا)",
+      "اسم الحساب (مُدخَل يدويًا)",
       input.cr_name_on_document,
       input.iban_account_name,
       false
@@ -259,16 +267,7 @@ export function runSupplierIdentityVerification(
     });
   }
 
-  const criticalIds = new Set([
-    "establishment_vs_cr",
-    "establishment_vs_iban",
-    "cr_number_format",
-    "tax_number",
-    "national_address",
-    "iban_format",
-  ]);
-
-  const criticalChecks = checks.filter((c) => criticalIds.has(c.id));
+  const criticalChecks = checks.filter((c) => CRITICAL_IDENTITY_IDS.has(c.id));
   const failedCritical = criticalChecks.filter((c) => c.status === "fail");
   const warnedCritical = criticalChecks.filter((c) => c.status === "warn");
   const allCriticalPassed = failedCritical.length === 0;
@@ -280,17 +279,32 @@ export function runSupplierIdentityVerification(
   if (failedCritical.length > 0) verificationStatus = "Failed";
   else if (warnedCritical.length > 0) verificationStatus = "Needs More Information";
 
+  const statusLabel =
+    verificationStatus === "Verified"
+      ? "تطابق مبدئي مكتمل — لم تُدقّق المستندات بعد"
+      : verificationStatus === "Needs More Information"
+        ? "يحتاج مراجعة إضافية"
+        : "فشل التطابق المبدئي";
+
   const summaryLines = [
-    "── تحقق الهوية والمطابقة (قواعد ثابتة) ──",
+    "── فحص مبدئي: اتساق الإدخال + صحة الصيغة (قواعد ثابتة، بلا مصدر حكومي) ──",
+    "⚠️ هذا الفحص يطابق ما كتبه المورد بنفسه فقط، ولا يقرأ المستندات المرفقة (لا OCR ولا واثق).",
+    "⚠️ التحقق الفعلي مسؤولية المُراجع: افتح المستندات وطابقها يدويًا قبل الاعتماد.",
+    "",
     `اسم المنشأة: ${input.establishment_name}`,
-    `السجل في المستند: ${input.cr_name_on_document}`,
-    `الحساب في البنك: ${input.iban_account_name}`,
+    `اسم السجل (مُدخَل): ${input.cr_name_on_document}`,
+    `اسم الحساب البنكي (مُدخَل): ${input.iban_account_name}`,
     `الرقم الضريبي: ${vat || "—"}`,
     `العنوان الوطني: ${input.national_address}`,
     "",
     ...checks.map((c) => c.detail),
     "",
-    `نتيجة المطابقة: ${matchScore}% | الحالة: ${verificationStatus}`,
+    `اتساق الإدخال: ${matchScore}% | الحالة: ${statusLabel}`,
+    "",
+    "── تدقيق يدوي إلزامي قبل الاعتماد النهائي ──",
+    "☐ فتحت صورة السجل التجاري وطابقت الرقم والاسم وتاريخ الصلاحية",
+    "☐ فتحت خطاب البنك وطابقت الآيبان واسم صاحب الحساب",
+    "☐ تأكدت أن الرقم الضريبي والعنوان الوطني يعودان لنفس المنشأة",
   ];
 
   return {
@@ -303,7 +317,8 @@ export function runSupplierIdentityVerification(
 }
 
 export function identityVerificationErrorMessage(result: IdentityVerificationResult): string | null {
-  const failures = result.checks.filter((c) => c.status === "fail");
+  // يحجب الإرسال فقط عند فشل فحص حرج (تطابق الأسماء / صيغة السجل والآيبان) — لا عند الضريبة/العنوان
+  const failures = result.checks.filter((c) => c.status === "fail" && CRITICAL_IDENTITY_IDS.has(c.id));
   if (!failures.length) return null;
   return failures.map((c) => c.detail.replace(/^❌\s*/, "")).join(" · ");
 }
