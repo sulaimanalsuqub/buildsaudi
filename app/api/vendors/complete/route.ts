@@ -15,7 +15,6 @@ import {
   normalizeNationalAddress,
   runSupplierIdentityVerification,
 } from "@/lib/supplier-identity-verification";
-import { extractSupplierFieldsFromDocs, verifySupplierDocuments } from "@/lib/supplier-document-verification";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyVendorOnboardingToken } from "@/lib/vendor-onboarding-token";
@@ -178,6 +177,11 @@ export async function POST(req: NextRequest) {
   // العمل الثقيل بعد إرسال الرد: إرفاق المستندات + استخلاص الضريبة/العنوان + تدقيق المحتوى + تحديث الملخص
   after(async () => {
     try {
+      // استيراد ديناميكي: pdf-parse/xlsx تُحمَّل وقت التنفيذ فقط (لا تُحمَّل عند تحميل وحدة المسار)
+      const { extractSupplierFieldsFromDocs, verifySupplierDocuments } = await import(
+        "@/lib/supplier-document-verification"
+      );
+
       const attachDocs: Array<[string | undefined, string | undefined]> = [
         [data.cr_document_name, data.cr_attach_token],
         [data.bank_letter_name, data.bank_letter_attach_token],
