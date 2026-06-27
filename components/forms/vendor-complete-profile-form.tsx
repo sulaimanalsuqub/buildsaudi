@@ -41,6 +41,7 @@ type Props = {
   onboardingToken: string;
   establishmentName: string;
   email: string;
+  isSaudi?: boolean;
 };
 
 const schema = z
@@ -80,7 +81,7 @@ const stepFields: (keyof FormValues)[][] = [
   [],
 ];
 
-export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, establishmentName, email }: Props) {
+export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, establishmentName, email, isSaudi = true }: Props) {
   const [step, setStep] = useState(0);
   const [emailToken, setEmailToken] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
@@ -161,6 +162,11 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     });
     return () => sub.unsubscribe();
   }, [form, draftKey]);
+  // المورد الدولي يورّد لكامل المملكة — تُضبط التغطية تلقائيًا بلا اختيار مناطق
+  useEffect(() => {
+    if (!isSaudi) form.setValue("coverageRegions", ["all_ksa"], { shouldValidate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSaudi]);
 
   const visibleRegions = useMemo(() => {
     const q = regionSearch.trim().toLowerCase();
@@ -214,11 +220,12 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   const handleNext = async () => {
     if (!emailVerified) return;
     if (step === 2) {
-      if (!crFile || !bankFile || !vatFile || !addressFile) {
+      const docsOk = isSaudi ? crFile && bankFile && vatFile && addressFile : crFile && bankFile;
+      if (!docsOk) {
         setSubmitError(
-          isRtl
-            ? "يرجى رفع: السجل التجاري، خطاب البنك، شهادة الضريبة، والعنوان الوطني"
-            : "Upload: CR, bank letter, VAT certificate, and national address"
+          isSaudi
+            ? textByLang(isRtl, "Upload: CR, bank letter, VAT certificate, and national address", "ارفع: السجل التجاري، خطاب البنك، شهادة الضريبة، والعنوان الوطني")
+            : textByLang(isRtl, "Upload: company registration and bank letter", "ارفع: السجل التجاري وخطاب البنك")
         );
         return;
       }
@@ -237,8 +244,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!crFile || !bankFile || !vatFile || !addressFile) {
-      setSubmitError(isRtl ? "جميع المستندات مطلوبة" : "All documents are required");
+    const docsOk = isSaudi ? crFile && bankFile && vatFile && addressFile : crFile && bankFile;
+    if (!docsOk || !crFile || !bankFile) {
+      setSubmitError(
+        isSaudi
+          ? textByLang(isRtl, "All documents are required", "جميع المستندات مطلوبة")
+          : textByLang(isRtl, "Company registration and bank letter are required", "السجل التجاري وخطاب البنك مطلوبان")
+      );
       return;
     }
     const identityError = validateIdentityMatches(data);
@@ -274,10 +286,10 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
           cr_attach_token: crFile.token,
           bank_letter_name: bankFile.name,
           bank_letter_attach_token: bankFile.token,
-          vat_document_name: vatFile.name,
-          vat_attach_token: vatFile.token,
-          address_document_name: addressFile.name,
-          address_attach_token: addressFile.token,
+          vat_document_name: vatFile?.name,
+          vat_attach_token: vatFile?.token,
+          address_document_name: addressFile?.name,
+          address_attach_token: addressFile?.token,
         }),
       });
       const result = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -371,21 +383,31 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
 
             {step === 1 && (
               <>
-                <VendorField label={textByLang(isRtl, "Coverage Regions", "مناطق التغطية")}>
-                  <div className="relative mb-3">
-                    <Search className={cn("absolute top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40", isRtl ? "right-3" : "left-3")} />
-                    <Input value={regionSearch} onChange={(e) => setRegionSearch(e.target.value)} className={cn("h-11", isRtl ? "pr-10" : "pl-10")} placeholder={textByLang(isRtl, "Search...", "ابحث...")} />
+                {isSaudi ? (
+                  <VendorField label={textByLang(isRtl, "Coverage Regions", "مناطق التغطية")}>
+                    <div className="relative mb-3">
+                      <Search className={cn("absolute top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40", isRtl ? "right-3" : "left-3")} />
+                      <Input value={regionSearch} onChange={(e) => setRegionSearch(e.target.value)} className={cn("h-11", isRtl ? "pr-10" : "pl-10")} placeholder={textByLang(isRtl, "Search...", "ابحث...")} />
+                    </div>
+                    <VendorOptionGrid>
+                      {visibleRegions.map((opt) => (
+                        <VendorOptionCard key={opt.value} checked={values.coverageRegions.includes(opt.value)}>
+                          <Checkbox checked={values.coverageRegions.includes(opt.value)} onCheckedChange={() => toggleMulti("coverageRegions", opt.value)} />
+                          <span>{optionLabel(isRtl, regions, opt.value)}</span>
+                        </VendorOptionCard>
+                      ))}
+                    </VendorOptionGrid>
+                    <VendorErrorText text={form.formState.errors.coverageRegions?.message} isRtl={isRtl} />
+                  </VendorField>
+                ) : (
+                  <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-4 text-sm text-brand-dark/80">
+                    🌍 {textByLang(
+                      isRtl,
+                      "As an international supplier, your supply covers all of Saudi Arabia (delivered via import). No region selection needed.",
+                      "بصفتكم موردًا دوليًا، يشمل توريدكم كامل المملكة (عبر الاستيراد). لا حاجة لاختيار مناطق."
+                    )}
                   </div>
-                  <VendorOptionGrid>
-                    {visibleRegions.map((opt) => (
-                      <VendorOptionCard key={opt.value} checked={values.coverageRegions.includes(opt.value)}>
-                        <Checkbox checked={values.coverageRegions.includes(opt.value)} onCheckedChange={() => toggleMulti("coverageRegions", opt.value)} />
-                        <span>{optionLabel(isRtl, regions, opt.value)}</span>
-                      </VendorOptionCard>
-                    ))}
-                  </VendorOptionGrid>
-                  <VendorErrorText text={form.formState.errors.coverageRegions?.message} isRtl={isRtl} />
-                </VendorField>
+                )}
                 <VendorField label={textByLang(isRtl, "Warehouse in KSA?", "مستودع في السعودية؟")}>
                   <RadioGroup value={values.hasWarehouseInKsa} onValueChange={(v) => form.setValue("hasWarehouseInKsa", v as "yes" | "no")} className="grid gap-3 md:grid-cols-2">
                     {yesNoOptions.map((o) => (
@@ -476,23 +498,27 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                   <Input {...form.register("iban")} className="h-12 uppercase" dir="ltr" placeholder="SA… / DE… / account no." />
                   <VendorErrorText text={form.formState.errors.iban?.message} isRtl={isRtl} />
                 </VendorField>
-                <VendorField label={textByLang(isRtl, "SWIFT / BIC (international suppliers)", "SWIFT / BIC (للموردين الدوليين)")}>
-                  <Input {...form.register("swiftBic")} className="h-12 uppercase" dir="ltr" placeholder="ARAISARIXXX" />
-                </VendorField>
-                <VendorField label={textByLang(isRtl, "Shipping arrangement (international)", "ترتيب الشحن (دولي)")}>
-                  <select
-                    value={values.shippingArrangement || ""}
-                    onChange={(e) => form.setValue("shippingArrangement", e.target.value)}
-                    className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                  >
-                    <option value="">{textByLang(isRtl, "Not applicable / domestic", "غير منطبق / محلي")}</option>
-                    {shippingArrangements.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {optionLabel(isRtl, shippingArrangements, s.value)}
-                      </option>
-                    ))}
-                  </select>
-                </VendorField>
+                {!isSaudi && (
+                  <>
+                    <VendorField label={textByLang(isRtl, "SWIFT / BIC", "SWIFT / BIC")}>
+                      <Input {...form.register("swiftBic")} className="h-12 uppercase" dir="ltr" placeholder="ARAISARIXXX" />
+                    </VendorField>
+                    <VendorField label={textByLang(isRtl, "Shipping arrangement", "ترتيب الشحن")}>
+                      <select
+                        value={values.shippingArrangement || ""}
+                        onChange={(e) => form.setValue("shippingArrangement", e.target.value)}
+                        className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                      >
+                        <option value="">{textByLang(isRtl, "Select…", "اختر…")}</option>
+                        {shippingArrangements.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {optionLabel(isRtl, shippingArrangements, s.value)}
+                          </option>
+                        ))}
+                      </select>
+                    </VendorField>
+                  </>
+                )}
                 <VendorField label={textByLang(isRtl, "Account Name on Bank Letter", "اسم صاحب الحساب في خطاب البنك")}>
                   <Input {...form.register("ibanAccountName")} className="h-12" dir="rtl" placeholder={establishmentName} />
                   <VendorErrorText text={form.formState.errors.ibanAccountName?.message} isRtl={isRtl} />
@@ -513,7 +539,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                     {uploading === "bank" && <Loader2 className="h-4 w-4 animate-spin" />}
                   </label>
                 </VendorField>
-                <VendorField label={textByLang(isRtl, "VAT Certificate (PDF)", "شهادة الضريبة (PDF)")}>
+                <VendorField
+                  label={
+                    isSaudi
+                      ? textByLang(isRtl, "VAT Certificate (PDF)", "شهادة الضريبة (PDF)")
+                      : textByLang(isRtl, "Tax / Registration document (PDF, optional)", "مستند ضريبي / تسجيل (PDF، اختياري)")
+                  }
+                >
                   <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
                     <Upload className="h-5 w-5 text-brand-primary" />
                     <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && uploadDoc(e.target.files[0], "vat")} />
@@ -521,14 +553,16 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                     {uploading === "vat" && <Loader2 className="h-4 w-4 animate-spin" />}
                   </label>
                 </VendorField>
-                <VendorField label={textByLang(isRtl, "National Address (PDF)", "العنوان الوطني (PDF)")}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
-                    <Upload className="h-5 w-5 text-brand-primary" />
-                    <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && uploadDoc(e.target.files[0], "address")} />
-                    <span>{addressFile ? "✓ " + addressFile.name : textByLang(isRtl, "Upload PDF", "ارفع PDF")}</span>
-                    {uploading === "address" && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </label>
-                </VendorField>
+                {isSaudi && (
+                  <VendorField label={textByLang(isRtl, "National Address (PDF)", "العنوان الوطني (PDF)")}>
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
+                      <Upload className="h-5 w-5 text-brand-primary" />
+                      <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && uploadDoc(e.target.files[0], "address")} />
+                      <span>{addressFile ? "✓ " + addressFile.name : textByLang(isRtl, "Upload PDF", "ارفع PDF")}</span>
+                      {uploading === "address" && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </label>
+                  </VendorField>
+                )}
               </>
             )}
 
@@ -537,8 +571,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                 <VendorReviewRow label="Email" value={email} />
                 <VendorReviewRow label={textByLang(isRtl, "Categories", "الفئات")} value={optionValuesToLabels(isRtl, productCategories, values.productCategories)} />
                 <VendorReviewRow label={textByLang(isRtl, "CR Name", "اسم السجل")} value={values.crNameOnDocument || t.notProvided} />
-                <VendorReviewRow label={textByLang(isRtl, "Tax Number", "الرقم الضريبي")} value={textByLang(isRtl, "Extracted from document", "يُستخلص من المستند")} />
-                <VendorReviewRow label={textByLang(isRtl, "National Address", "العنوان الوطني")} value={textByLang(isRtl, "Extracted from document", "يُستخلص من المستند")} />
+                <VendorReviewRow label={textByLang(isRtl, "Tax Number", "الرقم الضريبي")} value={textByLang(isRtl, "From document", "من المستند")} />
+                {isSaudi && (
+                  <VendorReviewRow label={textByLang(isRtl, "National Address", "العنوان الوطني")} value={textByLang(isRtl, "From document", "من المستند")} />
+                )}
+                {!isSaudi && values.shippingArrangement && (
+                  <VendorReviewRow label={textByLang(isRtl, "Shipping", "الشحن")} value={optionLabel(isRtl, shippingArrangements, values.shippingArrangement)} />
+                )}
                 <VendorReviewRow label="IBAN" value={values.iban || t.notProvided} />
                 <VendorReviewRow label={textByLang(isRtl, "Bank Account Name", "اسم الحساب")} value={values.ibanAccountName || t.notProvided} />
                 <VendorReviewRow

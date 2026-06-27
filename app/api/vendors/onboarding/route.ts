@@ -9,7 +9,17 @@ type SupplierRecord = {
   build_manager_name?: string;
   build_supplier_stage?: string;
   build_profile_completed?: number;
+  build_cr_number?: string;
+  supplier_details?: string;
 };
+
+/** سعودي إن كانت الدولة sa (من supplier_details) أو رقم التسجيل 10-15 رقمًا فقط */
+function isSaudiSupplier(supplier: SupplierRecord): boolean {
+  const m = (supplier.supplier_details || "").match(/Country:\s*([a-zA-Z]{2,})/);
+  const country = m?.[1]?.toLowerCase();
+  if (country) return country === "sa";
+  return /^\d{10,15}$/.test((supplier.build_cr_number || "").trim());
+}
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
@@ -45,5 +55,6 @@ export async function GET(req: NextRequest) {
     establishment_name: supplier.supplier_name,
     manager_name: supplier.build_manager_name || "",
     email: supplier.build_email,
+    is_saudi: isSaudiSupplier(supplier),
   });
 }

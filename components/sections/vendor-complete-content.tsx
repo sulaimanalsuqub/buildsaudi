@@ -15,6 +15,7 @@ type OnboardingData = {
   establishment_name: string;
   manager_name: string;
   email: string;
+  is_saudi?: boolean;
 };
 
 type VendorCompleteContentProps = {
@@ -147,6 +148,7 @@ export function VendorCompleteContent({ isRtl = false }: VendorCompleteContentPr
               onboardingToken={token}
               establishmentName={data.establishment_name}
               email={data.email}
+              isSaudi={data.is_saudi !== false}
             />
           ) : null}
         </Container>
