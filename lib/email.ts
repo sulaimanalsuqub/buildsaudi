@@ -103,7 +103,7 @@ function emailShell({
 <meta name="color-scheme" content="light"/>
 <title>Build Saudi</title>
 </head>
-<body style="margin:0;padding:0;background:#f0f2ef;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#f0f2ef;font-family:Tahoma,Arial,'Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,sans-serif;">
 ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#f0f2ef;">${esc(previewText)}</div>` : ""}
 
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f0f2ef;padding:40px 16px 48px;">
