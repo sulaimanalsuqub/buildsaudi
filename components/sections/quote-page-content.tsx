@@ -1,4 +1,4 @@
-import { ClipboardList, Mail, MessageSquare } from "lucide-react";
+import { ClipboardList, Mail } from "lucide-react";
 
 import { GetQuoteForm } from "@/components/forms/get-quote-form";
 import { Container } from "@/components/ui/container";
@@ -88,7 +88,16 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
         "Thank you.",
       ].join("\n");
 
-  const mailto = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const encSubject = encodeURIComponent(subject);
+  const encBody = encodeURIComponent(body);
+  const encTo = encodeURIComponent(SALES_EMAIL);
+
+  const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encTo}&su=${encSubject}&body=${encBody}`;
+  const outlookHref = `https://outlook.live.com/mail/0/deeplink/compose?to=${encTo}&subject=${encSubject}&body=${encBody}`;
+  const otherHref = `mailto:${SALES_EMAIL}?subject=${encSubject}&body=${encBody}`;
+
+  const btnBase =
+    "inline-flex flex-1 items-center justify-center rounded-full px-5 py-3.5 text-sm font-semibold transition-colors min-w-[7.5rem]";
 
   return (
     <div className="rounded-2xl border border-brand-dark/10 bg-white p-8 shadow-sm md:p-10">
@@ -110,7 +119,7 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
           {isRtl ? "البريد الإلكتروني" : "Email address"}
         </p>
         <a
-          href={mailto}
+          href={otherHref}
           className="mt-1 inline-block text-lg font-bold tracking-wide text-brand-primary hover:underline"
           dir="ltr"
         >
@@ -118,15 +127,31 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
         </a>
       </div>
 
-      <div className="mt-6">
+      <p className="mt-6 text-xs font-semibold text-brand-dark/50">
+        {isRtl ? "افتح عبر" : "Open with"}
+      </p>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <a
-          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(SALES_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+          href={gmailHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+          className={`${btnBase} bg-brand-primary text-white hover:bg-brand-dark`}
         >
-          <MessageSquare className="h-4 w-4" />
-          {isRtl ? "فتح عبر Gmail" : "Open in Gmail"}
+          Gmail
+        </a>
+        <a
+          href={outlookHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${btnBase} border border-brand-dark/15 bg-white text-brand-dark hover:bg-brand-dark/[0.04]`}
+        >
+          Outlook
+        </a>
+        <a
+          href={otherHref}
+          className={`${btnBase} border border-brand-dark/15 bg-white text-brand-dark hover:bg-brand-dark/[0.04]`}
+        >
+          {isRtl ? "أخرى" : "Other"}
         </a>
       </div>
     </div>

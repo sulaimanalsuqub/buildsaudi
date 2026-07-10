@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Languages } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
@@ -11,8 +12,27 @@ type SiteHeaderProps = {
   isRtl?: boolean;
 };
 
+/** يحوّل المسار بين العربية والإنجليزية مع الحفاظ على الصفحة الحالية */
+export function alternateLocalePath(pathname: string): string {
+  const path = pathname || "/";
+
+  if (path === "/ar" || path === "/ar/") {
+    return "/";
+  }
+  if (path.startsWith("/ar/")) {
+    const rest = path.slice(3);
+    return rest.startsWith("/") ? rest : `/${rest}`;
+  }
+  if (path === "/") {
+    return "/ar";
+  }
+  return `/ar${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname() || "/";
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -21,7 +41,9 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   }, []);
 
   const homeHref = isRtl ? "/ar" : "/";
-  const languageHref = isRtl ? "/" : "/ar";
+  const altPath = alternateLocalePath(pathname);
+  const query = searchParams?.toString() ?? "";
+  const languageHref = query ? `${altPath}?${query}` : altPath;
 
   return (
     <header
@@ -47,6 +69,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
             href={languageHref}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
             aria-label={isRtl ? "English" : "العربية"}
+            title={isRtl ? "English" : "العربية"}
           >
             <Languages className="h-4 w-4" />
           </Link>
