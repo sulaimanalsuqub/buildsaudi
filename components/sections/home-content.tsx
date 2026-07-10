@@ -46,8 +46,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
     title: isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project",
     body: isRtl
-      ? "مورد مواد بناء للمشاريع في المملكة. اطلب عرض سعر، أرفق جدول الكميات، ونورد المواد مع التسليم لموقع مشروعك."
-      : "Building materials supplier for projects across the Kingdom. Request a quote, submit your bill of quantities, and get materials delivered to your site.",
+      ? "توريد مواد البناء والتشطيبات للمقاولين والمطورين"
+      : "Supply of building materials and finishes for contractors and developers",
     // Action cards
     card1Title: isRtl ? "أطلب المنتجات" : "Order Products",
     card1Sub: isRtl ? "أرسل احتياج مشروعك وجدول الكميات" : "Send your project requirements and BOQ",
