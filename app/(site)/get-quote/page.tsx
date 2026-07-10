@@ -4,17 +4,15 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/get-quote",
-  title: "Building Materials Quote Request | Project Site Delivery — Build",
+  title: "Request Building Materials Supply | Build Saudi",
   description:
-    "Request building materials for your project and submit your bill of quantities. We prepare your quote and supply steel, cement, and finishing materials with delivery to your site in Saudi Arabia.",
+    "Contact Build to request building materials and finishes for your project. Email our sales team for a supply proposal with delivery to your site in Saudi Arabia.",
   keywords: [
-    "building materials quote request",
-    "construction material supply",
-    "bill of quantities",
-    "steel and cement supply",
-    "building materials Riyadh",
-    "building materials Jeddah",
-    "wholesale building materials",
+    "request building materials supply",
+    "construction materials quote Saudi Arabia",
+    "building materials for contractors",
+    "finishes supply for developers",
+    "project site material delivery",
   ],
 });
 

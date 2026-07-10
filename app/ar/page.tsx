@@ -6,9 +6,8 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar",
-  title: "بيلد | مورد مواد بناء السعودية — توريد للمشاريع الإنشائية",
-  description:
-    "مورد مواد بناء للمشاريع في الرياض وجدة وجميع مناطق المملكة. طلب عرض سعر، جدول كميات، وتوريد حديد وإسمنت ومواد التشطيب مع التسليم لموقع المشروع.",
+  title: "مورد مواد بناء وتشطيب للمشاريع | بيلد السعودية",
+  description: siteConfig.descriptionAr,
   keywords: siteConfig.keywordsAr,
 });
 

@@ -24,8 +24,8 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
         badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
         title: isRtl ? "تواصل معنا عبر البريد" : "Contact Us by Email",
         body: isRtl
-          ? "أرسل تفاصيل مشروعك وجدول الكميات إلى فريق المبيعات، وسنعود إليك في أقرب وقت."
-          : "Send your project details and bill of quantities to our sales team, and we will get back to you shortly.",
+          ? "أرسل تفاصيل مشروعك والمواد المطلوبة إلى فريق المبيعات، وسنعود إليك في أقرب وقت."
+          : "Send your project details and required materials to our sales team, and we will get back to you shortly.",
       };
 
   return (

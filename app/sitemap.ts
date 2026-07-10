@@ -5,44 +5,45 @@ const BASE = siteConfig.url;
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
-function page(
-  path: string,
+function pair(
+  enPath: string,
+  arPath: string,
   priority: number,
   changeFrequency: SitemapEntry["changeFrequency"],
-  alternatePath?: string,
-): SitemapEntry {
-  const entry: SitemapEntry = {
-    url: path === "/" ? BASE : `${BASE}${path}`,
-    lastModified: new Date(),
-    changeFrequency,
-    priority,
+): SitemapEntry[] {
+  const enUrl = enPath === "/" ? BASE : `${BASE}${enPath}`;
+  const arUrl = `${BASE}${arPath}`;
+  const languages = {
+    en: enUrl,
+    ar: arUrl,
+    "x-default": arUrl,
   };
 
-  if (alternatePath !== undefined) {
-    const altUrl = alternatePath === "/" ? BASE : `${BASE}${alternatePath}`;
-    entry.alternates = {
-      languages: path.startsWith("/ar")
-        ? { en: altUrl }
-        : { ar: altUrl },
-    };
-  }
-
-  return entry;
+  return [
+    {
+      url: enUrl,
+      lastModified: new Date(),
+      changeFrequency,
+      priority,
+      alternates: { languages },
+    },
+    {
+      url: arUrl,
+      lastModified: new Date(),
+      changeFrequency,
+      priority,
+      alternates: { languages },
+    },
+  ];
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    page("/", 1.0, "weekly", "/ar"),
-    page("/get-quote", 0.9, "weekly", "/ar/get-quote"),
-    page("/register", 0.7, "monthly", "/ar/register"),
-    page("/privacy-policy", 0.3, "yearly", "/ar/privacy-policy"),
-    page("/terms-conditions", 0.3, "yearly", "/ar/terms-conditions"),
-    page("/cookies-policy", 0.3, "yearly", "/ar/cookies-policy"),
-    page("/ar", 1.0, "weekly", "/"),
-    page("/ar/get-quote", 0.9, "weekly", "/get-quote"),
-    page("/ar/register", 0.7, "monthly", "/register"),
-    page("/ar/privacy-policy", 0.3, "yearly", "/privacy-policy"),
-    page("/ar/terms-conditions", 0.3, "yearly", "/terms-conditions"),
-    page("/ar/cookies-policy", 0.3, "yearly", "/cookies-policy"),
+    ...pair("/", "/ar", 1.0, "weekly"),
+    ...pair("/get-quote", "/ar/get-quote", 0.9, "weekly"),
+    ...pair("/register", "/ar/register", 0.7, "monthly"),
+    ...pair("/privacy-policy", "/ar/privacy-policy", 0.3, "yearly"),
+    ...pair("/terms-conditions", "/ar/terms-conditions", 0.3, "yearly"),
+    ...pair("/cookies-policy", "/ar/cookies-policy", 0.3, "yearly"),
   ];
 }

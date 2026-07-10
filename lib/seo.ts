@@ -17,20 +17,27 @@ function toAbsoluteUrl(path: string): string {
   return `${siteConfig.url}${path}`;
 }
 
-function languageAlternates(path: string): { en: string; ar: string } {
+function languageAlternates(path: string): Record<string, string> {
+  let en: string;
+  let ar: string;
+
   if (path === "/") {
-    return { en: siteConfig.url, ar: `${siteConfig.url}/ar` };
-  }
-  if (path.startsWith("/ar")) {
+    en = siteConfig.url;
+    ar = `${siteConfig.url}/ar`;
+  } else if (path.startsWith("/ar")) {
     const enPath = path.replace(/^\/ar/, "") || "/";
-    return {
-      en: toAbsoluteUrl(enPath),
-      ar: toAbsoluteUrl(path),
-    };
+    en = toAbsoluteUrl(enPath);
+    ar = toAbsoluteUrl(path);
+  } else {
+    en = toAbsoluteUrl(path);
+    ar = toAbsoluteUrl(`/ar${path}`);
   }
+
+  // السوق الأساسي عربي — x-default يشير للنسخة العربية
   return {
-    en: toAbsoluteUrl(path),
-    ar: toAbsoluteUrl(`/ar${path}`),
+    en,
+    ar,
+    "x-default": ar,
   };
 }
 
@@ -66,6 +73,7 @@ export function pageMetadata({
       locale: isAr ? "ar_SA" : "en_US",
       alternateLocale: isAr ? "en_US" : "ar_SA",
       type: "website",
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: isAr ? "بيلد" : "Build Saudi" }],
     },
     twitter: {
       card: "summary_large_image",

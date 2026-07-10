@@ -6,9 +6,8 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/",
-  title: "Build | Building Materials Supplier — Construction Projects Saudi Arabia",
-  description:
-    "Building materials supplier for projects across Riyadh, Jeddah, and the Kingdom. Request a quote, submit your bill of quantities, and get steel, cement, and finishing materials delivered to your site.",
+  title: "Building Materials & Finishes Supplier | Build Saudi",
+  description: siteConfig.description,
   keywords: siteConfig.keywords,
 });
 

@@ -140,7 +140,7 @@ ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;font-size
               <td style="background:#1D3F1F;border-radius:12px;padding:24px 32px;">
                 <img src="${LOGO_URL}" alt="Build Saudi" height="26" style="display:block;margin:0 auto 14px;height:26px;width:auto;opacity:.9;" />
                 <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,.5);text-align:center;direction:rtl;">
-                  منصة Build Saudi لتوريد مواد البناء في المملكة العربية السعودية
+                  بيلد — مورد مواد بناء وتشطيب للمشاريع الإنشائية في السعودية
                 </p>
                 <p style="margin:0;font-size:11px;color:rgba(255,255,255,.3);text-align:center;">
                   © ${new Date().getFullYear()} Build Saudi · جميع الحقوق محفوظة
@@ -789,7 +789,7 @@ export async function sendEmailVerificationOTP(params: { email: string; code: st
       content: `
         <h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1D3F1F;">رمز التحقق</h2>
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          أدخل الرمز أدناه لإكمال التحقق من بريدك الإلكتروني على منصة Build Saudi.
+          أدخل الرمز أدناه لإكمال التحقق من بريدك الإلكتروني لدى بيلد.
         </p>
         <div style="background:#f0f9f3;border:2px solid #09B14B33;border-radius:16px;padding:28px;text-align:center;margin:0 0 24px;">
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;letter-spacing:.5px;">رمز التحقق</p>

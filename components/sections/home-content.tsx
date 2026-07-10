@@ -43,8 +43,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   ];
 
   const t = {
-    eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
-    title: isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project",
+    eyebrow: isRtl ? "بيلد — مورد مواد بناء وتشطيب" : "Build — Materials & Finishes Supplier",
+    title: isRtl
+      ? "مورد مواد بناء وتشطيب للمشاريع الإنشائية"
+      : "Building Materials & Finishes Supplier for Construction Projects",
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
@@ -89,16 +91,16 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <h1 className="type-hero text-brand-dark leading-[1.1]">
+                <h1 className="type-hero text-brand-dark leading-[1.15]">
                   {isRtl ? (
                     <>
-                      أسرع طريق لتوريد <br />
-                      <span className="text-brand-primary">مشروعك الإنشائي</span>
+                      مورد مواد بناء وتشطيب{" "}
+                      <span className="text-brand-primary">للمشاريع الإنشائية</span>
                     </>
                   ) : (
                     <>
-                      The fastest way to supply <br />
-                      <span className="text-brand-primary">Your Project</span>
+                      Building Materials &amp; Finishes Supplier{" "}
+                      <span className="text-brand-primary">for Construction Projects</span>
                     </>
                   )}
                 </h1>

@@ -4,9 +4,9 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/register",
-  title: "Building Material Supplier Registration | Build Saudi",
+  title: "Become a Building Materials Supplier | Build",
   description:
-    "Register your company as a building materials supplier with Build. Project supply opportunities across Saudi Arabia with clear onboarding requirements.",
+    "Register your company as a building materials and finishes supplier with Build. Supply opportunities for construction projects across Saudi Arabia.",
   keywords: [
     "building material supplier registration",
     "construction supplier Saudi Arabia",

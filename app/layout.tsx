@@ -25,7 +25,7 @@ const gtAmericaArabic = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "Build | Building Materials Supplier — Saudi Arabia",
+    default: "Build | Building Materials & Finishes Supplier — Saudi Arabia",
     template: "%s | Build Saudi",
   },
   description: siteConfig.description,
@@ -43,17 +43,18 @@ export const metadata: Metadata = {
     languages: {
       en: siteConfig.url,
       ar: `${siteConfig.url}/ar`,
+      "x-default": `${siteConfig.url}/ar`,
     },
   },
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon" },
-      { url: "/icon.png", type: "image/png" }
+      { url: "/icon.png", type: "image/png" },
     ],
-    apple: [{ url: "/apple-icon.png", type: "image/png" }]
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
   },
   openGraph: {
-    title: "Build | Construction Material Supply Saudi Arabia",
+    title: "Build | Building Materials & Finishes Supplier — Saudi Arabia",
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: "Build Saudi",
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Build | Construction Material Supply Saudi Arabia",
+    title: "Build | Building Materials & Finishes Supplier — Saudi Arabia",
     description: siteConfig.description,
     site: "@buildsaudi",
   },
