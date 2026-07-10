@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
 import { createERPNextProductOpportunity, resolveOrCreateLead } from "@/lib/erpnext";
-import { processQuoteBackground } from "@/lib/process-quote-background";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
+// ملاحظة: process-quote-background يجرّ file-text → pdf-parse/xlsx — لا نستورده ثابتاً
+// حتى لا تفشل وحدة المسار عند التحميل على Vercel (نفس عطل vendor complete).
 
 const optionalText = z.preprocess(
   (value) => (value === null ? "" : value),
@@ -89,6 +90,8 @@ export async function POST(req: NextRequest) {
 
   after(async () => {
     try {
+      // استيراد ديناميكي: pdf-parse/xlsx تُحمَّل وقت التنفيذ فقط داخل الخلفية
+      const { processQuoteBackground } = await import("@/lib/process-quote-background");
       await processQuoteBackground(backgroundInput);
     } catch (error) {
       console.error("Quote background processing failed:", error);

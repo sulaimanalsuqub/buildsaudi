@@ -1,13 +1,12 @@
-import * as XLSX from "xlsx";
-import { PDFParse } from "pdf-parse";
-
 const MAX_EXTRACTED_TEXT = 80_000;
 
 function truncate(text: string) {
   return text.replace(/\u0000/g, "").trim().slice(0, MAX_EXTRACTED_TEXT);
 }
 
-function worksheetToText(buffer: Buffer) {
+async function worksheetToText(buffer: Buffer) {
+  // استيراد ديناميكي: xlsx ثقيل وقد يفشل تحميل الوحدة على Vercel إن كان ثابتاً
+  const XLSX = await import("xlsx");
   const workbook = XLSX.read(buffer, { type: "buffer" });
   return workbook.SheetNames.map((sheetName) => {
     const sheet = workbook.Sheets[sheetName];
@@ -26,10 +25,12 @@ export async function extractTextFromBuffer(fileName: string, mimeType: string, 
     mimeType === "application/vnd.ms-excel" ||
     /\.(xlsx|xls)$/i.test(fileName)
   ) {
-    return truncate(worksheetToText(buffer));
+    return truncate(await worksheetToText(buffer));
   }
 
   if (mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf")) {
+    // استيراد ديناميكي: pdf-parse يفشل أحياناً عند تحميل المسار ثابتاً على Vercel
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     try {
       const parsed = await parser.getText();

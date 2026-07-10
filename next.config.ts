@@ -22,6 +22,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // pdf-parse / xlsx تحتوي native/CJS وقد تُسقط وحدات API عند bundling إن لم تُستثنَ
+  serverExternalPackages: ["pdf-parse", "xlsx"],
   webpack(config) {
     config.infrastructureLogging = {
       ...config.infrastructureLogging,

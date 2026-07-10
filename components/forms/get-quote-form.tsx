@@ -317,7 +317,15 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       }
       const quoteData = await quoteRes.json().catch(() => null) as { id?: string; error?: string } | null;
       if (!quoteRes.ok || !quoteData?.id) {
-        throw new Error(quoteData?.error ?? "تعذر إرسال الطلب");
+        const fallback =
+          quoteRes.status >= 500
+            ? isRtl
+              ? "حدث خطأ في الخادم أثناء حفظ الطلب. حاول مجدداً بعد لحظات."
+              : "A server error occurred while saving your request. Please try again shortly."
+            : isRtl
+              ? "تعذر إرسال الطلب"
+              : "Failed to submit request";
+        throw new Error(quoteData?.error ?? fallback);
       }
 
       // حفظ الرقم المرجعي
