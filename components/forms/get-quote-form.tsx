@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileUp, MailCheck, SearchCheck, Send, Truck } from "lucide-react";
-import { EmailVerify } from "@/components/ui/email-verify";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
 function isValidSaudiPhone(phone: string): boolean {
@@ -150,8 +149,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [verifiedEmail, setVerifiedEmail] = useState("");
-  const [emailToken, setEmailToken] = useState("");
 
   const [form, setForm] = useState({
     projectName: "",
@@ -188,8 +185,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     }
   }, [form]);
 
-  const emailVerified = !!verifiedEmail && verifiedEmail === form.email.trim().toLowerCase() && !!emailToken;
-
   const set = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }));
     setErrors((p) => ({ ...p, [field]: "" }));
@@ -205,21 +200,15 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         e.phone = copy.invalidPhone;
       }
       if (form.contactMethod === "email") {
-        // البريد إلزامي ومُتحقَّق منه عند اختياره طريقةً للتواصل
+        // البريد إلزامي عند اختياره طريقةً للتواصل — بدون OTP
         if (!form.email.trim()) {
           e.email = copy.required;
         } else if (!isValidEmail(form.email)) {
           e.email = copy.invalidEmail;
-        } else if (!emailVerified) {
-          e.email = isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first";
         }
-      } else if (form.email.trim()) {
-        // واتساب: البريد اختياري — لكن إن أُدخل وجب أن يكون صحيحًا ومُتحقَّقًا منه (لا نرسل بريدًا غير موثّق)
-        if (!isValidEmail(form.email)) {
-          e.email = copy.invalidEmail;
-        } else if (!emailVerified) {
-          e.email = isRtl ? "تحقق من بريدك أو اتركه فارغًا" : "Verify your email or leave it empty";
-        }
+      } else if (form.email.trim() && !isValidEmail(form.email)) {
+        // واتساب: البريد اختياري — إن أُدخل يجب أن يكون بصيغة صحيحة فقط
+        e.email = copy.invalidEmail;
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
@@ -293,8 +282,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             project_name: form.projectName,
             client_name: form.clientName,
             phone: form.phone,
-            client_email: emailVerified ? form.email : "",
-            email_verified_token: emailVerified ? emailToken : undefined,
+            client_email: form.email.trim() && isValidEmail(form.email) ? form.email.trim() : "",
             contact_method: form.contactMethod,
             materials: form.materials,
             delivery_address: form.deliveryAddress,
@@ -348,8 +336,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setSelectedFiles([]);
     setErrors({});
     setStep(0);
-    setVerifiedEmail("");
-    setEmailToken("");
     setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
@@ -460,7 +446,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           const showContactMethod = showPhone && isValidSaudiPhone(form.phone);
           const showEmail = showContactMethod;
           const isEmailMethod = form.contactMethod === "email";
-          const showVerify = showEmail && form.email.trim() && isValidEmail(form.email) && !emailVerified;
           const emailLabel = isEmailMethod ? copy.email : `${copy.email} (${isRtl ? "اختياري" : "optional"})`;
           return (
             <>
@@ -521,7 +506,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
               <AnimatePresence>
                 {showEmail && (
-                  <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
+                  <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                     <Field label={emailLabel} error={errors.email} required={isEmailMethod}>
                       <input
                         type="email"
@@ -537,28 +522,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                         </p>
                       )}
                     </Field>
-                    <AnimatePresence mode="wait">
-                      {emailVerified ? (
-                        <motion.div key="verified" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-                          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-                            <span className="font-semibold">{isRtl ? "تم التحقق من البريد الإلكتروني ✓" : "Email verified ✓"}</span>
-                          </div>
-                        </motion.div>
-                      ) : showVerify ? (
-                        <motion.div key="verify-widget" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-                          <EmailVerify
-                            email={form.email.trim()}
-                            isRtl={isRtl}
-                            onVerified={(token) => {
-                              setVerifiedEmail(form.email.trim().toLowerCase());
-                              setEmailToken(token);
-                              setErrors((p) => ({ ...p, email: "" }));
-                            }}
-                          />
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>

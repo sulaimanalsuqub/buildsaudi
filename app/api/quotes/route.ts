@@ -3,7 +3,6 @@ import { after } from "next/server";
 import { z } from "zod";
 import { createERPNextProductOpportunity, resolveOrCreateLead } from "@/lib/erpnext";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-import { verifyEmailToken } from "@/lib/otp";
 // ملاحظة: process-quote-background يجرّ file-text → pdf-parse/xlsx — لا نستورده ثابتاً
 // حتى لا تفشل وحدة المسار عند التحميل على Vercel (نفس عطل vendor complete).
 
@@ -22,7 +21,6 @@ const quoteSchema = z.object({
   client_name: z.string().trim().min(2),
   phone: z.string().trim().min(8),
   client_email: optionalEmail,
-  email_verified_token: z.string().optional(),
   contact_method: z.enum(["email", "whatsapp"]).default("whatsapp"),
   materials: optionalText,
   delivery_address: z.string().trim().min(2),
@@ -35,12 +33,6 @@ const quoteSchema = z.object({
 }).refine((data) => Boolean(data.materials || data.boq_file_url || data.boq_file_text), {
   path: ["materials"],
   message: "Materials or quantity file is required",
-}).refine((data) => {
-  if (!data.client_email) return true;
-  return data.email_verified_token && verifyEmailToken(data.client_email, data.email_verified_token);
-}, {
-  path: ["client_email"],
-  message: "يجب التحقق من البريد الإلكتروني أولاً",
 });
 
 export async function POST(req: NextRequest) {
