@@ -110,7 +110,8 @@ async function build_show_supplier_suggestions(frm) {
   });
 }
 
-const STAGE_GUIDE = {
+// اسم فريد لتجنب اصطدام const عند دمج Client Scripts لنفس الـ DocType
+const BUILD_OPP_STAGE_GUIDE = {
   "New Product Request": { color: "#e8f5e9", title: "📥 طلب جديد — راجع الملخص التلقائي ثم Start Review", action: "Start Review" },
   "Reviewing Request": { color: "#fff3e0", title: "🔍 قيد المراجعة — راجع المواد ثم Source Suppliers", action: "Source Suppliers" },
   "Sourcing Suppliers": { color: "#fffde7", title: "📨 جاري التسعير — أنشئ RFQ وأرسله للموردين المقترحين", action: "Send Quote" },
@@ -124,7 +125,7 @@ frappe.ui.form.on("Opportunity", {
     if (frm.is_new() || frm.doc.opportunity_type !== "Build Product Request") return;
 
     const stage = frm.doc.build_request_stage;
-    const guide = STAGE_GUIDE[stage] || {};
+    const guide = BUILD_OPP_STAGE_GUIDE[stage] || {};
     build_render_agent_card(frm, frm.doc.build_agent_summary, guide.color, guide.title);
 
     frm.add_custom_button(__("📊 موردون مقترحون"), () => build_show_supplier_suggestions(frm), __("Build"));
@@ -194,20 +195,16 @@ frappe.ui.form.on("Supplier", {
 async function main() {
   console.log(`\nBuild Agents ERP UI — ${BASE}\n`);
 
-  // Merge with existing RFQ script — append agent UI to Opportunity script
-  const rfqScript = await api("GET", `/api/resource/Client%20Script/Build%20Opportunity%20RFQ%20Button`);
-  const mergedOpportunity = (rfqScript.script || "") + "\n\n" + opportunityAgentScript.trim();
+  // مهم: لا تدمج agent UI داخل "Build Opportunity RFQ Button".
+  // Frappe يدمج كل Client Scripts لنفس الـ DocType في Function واحدة؛
+  // إعادة اللصق كانت تكرّر const STAGE_GUIDE وتكسر نموذج Opportunity.
 
-  await upsert("Client Script", "Build Opportunity RFQ Button", {
-    dt: "Opportunity", view: "Form", enabled: 1, script: mergedOpportunity,
+  await upsert("Client Script", "Build Opportunity Next Action", {
+    dt: "Opportunity", view: "Form", enabled: 1, script: opportunityAgentScript.trim(),
   });
 
   await upsert("Client Script", "Build Supplier Agent Summary", {
     dt: "Supplier", view: "Form", enabled: 1, script: supplierAgentScript.trim(),
-  });
-
-  await upsert("Client Script", "Build Opportunity Next Action", {
-    dt: "Opportunity", view: "Form", enabled: 1, script: opportunityAgentScript.trim(),
   });
 
   console.log("\n✅ Agent ERP UI deployed.\n");
