@@ -135,13 +135,6 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
           {isRtl ? "فتح عبر Gmail" : "Open in Gmail"}
         </a>
       </div>
-
-      <ul className="mt-8 space-y-2 text-sm text-brand-dark/60">
-        <li>• {isRtl ? "اسم المشروع / المنشأة" : "Project / company name"}</li>
-        <li>• {isRtl ? "رقم التواصل" : "Contact number"}</li>
-        <li>• {isRtl ? "مدينة التسليم" : "Delivery city"}</li>
-        <li>• {isRtl ? "قائمة المواد أو ملف جدول الكميات" : "Materials list or BOQ file"}</li>
-      </ul>
     </div>
   );
 }
