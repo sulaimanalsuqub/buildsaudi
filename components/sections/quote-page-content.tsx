@@ -24,8 +24,8 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
         badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
         title: isRtl ? "تواصل معنا عبر البريد" : "Contact Us by Email",
         body: isRtl
-          ? "نموذج الطلب الإلكتروني متوقف مؤقتاً. أرسل تفاصيل مشروعك وجدول الكميات مباشرة إلى فريق المبيعات وسنعود إليك في أقرب وقت."
-          : "The online quote form is temporarily paused. Email your project details and bill of quantities to our sales team and we will get back to you shortly.",
+          ? "أرسل تفاصيل مشروعك وجدول الكميات إلى فريق المبيعات، وسنعود إليك في أقرب وقت."
+          : "Send your project details and bill of quantities to our sales team, and we will get back to you shortly.",
       };
 
   return (
@@ -142,12 +142,6 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
         <li>• {isRtl ? "مدينة التسليم" : "Delivery city"}</li>
         <li>• {isRtl ? "قائمة المواد أو ملف جدول الكميات" : "Materials list or BOQ file"}</li>
       </ul>
-
-      <p className="mt-6 text-xs text-brand-dark/40">
-        {isRtl
-          ? "نموذج الطلب الإلكتروني متوقف مؤقتاً — سنُعيده قريباً."
-          : "The online form is temporarily paused — we will restore it soon."}
-      </p>
     </div>
   );
 }
