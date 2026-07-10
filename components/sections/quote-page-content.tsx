@@ -110,8 +110,8 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
       </h2>
       <p className="mt-3 max-w-xl text-sm leading-7 text-brand-dark/65">
         {isRtl
-          ? "اكتب تفاصيل المشروع والمواد المطلوبة (أو أرفق جدول الكميات) على البريد التالي."
-          : "Send your project details and required materials (or attach a BOQ) to the address below."}
+          ? "اكتب تفاصيل المشروع والمواد المطلوبة على البريد التالي."
+          : "Send your project details and required materials to the address below."}
       </p>
 
       <div className="mt-8 rounded-xl border border-brand-primary/20 bg-brand-primary/[0.06] px-5 py-4">
