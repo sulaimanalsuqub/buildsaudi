@@ -118,20 +118,14 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
         </a>
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <a
-          href={mailto}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
-        >
-          <MessageSquare className="h-4 w-4" />
-          {isRtl ? "فتح البريد وإرسال الطلب" : "Open email and send request"}
-        </a>
+      <div className="mt-6">
         <a
           href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(SALES_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-brand-dark/15 bg-white px-7 py-3.5 text-sm font-semibold text-brand-dark transition-colors hover:bg-brand-dark/[0.04]"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
         >
+          <MessageSquare className="h-4 w-4" />
           {isRtl ? "فتح عبر Gmail" : "Open in Gmail"}
         </a>
       </div>
