@@ -191,15 +191,18 @@ async function main() {
       )}`
     );
     const approvedEmail = notifications?.find((n) => n.name === "Build Supplier Approved Email");
-    const others = notifications?.filter((n) => n.name !== "Build Supplier Approved Email") || [];
+    const rejectedEmail = notifications?.find((n) => n.name === "Build Supplier Rejected Email");
+    const newAlert = notifications?.find((n) => n.name === "Build Supplier New Registration Alert");
+    // Approved + Rejected emails go via website webhooks; only new-registration stays in ERPNext
     if (
-      Array.isArray(notifications) &&
-      notifications.length >= 3 &&
       approvedEmail &&
       approvedEmail.enabled === 0 &&
-      others.every((n) => n.enabled)
+      rejectedEmail &&
+      rejectedEmail.enabled === 0 &&
+      newAlert &&
+      newAlert.enabled
     ) {
-      pass("ERPNext notifications", "Approved email disabled; others enabled");
+      pass("ERPNext notifications", "stage emails via webhook; new registration alert enabled");
     } else {
       fail("ERPNext notifications", JSON.stringify(notifications));
     }
@@ -235,15 +238,27 @@ async function main() {
   }
 
   try {
-    const webhook = await api("GET", "/api/resource/Webhook/Build%20Supplier%20Approved%20Webhook");
-    const json = webhook.webhook_json || "";
-    if (json.includes("supplier_id")) {
-      pass("Approved webhook payload", "includes supplier_id");
+    const invite = await api("GET", "/api/resource/Webhook/Build%20Supplier%20Approved%20Webhook");
+    const full = await api("GET", "/api/resource/Webhook/Build%20Supplier%20Fully%20Approved%20Webhook");
+    const inviteOk =
+      (invite.webhook_json || "").includes("supplier_id") &&
+      (invite.condition || "").includes("not doc.build_profile_completed");
+    const fullOk =
+      (full.webhook_json || "").includes("supplier.fully_approved") &&
+      (full.condition || "").includes("doc.build_profile_completed");
+    if (inviteOk && fullOk) {
+      pass("Supplier approval webhooks", "invite vs fully_approved split by profile_completed");
     } else {
-      fail("Approved webhook payload", "missing supplier_id");
+      fail(
+        "Supplier approval webhooks",
+        JSON.stringify({
+          invite_condition: invite.condition,
+          full_condition: full.condition,
+        })
+      );
     }
   } catch (e) {
-    fail("Approved webhook payload", e.message);
+    fail("Supplier approval webhooks", e.message);
   }
 
   summarize();

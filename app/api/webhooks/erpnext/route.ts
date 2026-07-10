@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   sendVendorJourneyStartedEmail,
+  sendVendorFullyApprovedEmail,
   sendVendorRejectedEmail,
   sendQuoteStatusToClient,
   getClientNotifiableStatuses,
@@ -9,12 +10,31 @@ import { generateVendorOnboardingToken } from "@/lib/vendor-onboarding-token";
 
 const WEBHOOK_SECRET = process.env.ERPNEXT_WEBHOOK_SECRET;
 
-type SupplierPayload = {
-  event: "supplier.approved" | "supplier.rejected";
+type SupplierInvitePayload = {
+  event: "supplier.approved";
   supplier_id: string;
   supplier_name: string;
   manager_name: string;
   email: string;
+  /** 0 | 1 | "" — إن وُجد 1 نتجاهل (اعتماد نهائي يُعالَج بحدث منفصل) */
+  profile_completed?: number | string | boolean;
+};
+
+type SupplierFullyApprovedPayload = {
+  event: "supplier.fully_approved";
+  supplier_id?: string;
+  supplier_name: string;
+  manager_name: string;
+  email: string;
+};
+
+type SupplierRejectedPayload = {
+  event: "supplier.rejected";
+  supplier_id?: string;
+  supplier_name: string;
+  manager_name: string;
+  email: string;
+  rejection_reason?: string;
 };
 
 type OpportunityPayload = {
@@ -25,18 +45,29 @@ type OpportunityPayload = {
   stage: string;
 };
 
-type WebhookPayload = SupplierPayload | OpportunityPayload;
+type WebhookPayload =
+  | SupplierInvitePayload
+  | SupplierFullyApprovedPayload
+  | SupplierRejectedPayload
+  | OpportunityPayload;
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 دقائق
 
+function isTruthyFlag(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "1" || v === "true" || v === "yes";
+  }
+  return false;
+}
+
 export async function POST(req: NextRequest) {
-  // التحقق من الـ secret
   const secret = req.headers.get("x-webhook-secret");
   if (!WEBHOOK_SECRET || secret !== WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // حماية من Replay Attacks: رفض الطلبات خارج نافذة 5 دقائق
   const tsHeader = req.headers.get("x-webhook-timestamp");
   if (tsHeader) {
     const ts = Number(tsHeader);
@@ -56,28 +87,57 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (payload.event) {
+      // موافقة أولية فقط: أرسل رابط إكمال الملف
       case "supplier.approved": {
+        if (!payload.email || !payload.supplier_id) {
+          return NextResponse.json({ ok: true, skipped: true, reason: "missing email or supplier_id" });
+        }
+        // دفاع إضافي إن وصل webhook قديم بدون شرط profile_completed
+        if (isTruthyFlag(payload.profile_completed)) {
+          return NextResponse.json({
+            ok: true,
+            skipped: true,
+            reason: "profile already completed — use supplier.fully_approved",
+          });
+        }
+
         const baseUrl = (
           process.env.NEXT_PUBLIC_APP_URL ??
           process.env.NEXT_PUBLIC_SITE_URL ??
           "https://www.build.sa"
         ).replace(/\/$/, "");
         const token = generateVendorOnboardingToken(payload.supplier_id, payload.email);
-        const locale = "/ar/register/complete";
         await sendVendorJourneyStartedEmail({
           establishment_name: payload.supplier_name,
-          manager_name: payload.manager_name,
+          manager_name: payload.manager_name || payload.supplier_name,
           email: payload.email,
-          onboarding_url: `${baseUrl}${locale}?token=${token}`,
+          onboarding_url: `${baseUrl}/ar/register/complete?token=${token}`,
+        });
+        break;
+      }
+
+      // اعتماد نهائي بعد اكتمال الملف — بدون رابط إكمال
+      case "supplier.fully_approved": {
+        if (!payload.email) {
+          return NextResponse.json({ ok: true, skipped: true, reason: "no email" });
+        }
+        await sendVendorFullyApprovedEmail({
+          establishment_name: payload.supplier_name,
+          manager_name: payload.manager_name || payload.supplier_name,
+          email: payload.email,
         });
         break;
       }
 
       case "supplier.rejected":
+        if (!payload.email) {
+          return NextResponse.json({ ok: true, skipped: true, reason: "no email" });
+        }
         await sendVendorRejectedEmail({
           establishment_name: payload.supplier_name,
-          manager_name: payload.manager_name,
+          manager_name: payload.manager_name || payload.supplier_name,
           email: payload.email,
+          reason: payload.rejection_reason,
         });
         break;
 

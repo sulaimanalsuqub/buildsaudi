@@ -352,14 +352,49 @@ export async function sendVendorJourneyStartedEmail(vendor: {
   });
 }
 
-/** @deprecated Use sendVendorJourneyStartedEmail after admin approval */
+/**
+ * اعتماد نهائي بعد إكمال الملف — المورد جاهز لاستقبال RFQ.
+ * لا ترسل رابط إكمال (الملف مكتمل مسبقاً).
+ */
+export async function sendVendorFullyApprovedEmail(vendor: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+}) {
+  return sendEmail({
+    from: FROM,
+    to: vendor.email,
+    subject: "تم تفعيل حسابك كمورد — Build Saudi",
+    html: emailShell({
+      previewText: `أصبحت ${vendor.establishment_name} مورداً معتمداً في Build Saudi`,
+      accentColor: "#09B14B",
+      badgeIcon: "✅",
+      badgeLabel: "مورد معتمد",
+      content: `
+        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          تمت مراجعة ملفكم واعتماد منشأة <strong style="color:#1D3F1F;">${esc(vendor.establishment_name)}</strong>
+          كمورد <strong style="color:#09B14B;">معتمد نهائياً</strong> في Build Saudi.
+        </p>
+        ${highlightBox("أنتم الآن مؤهلون لاستقبال طلبات عروض الأسعار (RFQ) عبر البريد عند توفر فرص مناسبة لتخصصاتكم.")}
+        <ul style="margin:0 0 24px;padding-right:20px;color:#4b5563;font-size:14px;line-height:2;">
+          <li>ستصلكم طلبات RFQ على هذا البريد</li>
+          <li>يُرجى الرد بالأسعار ومدة التوريد والشروط</li>
+          <li>لا حاجة لأي خطوة إضافية على الموقع الآن</li>
+        </ul>
+        <p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
+/** @deprecated Use sendVendorFullyApprovedEmail for final RFQ eligibility */
 export async function sendVendorActivatedEmail(vendor: {
   establishment_name: string;
   manager_name: string;
   email: string;
 }) {
-  const onboardingUrl = `${BASE_URL}/ar/register/complete`;
-  return sendVendorJourneyStartedEmail({ ...vendor, onboarding_url: onboardingUrl });
+  return sendVendorFullyApprovedEmail(vendor);
 }
 
 // ─────────────────────────────────────────────
@@ -369,7 +404,11 @@ export async function sendVendorRejectedEmail(vendor: {
   establishment_name: string;
   manager_name: string;
   email: string;
+  reason?: string;
 }) {
+  const reasonBlock = vendor.reason?.trim()
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">السبب:</strong> ${esc(vendor.reason.trim())}</p>`
+    : "";
   return sendEmail({
     from: FROM,
     to: vendor.email,
@@ -384,8 +423,9 @@ export async function sendVendorRejectedEmail(vendor: {
           نشكركم على اهتمامكم بالانضمام إلى شبكة موردي Build Saudi واهتمامكم بالتعاون معنا.
         </p>
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          للأسف، لم نتمكن من قبول طلبكم في الوقت الحالي. يمكنكم التواصل معنا عبر البريد الإلكتروني للاستفسار عن أسباب القرار أو إعادة التقديم مستقبلاً.
+          للأسف، لم نتمكن من قبول طلبكم في الوقت الحالي. يمكنكم التواصل معنا عبر البريد الإلكتروني للاستفسار أو إعادة التقديم مستقبلاً.
         </p>
+        ${reasonBlock}
         <p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
       `,
     }),

@@ -221,6 +221,7 @@ async function setupWebhooks() {
   console.log("\n── Webhooks ──");
 
   const webhooks = [
+    // موافقة أولية فقط (قبل إكمال الملف) → رابط /register/complete
     {
       name: "Build Supplier Approved Webhook",
       webhook_doctype: "Supplier",
@@ -238,9 +239,34 @@ async function setupWebhooks() {
   "supplier_id": "{{ doc.name }}",
   "supplier_name": "{{ doc.supplier_name }}",
   "manager_name": "{{ doc.build_manager_name }}",
+  "email": "{{ doc.build_email }}",
+  "profile_completed": "{{ doc.build_profile_completed }}"
+}`,
+      condition:
+        'doc.build_supplier_stage == "Approved" and not doc.build_profile_completed and doc.build_email',
+    },
+    // اعتماد نهائي بعد اكتمال الملف → إيميل «معتمد لـ RFQ» بدون رابط إكمال
+    {
+      name: "Build Supplier Fully Approved Webhook",
+      webhook_doctype: "Supplier",
+      webhook_docevent: "on_update",
+      enabled: 1,
+      request_url: WEBHOOK_URL,
+      request_method: "POST",
+      request_structure: "JSON",
+      webhook_headers: [
+        { idx: 1, key: "Content-Type", value: "application/json" },
+        { idx: 2, key: "x-webhook-secret", value: WEBHOOK_SECRET },
+      ],
+      webhook_json: `{
+  "event": "supplier.fully_approved",
+  "supplier_id": "{{ doc.name }}",
+  "supplier_name": "{{ doc.supplier_name }}",
+  "manager_name": "{{ doc.build_manager_name }}",
   "email": "{{ doc.build_email }}"
 }`,
-      condition: 'doc.build_supplier_stage == "Approved"',
+      condition:
+        'doc.build_supplier_stage == "Approved" and doc.build_profile_completed and doc.build_email',
     },
     {
       name: "Build Supplier Rejected Webhook",
@@ -256,11 +282,13 @@ async function setupWebhooks() {
       ],
       webhook_json: `{
   "event": "supplier.rejected",
+  "supplier_id": "{{ doc.name }}",
   "supplier_name": "{{ doc.supplier_name }}",
   "manager_name": "{{ doc.build_manager_name }}",
-  "email": "{{ doc.build_email }}"
+  "email": "{{ doc.build_email }}",
+  "rejection_reason": "{{ doc.build_rejection_reason }}"
 }`,
-      condition: 'doc.build_supplier_stage == "Rejected"',
+      condition: 'doc.build_supplier_stage == "Rejected" and doc.build_email',
     },
     {
       name: "Build Opportunity Stage Webhook",

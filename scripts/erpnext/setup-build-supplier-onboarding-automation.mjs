@@ -162,7 +162,19 @@ frappe.ui.form.on("Supplier", {
     $(frm.layout.wrapper).find(".form-page").first().prepend(div);
 
     if (stage === "Rejected" && !frm.doc.build_rejection_reason) {
-      frm.set_intro(__("يرجى تعبئة سبب الرفض في حقل build_rejection_reason"), "orange");
+      frm.set_intro(__("إلزامي: عبّئ سبب الرفض في حقل build_rejection_reason قبل إغلاق الطلب"), "red");
+    }
+  },
+
+  // تنبيه قبل الحفظ عند الرفض بدون سبب
+  before_save(frm) {
+    if (frm.doc.build_supplier_stage === "Rejected" && !(frm.doc.build_rejection_reason || "").trim()) {
+      frappe.validated = false;
+      frappe.msgprint({
+        title: __("سبب الرفض مطلوب"),
+        indicator: "red",
+        message: __("لا يمكن حفظ مورد مرفوض بدون تعبئة build_rejection_reason."),
+      });
     }
   },
 });
@@ -228,8 +240,10 @@ const notifications = emailTemplates.map((template) => {
     };
   }
   if (template.name === "Build Supplier Rejected") {
+    // معطّل: الإرسال عبر Webhook → build.sa (يشمل rejection_reason)
     return {
       name: "Build Supplier Rejected Email",
+      enabled: 0,
       document_type: "Supplier",
       event: "Value Change",
       value_changed: "build_supplier_stage",
