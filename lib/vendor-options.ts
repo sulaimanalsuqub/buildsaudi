@@ -44,6 +44,33 @@ export const regions: VendorOption[] = [
   { value: "all_ksa", en: "All Saudi Arabia", ar: "كل المملكة" },
 ];
 
+/** مدن التسليم لطلبات عرض السعر */
+export const saudiCities: VendorOption[] = [
+  { value: "riyadh", en: "Riyadh", ar: "الرياض" },
+  { value: "jeddah", en: "Jeddah", ar: "جدة" },
+  { value: "dammam", en: "Dammam", ar: "الدمام" },
+  { value: "khobar", en: "Khobar", ar: "الخبر" },
+  { value: "dhahran", en: "Dhahran", ar: "الظهران" },
+  { value: "jubail", en: "Jubail", ar: "الجبيل" },
+  { value: "makkah", en: "Makkah", ar: "مكة المكرمة" },
+  { value: "madinah", en: "Madinah", ar: "المدينة المنورة" },
+  { value: "taif", en: "Taif", ar: "الطائف" },
+  { value: "yanbu", en: "Yanbu", ar: "ينبع" },
+  { value: "buraidah", en: "Buraidah", ar: "بريدة" },
+  { value: "unaizah", en: "Unaizah", ar: "عنيزة" },
+  { value: "khamis_mushait", en: "Khamis Mushait", ar: "خميس مشيط" },
+  { value: "abha", en: "Abha", ar: "أبها" },
+  { value: "tabuk", en: "Tabuk", ar: "تبوك" },
+  { value: "hail", en: "Hail", ar: "حائل" },
+  { value: "jazan", en: "Jazan", ar: "جازان" },
+  { value: "najran", en: "Najran", ar: "نجران" },
+  { value: "al_baha", en: "Al Baha", ar: "الباحة" },
+  { value: "skaka", en: "Sakaka", ar: "سكاكا" },
+  { value: "arar", en: "Arar", ar: "عرعر" },
+  { value: "neom", en: "NEOM", ar: "نيوم" },
+  { value: "other", en: "Other city", ar: "مدينة أخرى" },
+];
+
 export const paymentTerms: VendorOption[] = [
   { value: "bank_transfer", en: "Bank Transfer", ar: "تحويل بنكي" },
   { value: "cheque", en: "Cheque", ar: "شيك" },

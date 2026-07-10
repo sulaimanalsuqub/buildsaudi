@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileUp, MailCheck, SearchCheck, Send, Truck } from "lucide-react";
+import { optionLabel, saudiCities } from "@/lib/vendor-options";
 
 // التحقق من رقم الهاتف السعودي: 05xxxxxxxx أو +9665xxxxxxxx
 function isValidSaudiPhone(phone: string): boolean {
@@ -18,7 +19,7 @@ type GetQuoteFormProps = {
   isRtl?: boolean;
 };
 
-const STORAGE_KEY = "build-quote-form-draft";
+const STORAGE_KEY = "build-quote-form-draft-v2";
 
 const t = {
   ar: {
@@ -31,23 +32,23 @@ const t = {
     phone: "رقم التواصل",
     phonePlaceholder: "05xxxxxxxx",
     email: "البريد الإلكتروني",
+    emailOptional: "البريد الإلكتروني (اختياري)",
     emailPlaceholder: "example@company.com",
     materials: "المواد المطلوبة",
     materialsPlaceholder: "صف المواد التي يحتاجها مشروعك (نوع المادة، الكميات التقريبية...)",
     boqFile: "ملف الكميات أو قائمة المواد",
-    boqFilePlaceholder: "ارفع ملف Excel أو PDF",
     boqFileHint: "Excel, PDF — حجم أقصى 10MB",
-    sheetLink: "أو رابط Google Sheet / جدول أونلاين",
-    sheetLinkPlaceholder: "https://docs.google.com/...",
-    deliveryAddress: "عنوان التسليم",
-    deliveryAddressPlaceholder: "المدينة، الحي، الشارع",
-    deliveryDate: "تاريخ التسليم المطلوب",
+    deliveryCity: "مدينة التسليم",
+    deliveryCityPlaceholder: "اختر المدينة",
+    deliveryDetails: "تفاصيل العنوان",
+    deliveryDetailsPlaceholder: "الحي، الشارع، رقم القطعة (اختياري)",
+    otherCity: "اسم المدينة",
+    otherCityPlaceholder: "اكتب اسم المدينة",
     notes: "ملاحظات إضافية",
     notesPlaceholder: "أي تفاصيل أخرى تريد إضافتها...",
     submit: "أرسل الطلب",
     submitting: "جارٍ الإرسال...",
     successTitle: "تم استلام طلبك!",
-    successMsg: "شكراً لك. سيتواصل معك فريق بيلد خلال 24 ساعة بعرض سعر مفصّل لمشروعك.",
     successBtn: "إرسال طلب آخر",
     required: "هذا الحقل مطلوب",
     invalidPhone: "رقم الهاتف غير صحيح (مثال: 05xxxxxxxx)",
@@ -55,8 +56,6 @@ const t = {
     fileTooLarge: "حجم الملف يتجاوز 10 ميجابايت",
     fileUploadError: "فشل رفع الملف. حاول مجدداً.",
     chooseFile: "اختر ملفاً",
-    noFileChosen: "لم يُختر ملف",
-    orDivider: "أو",
     stepText: "الخطوة",
     ofText: "من",
     steps: ["معلومات العميل", "تفاصيل المشروع", "التوصيل", "مراجعة وإرسال"],
@@ -72,9 +71,6 @@ const t = {
       "موافقتك على العرض",
       "توصيل المواد للموقع",
     ],
-    contactMethod: "طريقة التواصل المفضلة لعرض السعر",
-    contactMethodEmail: "بريد إلكتروني",
-    contactMethodWhatsapp: "واتساب",
     contactMsg: "سنتواصل معك على",
     contactTime: "خلال 24-48 ساعة",
   },
@@ -88,23 +84,23 @@ const t = {
     phone: "Contact Number",
     phonePlaceholder: "+966 5x xxx xxxx",
     email: "Email Address",
+    emailOptional: "Email Address (optional)",
     emailPlaceholder: "example@company.com",
     materials: "Required Materials",
     materialsPlaceholder: "Describe the materials your project needs (type, approximate quantities...)",
     boqFile: "BOQ or Quantity Schedule File",
-    boqFilePlaceholder: "Upload Excel or PDF file",
     boqFileHint: "Excel, PDF — max 10MB",
-    sheetLink: "Or Google Sheet / Online Table Link",
-    sheetLinkPlaceholder: "https://docs.google.com/...",
-    deliveryAddress: "Delivery Address",
-    deliveryAddressPlaceholder: "City, District, Street",
-    deliveryDate: "Required Delivery Date",
+    deliveryCity: "Delivery City",
+    deliveryCityPlaceholder: "Select city",
+    deliveryDetails: "Address details",
+    deliveryDetailsPlaceholder: "District, street, plot no. (optional)",
+    otherCity: "City name",
+    otherCityPlaceholder: "Enter city name",
     notes: "Additional Notes",
     notesPlaceholder: "Any other details you'd like to add...",
     submit: "Submit Request",
     submitting: "Submitting...",
     successTitle: "Request Received!",
-    successMsg: "Thank you. The Build team will contact you within 24 hours with a detailed quote for your project.",
     successBtn: "Submit Another Request",
     required: "This field is required",
     invalidPhone: "Invalid phone number (e.g. 05xxxxxxxx)",
@@ -112,8 +108,6 @@ const t = {
     fileTooLarge: "File size exceeds 10MB",
     fileUploadError: "File upload failed. Please try again.",
     chooseFile: "Choose File",
-    noFileChosen: "No file chosen",
-    orDivider: "or",
     stepText: "Step",
     ofText: "of",
     steps: ["Client Info", "Project Details", "Delivery", "Review & Submit"],
@@ -129,15 +123,22 @@ const t = {
       "You approve the offer",
       "Materials delivered to site",
     ],
-    contactMethod: "Preferred contact method for the quote",
-    contactMethodEmail: "Email",
-    contactMethodWhatsapp: "WhatsApp",
     contactMsg: "We'll contact you at",
     contactTime: "within 24-48 hours",
   },
 };
 
 const TOTAL_STEPS = 4;
+
+function buildDeliveryAddress(cityValue: string, otherCity: string, details: string, isRtl: boolean): string {
+  const cityLabel =
+    cityValue === "other"
+      ? otherCity.trim()
+      : optionLabel(isRtl, saudiCities, cityValue);
+  const detail = details.trim();
+  if (cityLabel && detail) return `${cityLabel} — ${detail}`;
+  return cityLabel || detail;
+}
 
 export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const copy = isRtl ? t.ar : t.en;
@@ -155,15 +156,13 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     clientName: "",
     phone: "",
     email: "",
-    contactMethod: "whatsapp" as "email" | "whatsapp",
     materials: "",
-    sheetLink: "",
-    deliveryAddress: "",
-    deliveryDate: "",
+    deliveryCity: "",
+    otherCity: "",
+    deliveryDetails: "",
     notes: "",
   });
 
-  // تحميل المسودة من localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -176,7 +175,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     }
   }, []);
 
-  // حفظ المسودة تلقائياً
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
@@ -199,24 +197,19 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
       } else if (!isValidSaudiPhone(form.phone)) {
         e.phone = copy.invalidPhone;
       }
-      if (form.contactMethod === "email") {
-        // البريد إلزامي عند اختياره طريقةً للتواصل — بدون OTP
-        if (!form.email.trim()) {
-          e.email = copy.required;
-        } else if (!isValidEmail(form.email)) {
-          e.email = copy.invalidEmail;
-        }
-      } else if (form.email.trim() && !isValidEmail(form.email)) {
-        // واتساب: البريد اختياري — إن أُدخل يجب أن يكون بصيغة صحيحة فقط
+      if (form.email.trim() && !isValidEmail(form.email)) {
         e.email = copy.invalidEmail;
       }
     } else if (s === 1) {
       if (!form.projectName.trim()) e.projectName = copy.required;
-      if (!form.materials.trim() && selectedFiles.length === 0 && !form.sheetLink.trim()) e.materials = copy.required;
+      if (!form.materials.trim() && selectedFiles.length === 0) e.materials = copy.required;
       if (selectedFiles.some((f) => f.size > 10 * 1024 * 1024)) e.boqFile = copy.fileTooLarge;
     } else if (s === 2) {
-      if (!form.deliveryAddress.trim()) e.deliveryAddress = copy.required;
-      if (!form.deliveryDate) e.deliveryDate = copy.required;
+      if (!form.deliveryCity) {
+        e.deliveryCity = copy.required;
+      } else if (form.deliveryCity === "other" && !form.otherCity.trim()) {
+        e.otherCity = copy.required;
+      }
     }
     return e;
   };
@@ -242,7 +235,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
     setLoading(true);
     try {
-      // رفع الملفات عبر API server-side
       let boqFileUrl: string | null = null;
       let boqFileName: string | null = null;
       let boqAttachToken: string | null = null;
@@ -270,6 +262,13 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         }
       }
 
+      const deliveryAddress = buildDeliveryAddress(
+        form.deliveryCity,
+        form.otherCity,
+        form.deliveryDetails,
+        isRtl
+      );
+
       const quoteController = new AbortController();
       const quoteTimeout = setTimeout(() => quoteController.abort(), 20000);
       let quoteRes: Response;
@@ -283,12 +282,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
             client_name: form.clientName,
             phone: form.phone,
             client_email: form.email.trim() && isValidEmail(form.email) ? form.email.trim() : "",
-            contact_method: form.contactMethod,
+            contact_method: "whatsapp",
             materials: form.materials,
-            delivery_address: form.deliveryAddress,
-            delivery_date: form.deliveryDate,
+            delivery_address: deliveryAddress,
+            delivery_date: "",
             notes: form.notes || null,
-            boq_file_url: boqFileUrl ?? (form.sheetLink.trim() || null),
+            boq_file_url: boqFileUrl,
             boq_file_name: boqFileName,
             boq_attach_token: boqAttachToken,
             boq_file_text: boqExtractedText,
@@ -316,10 +315,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         throw new Error(quoteData?.error ?? fallback);
       }
 
-      // حفظ الرقم المرجعي
       setQuoteRef(quoteData.id);
-
-      // مسح المسودة بعد النجاح
       localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
     } catch (error) {
@@ -336,7 +332,17 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
     setSelectedFiles([]);
     setErrors({});
     setStep(0);
-    setForm({ projectName: "", clientName: "", phone: "", email: "", contactMethod: "whatsapp", materials: "", sheetLink: "", deliveryAddress: "", deliveryDate: "", notes: "" });
+    setForm({
+      projectName: "",
+      clientName: "",
+      phone: "",
+      email: "",
+      materials: "",
+      deliveryCity: "",
+      otherCity: "",
+      deliveryDetails: "",
+      notes: "",
+    });
     if (fileInputRef.current) fileInputRef.current.value = "";
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -344,8 +350,8 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
   const DirectionArrow = isRtl ? ArrowLeft : ArrowRight;
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
+  const deliverySummary = buildDeliveryAddress(form.deliveryCity, form.otherCity, form.deliveryDetails, isRtl);
 
-  /* ── شاشة النجاح مع Timeline ── */
   if (submitted) {
     const timelineIcons = [CheckCircle2, SearchCheck, MailCheck, CheckCircle2, Truck];
     return (
@@ -363,7 +369,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           )}
         </div>
 
-        {/* Timeline */}
         <div className="w-full max-w-md">
           <h3 className="text-base font-bold text-brand-dark mb-4 text-center">{copy.timelineTitle}</h3>
           <div className="space-y-0">
@@ -376,9 +381,7 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                       return <Icon className="h-4 w-4" />;
                     })()}
                   </div>
-                  {i < copy.timelineSteps.length - 1 && (
-                    <div className="w-0.5 h-6 bg-brand-dark/10" />
-                  )}
+                  {i < copy.timelineSteps.length - 1 && <div className="w-0.5 h-6 bg-brand-dark/10" />}
                 </div>
                 <p className={`pt-2 text-sm ${i === 0 ? "font-semibold text-brand-dark" : "text-brand-dark/65"}`}>
                   {label}
@@ -388,9 +391,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           </div>
         </div>
 
-        {/* رسالة التواصل — تعرض القناة التي اختارها العميل فعلًا */}
         <p className="text-sm text-brand-dark/60 text-center max-w-md">
-          {copy.contactMsg} <span className="font-semibold text-brand-dark" dir="ltr">{form.contactMethod === "email" && form.email ? form.email : form.phone}</span> {copy.contactTime}
+          {copy.contactMsg}{" "}
+          <span className="font-semibold text-brand-dark" dir="ltr">
+            {form.phone}
+          </span>{" "}
+          {copy.contactTime}
         </p>
 
         <button
@@ -405,7 +411,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} dir={isRtl ? "rtl" : "ltr"} className="space-y-6">
-      {/* Progress Bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <p className="text-xs font-semibold text-brand-dark/65">
@@ -438,15 +443,10 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         </div>
       </div>
 
-      {/* Step Content */}
       <motion.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="space-y-5">
-        {/* الخطوة 1: معلومات العميل — Progressive Disclosure */}
         {step === 0 && (() => {
           const showPhone = form.clientName.trim().length >= 2;
-          const showContactMethod = showPhone && isValidSaudiPhone(form.phone);
-          const showEmail = showContactMethod;
-          const isEmailMethod = form.contactMethod === "email";
-          const emailLabel = isEmailMethod ? copy.email : `${copy.email} (${isRtl ? "اختياري" : "optional"})`;
+          const showEmail = showPhone && isValidSaudiPhone(form.phone);
           return (
             <>
               <Field label={copy.clientName} error={errors.clientName} required>
@@ -478,36 +478,9 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               </AnimatePresence>
 
               <AnimatePresence>
-                {showContactMethod && (
-                  <motion.div key="contact" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Field label={copy.contactMethod}>
-                      <div className="grid grid-cols-2 gap-3">
-                        {(["whatsapp", "email"] as const).map((method) => (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => set("contactMethod", method)}
-                            className={[
-                              "flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors",
-                              form.contactMethod === method
-                                ? "border-brand-primary bg-brand-primary/8 text-brand-dark"
-                                : "border-brand-dark/15 bg-white text-brand-dark/60 hover:border-brand-dark/30",
-                            ].join(" ")}
-                          >
-                            {method === "whatsapp" ? "📱" : "📧"}
-                            {method === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail}
-                          </button>
-                        ))}
-                      </div>
-                    </Field>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
                 {showEmail && (
                   <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Field label={emailLabel} error={errors.email} required={isEmailMethod}>
+                    <Field label={copy.emailOptional} error={errors.email}>
                       <input
                         type="email"
                         placeholder={copy.emailPlaceholder}
@@ -516,11 +489,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
                         className={inputCls(!!errors.email)}
                         dir="ltr"
                       />
-                      {!isEmailMethod && (
-                        <p className="mt-1 text-xs text-brand-dark/45">
-                          {isRtl ? "سنتواصل عبر واتساب على رقمك. أضف بريدك إن رغبت بنسخة مكتوبة." : "We'll reach you on WhatsApp. Add an email if you'd like a written copy."}
-                        </p>
-                      )}
                     </Field>
                   </motion.div>
                 )}
@@ -529,158 +497,154 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
           );
         })()}
 
-        {/* الخطوة 2: تفاصيل المشروع — Progressive Disclosure */}
         {step === 1 && (() => {
           const showMaterials = form.projectName.trim().length >= 2;
           return (
-          <>
-            <Field label={copy.projectName} error={errors.projectName} required>
-              <input
-                type="text"
-                placeholder={copy.projectNamePlaceholder}
-                value={form.projectName}
-                onChange={(e) => set("projectName", e.target.value)}
-                className={inputCls(!!errors.projectName)}
-                autoFocus
-              />
-            </Field>
-            <AnimatePresence>
-            {showMaterials && (
-            <motion.div key="materials-section" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-5">
-            <Field label={copy.materials} error={errors.materials} required>
-              <textarea
-                rows={3}
-                placeholder={copy.materialsPlaceholder}
-                value={form.materials}
-                onChange={(e) => set("materials", e.target.value)}
-                className={inputCls(!!errors.materials) + " resize-none"}
-              />
-            </Field>
-            <Field label={copy.boqFile}>
-              <div
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileUp className="h-5 w-5 shrink-0 text-brand-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-brand-dark">
-                    {selectedFiles.length > 0
-                      ? isRtl ? `${selectedFiles.length} ملف${selectedFiles.length > 1 ? " مرفق" : " مرفق"}` : `${selectedFiles.length} file${selectedFiles.length > 1 ? "s" : ""} selected`
-                      : copy.chooseFile}
-                  </p>
-                  {selectedFiles.length === 0 && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
-                </div>
-                <span className="text-xs text-brand-primary font-medium">
-                  {isRtl ? "+ إضافة" : "+ Add"}
-                </span>
-              </div>
-              {selectedFiles.length > 0 && (
-                <ul className="mt-2 space-y-1">
-                  {selectedFiles.map((f, i) => (
-                    <li key={i} className="flex items-center justify-between rounded-lg border border-brand-dark/8 bg-white px-3 py-2 text-xs">
-                      <span className="truncate text-brand-dark/70 max-w-[80%]">{f.name}</span>
-                      <button
-                        type="button"
-                        className="text-brand-dark/35 hover:text-red-500 transition-colors ms-2 shrink-0"
-                        onClick={() => setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+            <>
+              <Field label={copy.projectName} error={errors.projectName} required>
+                <input
+                  type="text"
+                  placeholder={copy.projectNamePlaceholder}
+                  value={form.projectName}
+                  onChange={(e) => set("projectName", e.target.value)}
+                  className={inputCls(!!errors.projectName)}
+                  autoFocus
+                />
+              </Field>
+              <AnimatePresence>
+                {showMaterials && (
+                  <motion.div key="materials-section" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-5">
+                    <Field label={copy.materials} error={errors.materials} required>
+                      <textarea
+                        rows={3}
+                        placeholder={copy.materialsPlaceholder}
+                        value={form.materials}
+                        onChange={(e) => set("materials", e.target.value)}
+                        className={inputCls(!!errors.materials) + " resize-none"}
+                      />
+                    </Field>
+                    <Field label={copy.boqFile}>
+                      <div
+                        className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 bg-white px-4 py-3 transition-colors hover:border-brand-primary/40 hover:bg-brand-primary/[0.03]"
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.pdf,.csv"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  if (files.length > 0) {
-                    setSelectedFiles((prev) => [...prev, ...files]);
-                    setErrors((p) => ({ ...p, boqFile: "" }));
-                    e.target.value = "";
-                  }
-                }}
-              />
-              {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
-            </Field>
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-brand-dark/10" />
-              <span className="text-xs font-semibold text-brand-dark/40">{copy.orDivider}</span>
-              <div className="h-px flex-1 bg-brand-dark/10" />
-            </div>
-            <Field label={copy.sheetLink}>
-              <input
-                type="url"
-                placeholder={copy.sheetLinkPlaceholder}
-                value={form.sheetLink}
-                onChange={(e) => set("sheetLink", e.target.value)}
-                className={inputCls(false)}
-                dir="ltr"
-              />
-            </Field>
-            </motion.div>
-            )}
-            </AnimatePresence>
-          </>
+                        <FileUp className="h-5 w-5 shrink-0 text-brand-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-brand-dark">
+                            {selectedFiles.length > 0
+                              ? isRtl
+                                ? `${selectedFiles.length} ملف مرفق`
+                                : `${selectedFiles.length} file${selectedFiles.length > 1 ? "s" : ""} selected`
+                              : copy.chooseFile}
+                          </p>
+                          {selectedFiles.length === 0 && <p className="text-xs text-brand-dark/45 mt-0.5">{copy.boqFileHint}</p>}
+                        </div>
+                        <span className="text-xs text-brand-primary font-medium">{isRtl ? "+ إضافة" : "+ Add"}</span>
+                      </div>
+                      {selectedFiles.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {selectedFiles.map((f, i) => (
+                            <li key={i} className="flex items-center justify-between rounded-lg border border-brand-dark/8 bg-white px-3 py-2 text-xs">
+                              <span className="truncate text-brand-dark/70 max-w-[80%]">{f.name}</span>
+                              <button
+                                type="button"
+                                className="text-brand-dark/35 hover:text-red-500 transition-colors ms-2 shrink-0"
+                                onClick={() => setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                              >
+                                ✕
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.pdf,.csv"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files ?? []);
+                          if (files.length > 0) {
+                            setSelectedFiles((prev) => [...prev, ...files]);
+                            setErrors((p) => ({ ...p, boqFile: "" }));
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                      {errors.boqFile && <p className="text-xs text-red-500 mt-1">{errors.boqFile}</p>}
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           );
         })()}
 
-        {/* الخطوة 3: التوصيل — Progressive Disclosure */}
         {step === 2 && (() => {
-          const showDate = form.deliveryAddress.trim().length >= 3;
-          const showNotes = showDate && !!form.deliveryDate;
+          const showDetails = !!form.deliveryCity && (form.deliveryCity !== "other" || form.otherCity.trim().length >= 2);
           return (
-          <>
-            <Field label={copy.deliveryAddress} error={errors.deliveryAddress} required>
-              <input
-                type="text"
-                placeholder={copy.deliveryAddressPlaceholder}
-                value={form.deliveryAddress}
-                onChange={(e) => set("deliveryAddress", e.target.value)}
-                className={inputCls(!!errors.deliveryAddress)}
-                autoFocus
-              />
-            </Field>
-            <AnimatePresence>
-              {showDate && (
-                <motion.div key="date" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                  <Field label={copy.deliveryDate} error={errors.deliveryDate} required>
-                    <input
-                      type="date"
-                      value={form.deliveryDate}
-                      onChange={(e) => set("deliveryDate", e.target.value)}
-                      className={inputCls(!!errors.deliveryDate)}
-                      dir="ltr"
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                  </Field>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showNotes && (
-                <motion.div key="notes" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                  <Field label={copy.notes}>
-                    <textarea
-                      rows={3}
-                      placeholder={copy.notesPlaceholder}
-                      value={form.notes}
-                      onChange={(e) => set("notes", e.target.value)}
-                      className={inputCls(false) + " resize-none"}
-                    />
-                  </Field>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
+            <>
+              <Field label={copy.deliveryCity} error={errors.deliveryCity} required>
+                <select
+                  value={form.deliveryCity}
+                  onChange={(e) => set("deliveryCity", e.target.value)}
+                  className={inputCls(!!errors.deliveryCity)}
+                  autoFocus
+                >
+                  <option value="">{copy.deliveryCityPlaceholder}</option>
+                  {saudiCities.map((city) => (
+                    <option key={city.value} value={city.value}>
+                      {isRtl ? city.ar : city.en}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <AnimatePresence>
+                {form.deliveryCity === "other" && (
+                  <motion.div key="other-city" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <Field label={copy.otherCity} error={errors.otherCity} required>
+                      <input
+                        type="text"
+                        placeholder={copy.otherCityPlaceholder}
+                        value={form.otherCity}
+                        onChange={(e) => set("otherCity", e.target.value)}
+                        className={inputCls(!!errors.otherCity)}
+                      />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showDetails && (
+                  <motion.div key="delivery-details" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-5">
+                    <Field label={copy.deliveryDetails}>
+                      <input
+                        type="text"
+                        placeholder={copy.deliveryDetailsPlaceholder}
+                        value={form.deliveryDetails}
+                        onChange={(e) => set("deliveryDetails", e.target.value)}
+                        className={inputCls(false)}
+                      />
+                    </Field>
+                    <Field label={copy.notes}>
+                      <textarea
+                        rows={3}
+                        placeholder={copy.notesPlaceholder}
+                        value={form.notes}
+                        onChange={(e) => set("notes", e.target.value)}
+                        className={inputCls(false) + " resize-none"}
+                      />
+                    </Field>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           );
         })()}
 
-        {/* الخطوة 4: مراجعة */}
         {step === 3 && (
           <div className="rounded-xl border border-brand-dark/12 bg-brand-light/45 p-5">
             <h3 className="text-base font-bold text-brand-dark mb-4">{copy.review}</h3>
@@ -688,13 +652,12 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
               <ReviewRow label={copy.clientName} value={form.clientName || copy.notProvided} />
               <ReviewRow label={copy.phone} value={form.phone || copy.notProvided} dir="ltr" />
               <ReviewRow label={copy.email} value={form.email || copy.notProvided} dir="ltr" />
-              <ReviewRow label={copy.contactMethod} value={form.contactMethod === "whatsapp" ? copy.contactMethodWhatsapp : copy.contactMethodEmail} />
               <ReviewRow label={copy.projectName} value={form.projectName || copy.notProvided} />
               <ReviewRow label={copy.materials} value={form.materials || copy.notProvided} className="sm:col-span-2" />
-              {selectedFiles.length > 0 && <ReviewRow label={copy.boqFile} value={selectedFiles.map((f) => f.name).join("، ")} />}
-              {form.sheetLink && <ReviewRow label={copy.sheetLink} value={form.sheetLink} dir="ltr" />}
-              <ReviewRow label={copy.deliveryAddress} value={form.deliveryAddress || copy.notProvided} />
-              <ReviewRow label={copy.deliveryDate} value={form.deliveryDate || copy.notProvided} dir="ltr" />
+              {selectedFiles.length > 0 && (
+                <ReviewRow label={copy.boqFile} value={selectedFiles.map((f) => f.name).join(isRtl ? "، " : ", ")} />
+              )}
+              <ReviewRow label={copy.deliveryCity} value={deliverySummary || copy.notProvided} className="sm:col-span-2" />
               {form.notes && <ReviewRow label={copy.notes} value={form.notes} className="sm:col-span-2" />}
             </dl>
           </div>
@@ -705,7 +668,6 @@ export function GetQuoteForm({ isRtl = false }: GetQuoteFormProps) {
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{errors.submit}</p>
       )}
 
-      {/* Navigation Buttons */}
       <div className="flex items-center justify-between gap-4">
         <button
           type="button"

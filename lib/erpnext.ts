@@ -388,7 +388,7 @@ export async function createERPNextProductOpportunity(quote: {
   contact_method?: "email" | "whatsapp";
   materials?: string;
   delivery_address: string;
-  delivery_date: string;
+  delivery_date?: string;
   notes?: string;
   boq_file_url?: string | null;
   boq_file_text?: string;
@@ -423,7 +423,7 @@ export async function createERPNextProductOpportunity(quote: {
     build_contact_email: quote.client_email || "",
     build_contact_method: quote.contact_method || "whatsapp",
     build_delivery_address: quote.delivery_address,
-    build_delivery_date: quote.delivery_date,
+    build_delivery_date: quote.delivery_date || "",
     build_required_materials: materialSummary,
     build_boq_file_url: quote.boq_file_url || "",
     build_material_extraction_status: extractedItems.length ? "Extracted" : "Needs Review",

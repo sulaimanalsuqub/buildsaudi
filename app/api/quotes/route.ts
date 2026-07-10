@@ -24,7 +24,7 @@ const quoteSchema = z.object({
   contact_method: z.enum(["email", "whatsapp"]).default("whatsapp"),
   materials: optionalText,
   delivery_address: z.string().trim().min(2),
-  delivery_date: z.string().trim().min(1),
+  delivery_date: optionalText,
   notes: optionalText,
   boq_file_url: optionalText,
   boq_file_name: optionalText,
