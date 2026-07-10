@@ -46,7 +46,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     eyebrow: isRtl ? "بيلد لتوريد مواد البناء" : "Build Construction Supply",
     title: isRtl ? "أسرع طريق لتوريد مشروعك" : "The fastest way to supply your project",
     body: isRtl
-      ? "توريد مواد البناء والتشطيبات للمقاولين والمطورين"
+      ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
     // Action cards
     card1Title: isRtl ? "أطلب المنتجات" : "Order Products",
