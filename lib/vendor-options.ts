@@ -13,18 +13,14 @@ export const vendorTypes: VendorOption[] = [
 ];
 
 export const productCategories: VendorOption[] = [
-  { value: "building_materials", en: "Building Materials", ar: "مواد بناء وإنشاء" },
-  { value: "safety_tools", en: "Safety Tools", ar: "أدوات السلامة" },
-  { value: "paint_decor", en: "Paint & Decor", ar: "دهانات وديكور" },
-  { value: "electrical_lighting", en: "Electrical & Lighting", ar: "كهرباء وإنارة" },
-  { value: "plumbing", en: "Plumbing", ar: "سباكة" },
-  { value: "sanitary_ware", en: "Sanitary Ware", ar: "أدوات صحية" },
-  { value: "hvac", en: "HVAC", ar: "تكييف وتبريد" },
-  { value: "piping_systems", en: "Piping Systems", ar: "أنظمة الأنابيب" },
-  { value: "pumps_tanks", en: "Pumps & Tanks", ar: "مضخات وخزانات" },
-  { value: "flooring_ceramics", en: "Flooring & Ceramics", ar: "أرضيات وسيراميك" },
-  { value: "insulation", en: "Insulation", ar: "عوازل" },
-  { value: "adhesives", en: "Adhesives", ar: "مواد لاصقة" },
+  { value: "sanitaryware_bath_fittings", en: "Sanitaryware & Bath Fittings", ar: "الأدوات الصحية" },
+  { value: "electrical_lighting", en: "Electrical & Lighting", ar: "الكهرباء والإنارة" },
+  { value: "plumbing_piping_systems", en: "Plumbing & Piping Systems", ar: "السباكة وأنظمة الأنابيب" },
+  { value: "hvac", en: "HVAC", ar: "التكييف والتهوية" },
+  { value: "tiles_flooring", en: "Tiles & Flooring", ar: "الأرضيات" },
+  { value: "wall_finishes_coverings", en: "Wall Finishes & Coverings", ar: "الجداريات" },
+  { value: "paints_coatings", en: "Paints & Coatings", ar: "الدهانات الداخلية والخارجية" },
+  { value: "adhesives_grouts_sealants", en: "Adhesives, Grouts & Sealants", ar: "اللواصق والمواد المساعدة" },
 ];
 
 export const regions: VendorOption[] = [

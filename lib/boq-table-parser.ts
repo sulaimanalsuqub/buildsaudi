@@ -56,18 +56,14 @@ const UOM_ALIASES: Record<string, string> = {
 };
 
 const categoryKeywords = [
-  { category: "مواد بناء وإنشاء", keywords: ["اسمنت", "أسمنت", "cement", "خرسانة", "بلوك", "حديد", "rebar", "رمل", "حصى"] },
-  { category: "أدوات السلامة", keywords: ["سلامة", "helmet", "قفاز", "حذاء", "safety"] },
-  { category: "دهانات وديكور", keywords: ["دهان", "طلاء", "paint", "جبس", "ديكور"] },
-  { category: "كهرباء وإنارة", keywords: ["كهرب", "إنارة", "انارة", "كيبل", "كابل", "لمبة", "led", "cable", "قاطع"] },
-  { category: "سباكة", keywords: ["سباكة", "محبس", "صمام", "valve", "خلاط"] },
-  { category: "أدوات صحية", keywords: ["كرسي", "مغسلة", "sanitary", "مرحاض"] },
-  { category: "تكييف وتبريد", keywords: ["مكيف", "تكييف", "duct", "hvac", "تبريد"] },
-  { category: "أنظمة الأنابيب", keywords: ["ماسورة", "أنبوب", "انبوب", "pipe", "pvc", "cpvc", "hdpe"] },
-  { category: "مضخات وخزانات", keywords: ["مضخة", "خزان", "pump", "tank"] },
-  { category: "أرضيات وسيراميك", keywords: ["سيراميك", "بلاط", "tile", "رخام", "أرضيات"] },
-  { category: "عوازل", keywords: ["عازل", "عزل", "insulation", "waterproof"] },
-  { category: "مواد لاصقة", keywords: ["لاصق", "غراء", "adhesive", "سيليكون"] },
+  { category: "الأدوات الصحية", keywords: ["كرسي", "مغسلة", "مرحاض", "حوض", "بانيو", "دش", "خلاط", "sanitary", "bathtub", "basin", "toilet", "faucet", "shower"] },
+  { category: "الكهرباء والإنارة", keywords: ["كهرب", "إنارة", "انارة", "كيبل", "كابل", "لمبة", "قاطع", "led", "cable", "switch", "breaker"] },
+  { category: "السباكة وأنظمة الأنابيب", keywords: ["سباكة", "محبس", "صمام", "ماسورة", "أنبوب", "انبوب", "valve", "pipe", "pvc", "cpvc", "hdpe", "plumbing"] },
+  { category: "التكييف والتهوية", keywords: ["مكيف", "تكييف", "تبريد", "تهوية", "duct", "hvac", "ventilation", "fan"] },
+  { category: "الأرضيات", keywords: ["سيراميك", "بلاط", "رخام", "أرضيات", "باركيه", "tile", "flooring", "marble", "parquet"] },
+  { category: "الجداريات", keywords: ["جبس", "ورق جدران", "كلادينج", "جداريات", "wallpaper", "cladding", "wall panel"] },
+  { category: "الدهانات الداخلية والخارجية", keywords: ["دهان", "طلاء", "معجون", "بريمر", "paint", "coating", "primer"] },
+  { category: "اللواصق والمواد المساعدة", keywords: ["لاصق", "غراء", "سيليكون", "حشو", "adhesive", "grout", "sealant"] },
 ];
 
 function normalizeNumber(value: string): number {
