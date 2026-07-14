@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -18,6 +21,8 @@ import {
 import { Container } from "@/components/ui/container";
 import { HowItWorks } from "@/components/sections/how-it-works";
 
+gsap.registerPlugin(ScrollTrigger);
+
 type HomeContentProps = {
   isRtl?: boolean;
 };
@@ -31,6 +36,13 @@ type CatalogItem = {
 };
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
+  const catalogSectionRef = useRef<HTMLElement>(null);
+  const catalogTitleRef = useRef<HTMLHeadingElement>(null);
+  const catalogSubRef = useRef<HTMLParagraphElement>(null);
+  const catalogCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const catalogStripeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const catalogIconRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const catalog: CatalogItem[] = [
     { en: "Sanitaryware & Bath Fittings", ar: "الأدوات الصحية", descEn: "Fixtures, faucets & bathroom sets", descAr: "تركيبات ومجموعات الحمام", icon: Bath },
     { en: "Electrical & Lighting", ar: "الكهرباء والإنارة", descEn: "Wiring, fixtures & LED systems", descAr: "أسلاك وتركيبات وأنظمة LED", icon: LampCeiling },
@@ -74,6 +86,47 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       : "Submit your requirements today and we'll coordinate supply.",
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
   };
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        [catalogTitleRef.current, catalogSubRef.current],
+        { y: 32, opacity: 0 },
+        {
+          y: 0, opacity: 1, duration: 0.9, ease: "power3.out", stagger: 0.12,
+          scrollTrigger: { trigger: catalogTitleRef.current, start: "top 82%", toggleActions: "play none none reverse" },
+        }
+      );
+
+      catalogCardRefs.current.forEach((card, i) => {
+        if (!card) return;
+        const st = { trigger: card, start: "top 88%", toggleActions: "play none none reverse" };
+        const delay = (i % 4) * 0.06;
+
+        gsap.fromTo(
+          card,
+          { clipPath: "inset(100% 0% 0% 0%)" },
+          { clipPath: "inset(0% 0% 0% 0%)", duration: 0.6, ease: "power3.out", delay, scrollTrigger: st }
+        );
+        gsap.fromTo(
+          catalogStripeRefs.current[i],
+          { scaleX: 0 },
+          {
+            scaleX: 1, duration: 0.4, ease: "power2.inOut", delay: delay + 0.1,
+            transformOrigin: isRtl ? "right center" : "left center",
+            scrollTrigger: st,
+          }
+        );
+        gsap.fromTo(
+          catalogIconRefs.current[i],
+          { scale: 0, backgroundColor: "rgba(5,176,76,0)" },
+          { scale: 1, backgroundColor: "#05B04C", duration: 0.45, ease: "back.out(4)", delay: delay + 0.16, scrollTrigger: st }
+        );
+      });
+    }, catalogSectionRef);
+
+    return () => ctx.revert();
+  }, [isRtl]);
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
@@ -160,44 +213,59 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
-      <section className="bg-brand-light py-20 md:py-32">
+      <section ref={catalogSectionRef} className="bg-brand-light py-20 md:py-32">
         <Container>
           <div className="flex flex-col items-center text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="max-w-3xl"
-            >
-              <h2 className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl">
+            <div className="max-w-3xl">
+              <h2
+                ref={catalogTitleRef}
+                className="text-3xl font-black tracking-tight text-brand-dark md:text-5xl"
+                style={{ opacity: 0 }}
+              >
                 {t.catalogTitle}
               </h2>
-              <p className="mt-4 text-lg text-brand-dark/60">
+              <p
+                ref={catalogSubRef}
+                className="mt-4 text-lg text-brand-dark/60"
+                style={{ opacity: 0 }}
+              >
                 {t.catalogSub}
               </p>
-            </motion.div>
+            </div>
           </div>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {catalog.map((item, index) => {
               const Icon = item.icon;
               return (
-                <motion.article
+                <div
                   key={item.en}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-brand-dark/10 bg-white p-8 transition-all"
+                  ref={(el) => { catalogCardRefs.current[index] = el; }}
+                  className="group relative overflow-hidden rounded-2xl bg-white p-7 pt-8 transition-transform duration-300 ease-out hover:-translate-y-1"
+                  style={{ clipPath: "inset(100% 0% 0% 0%)" }}
                 >
-                  <div className="relative z-10">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-light text-brand-primary transition-colors">
-                      <Icon className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <h3 className="mt-6 text-xl font-bold text-brand-dark">{isRtl ? item.ar : item.en}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-brand-dark/50">{isRtl ? item.descAr : item.descEn}</p>
+                  {/* top accent stripe */}
+                  <div
+                    ref={(el) => { catalogStripeRefs.current[index] = el; }}
+                    className="absolute inset-x-0 top-0 h-[3px] bg-brand-primary"
+                    style={{ transform: "scaleX(0)", transformOrigin: isRtl ? "right center" : "left center" }}
+                  />
+
+                  {/* faint index number */}
+                  <span className="absolute top-7 text-xs font-bold tabular-nums text-brand-dark/15 ltr:right-7 rtl:left-7">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+
+                  <div
+                    ref={(el) => { catalogIconRefs.current[index] = el; }}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl"
+                    style={{ transform: "scale(0)", backgroundColor: "rgba(5,176,76,0)" }}
+                  >
+                    <Icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                </motion.article>
+                  <h3 className="mt-6 text-lg font-bold text-brand-dark">{isRtl ? item.ar : item.en}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-brand-dark/50">{isRtl ? item.descAr : item.descEn}</p>
+                </div>
               );
             })}
           </div>
