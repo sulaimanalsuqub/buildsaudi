@@ -38,7 +38,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             />
             <p className="mt-4 text-sm leading-[1.8] text-brand-dark/58">
               {isRtl
-                ? "بيلد مورد مواد بناء للمشاريع الإنشائية في الرياض وجدة وجميع مناطق المملكة. توريد حديد وإسمنت ومواد التشطيب مع التسليم لموقع المشروع."
+                ? "توريد مواد البناء أسرع وأسهل"
                 : "Build supplies building materials for construction projects across Riyadh, Jeddah, and Saudi Arabia. Steel, cement, and finishing materials delivered to your project site."}
             </p>
           </div>
