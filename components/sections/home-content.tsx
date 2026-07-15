@@ -7,8 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowLeft,
-  ArrowRight,
   Bath,
   Box,
   Droplet,
@@ -122,75 +120,84 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-brand-dark">
-        <Image
-          src="/images/buildman.png"
-          alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[center_58%]"
-        />
-        <div
-          className={`absolute inset-0 ${isRtl ? "bg-gradient-to-l" : "bg-gradient-to-r"} from-brand-dark/95 via-brand-dark/70 to-brand-dark/30`}
-        />
+      <section className="relative overflow-hidden bg-white pb-20 pt-24 md:pb-32 md:pt-40">
 
         <Container className="relative">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex min-h-[560px] max-w-xl flex-col justify-center py-24 text-start md:min-h-[640px] md:py-32"
-          >
-            <h1 className="type-hero text-white">
-              {isRtl ? (
-                <>
-                  مورد مواد بناء وتشطيب{" "}
-                  <span className="text-brand-accent">للمشاريع الإنشائية</span>
-                </>
-              ) : (
-                <>
-                  Building Materials &amp; Finishes Supplier{" "}
-                  <span className="text-brand-accent">for Construction Projects</span>
-                </>
-              )}
-            </h1>
-            <p className="type-subheading mt-6 max-w-xl text-white/75">
-              {t.body}
-            </p>
+          <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
 
-            <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
-              <Link
-                href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-12 items-center justify-center rounded-md bg-brand-primary px-9 text-base font-bold text-white transition hover:bg-white hover:text-brand-dark"
+            {/* Text Section (Right side in RTL) */}
+            <div className="flex flex-col items-center md:items-start text-center md:text-start">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
               >
-                {t.primary}
-              </Link>
-              <a
-                href="#catalog"
-                className="inline-flex items-center gap-2 text-sm font-bold text-white/80 transition hover:text-brand-accent"
-              >
-                {isRtl ? "تصفح الفئات" : "Browse Categories"}
-                {isRtl ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
-              </a>
+                <h1 className="type-hero text-brand-dark leading-[1.15]">
+                  {isRtl ? (
+                    <>
+                      مورد مواد بناء وتشطيب{" "}
+                      <span className="text-brand-primary">للمشاريع الإنشائية</span>
+                    </>
+                  ) : (
+                    <>
+                      Building Materials &amp; Finishes Supplier{" "}
+                      <span className="text-brand-primary">for Construction Projects</span>
+                    </>
+                  )}
+                </h1>
+                <p className="type-subheading mt-6 max-w-xl text-brand-dark/70">
+                  {t.body}
+                </p>
+
+                <div className="mt-10">
+                  <Link
+                    href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                    className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-white transition hover:bg-brand-dark"
+                  >
+                    {t.primary}
+                  </Link>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </Container>
 
-        {/* Trust badge */}
-        <div className="absolute bottom-8 end-8 hidden items-center gap-3 px-5 py-4 md:flex">
-          <Image
-            src="/images/build-icon.png"
-            alt={isRtl ? "أيقونة بيلد" : "Build icon"}
-            width={40}
-            height={40}
-            className="h-9 w-9 shrink-0"
-          />
-          <div>
-            <p className="text-sm font-bold text-white">{isRtl ? "موثوقية كاملة" : "Full Reliability"}</p>
-            <p className="text-xs text-white/65">{isRtl ? "توصيل آمن للمواقع" : "Secure Site Delivery"}</p>
+            {/* Image Section (Left side in RTL) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative"
+            >
+              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light md:aspect-square md:rounded-[3rem]">
+                <Image
+                  src="/images/buildman.png"
+                  alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
+                  width={800}
+                  height={800}
+                  className="w-full h-auto object-cover object-center md:h-full"
+                  priority
+                />
+              </div>
+
+              {/* Floating Stat Card — مخفي على الجوال لتفادي الـ overflow */}
+              <div className="absolute -bottom-6 -inline-start-6 hidden rounded-2xl border border-brand-dark/10 bg-white p-6 md:flex">
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/images/build-icon.png"
+                    alt={isRtl ? "أيقونة بيلد" : "Build icon"}
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-brand-dark">{isRtl ? "موثوقية كاملة" : "Full Reliability"}</p>
+                    <p className="text-xs text-brand-dark/60">{isRtl ? "توصيل آمن للمواقع" : "Secure Site Delivery"}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
