@@ -471,7 +471,7 @@ export async function createSupplierProfile(
   partnerId: number,
   data: {
     supplierType: "local" | "international";
-    crNumber: string;
+    crNumber?: string;
     vatNumber?: string;
     managerName?: string;
   }
@@ -479,9 +479,9 @@ export async function createSupplierProfile(
   return create("x_build_supplier_profile", {
     x_studio_partner_id: partnerId,
     x_studio_supplier_type: data.supplierType,
-    x_studio_cr_number: normalizeCR(data.crNumber),
+    x_studio_cr_number: data.crNumber ? normalizeCR(data.crNumber) : false,
     x_studio_vat_number: data.vatNumber ? normalizeVAT(data.vatNumber) : false,
-    x_studio_status: "draft",
+    x_studio_status: "under_preliminary_review",
     x_studio_profile_completed: false,
     x_studio_active_flag: true,
     x_studio_internal_notes: data.managerName ? `المسؤول: ${data.managerName}` : false,
@@ -493,9 +493,204 @@ export async function updatePreRegistration(
   data: { internalNotes?: string }
 ): Promise<void> {
   await write("x_build_supplier_profile", [profileId], {
-    x_studio_status: "draft",
+    x_studio_status: "under_preliminary_review",
     ...(data.internalNotes ? { x_studio_internal_notes: data.internalNotes } : {}),
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2A-2: تسجيل أولي خفيف (بلا CR/VAT/بنك) + منع تكرار موسّع
+// ─────────────────────────────────────────────────────────────
+
+export function normalizeCompanyName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function extractWebsiteDomain(url: string): string {
+  try {
+    const withProto = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    return new URL(withProto).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+export type PreliminaryRegistrationInput = {
+  establishmentName: string;
+  country: string;
+  supplierType: "local" | "international";
+  contactName: string;
+  jobTitle?: string;
+  email: string;
+  phone: string;
+  categories: string[];
+  brands?: string[];
+  shortDescription: string;
+  website?: string;
+  catalogLink?: string;
+  preferredLanguage: "ar" | "en";
+  policyVersion: string;
+  consentAt: string;
+};
+
+function normalizeCountry(country: string): string {
+  return country.trim().toLowerCase();
+}
+
+/** يبحث عن ملف مورد بنفس البريد + نفس اسم المنشأة (بعد التطبيع) + نفس الدولة */
+export async function findSupplierByEmailNameCountry(
+  email: string,
+  establishmentName: string,
+  country: string
+): Promise<{ partner: OdooPartnerRef; profile: OdooSupplierProfileRef } | null> {
+  const partner = await findPartnerByEmail(email);
+  if (!partner) return null;
+  const profile = await findSupplierProfileByPartner(partner.id);
+  if (!profile) return null;
+  const rows = await read<{ x_studio_country_name: string | false }>("x_build_supplier_profile", [profile.id], [
+    "x_studio_country_name",
+  ]);
+  const partnerRows = await read<{ name: string }>("res.partner", [partner.id], ["name"]);
+  const sameName = normalizeCompanyName(partnerRows[0]?.name ?? "") === normalizeCompanyName(establishmentName);
+  const sameCountry = normalizeCountry(rows[0]?.x_studio_country_name || "") === normalizeCountry(country);
+  if (!sameName || !sameCountry) return null;
+  return { partner, profile };
+}
+
+/** يبحث عن ملف مورد بنفس اسم المنشأة + الدولة (بصرف النظر عن البريد/الجوال) */
+export async function findSupplierByNameAndCountry(
+  establishmentName: string,
+  country: string
+): Promise<{ partner: OdooPartnerRef; profile: OdooSupplierProfileRef } | null> {
+  const normalizedName = normalizeCompanyName(establishmentName);
+  const normalizedCountry = normalizeCountry(country);
+  const candidates = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_status: string;
+    x_studio_profile_completed: boolean;
+    x_studio_country_name: string | false;
+  }>(
+    "x_build_supplier_profile",
+    [],
+    ["x_studio_partner_id", "x_studio_status", "x_studio_profile_completed", "x_studio_country_name"],
+    { limit: 200 }
+  );
+  for (const c of candidates) {
+    if (!c.x_studio_partner_id) continue;
+    if (
+      normalizeCompanyName(c.x_studio_partner_id[1]) === normalizedName &&
+      normalizeCountry(c.x_studio_country_name || "") === normalizedCountry
+    ) {
+      return {
+        partner: { id: c.x_studio_partner_id[0], name: c.x_studio_partner_id[1] },
+        profile: {
+          id: c.id,
+          partnerId: c.x_studio_partner_id[0],
+          status: c.x_studio_status,
+          profileCompleted: Boolean(c.x_studio_profile_completed),
+        },
+      };
+    }
+  }
+  return null;
+}
+
+export async function createPreliminaryPartner(data: {
+  establishmentName: string;
+  email: string;
+  phone: string;
+  website?: string;
+}): Promise<number> {
+  return create("res.partner", {
+    name: data.establishmentName,
+    is_company: true,
+    email: normalizeEmail(data.email),
+    phone: normalizeSaudiPhone(data.phone),
+    website: data.website || false,
+  });
+}
+
+export async function createPreliminarySupplierProfile(
+  partnerId: number,
+  data: PreliminaryRegistrationInput,
+  categoryIds: number[],
+  brandIds: number[]
+): Promise<number> {
+  return create("x_build_supplier_profile", {
+    x_studio_partner_id: partnerId,
+    x_studio_supplier_type: data.supplierType,
+    x_studio_country_name: data.country,
+    x_studio_status: "under_preliminary_review",
+    x_studio_profile_completed: false,
+    x_studio_active_flag: true,
+    x_studio_job_title: data.jobTitle || false,
+    x_studio_short_description: data.shortDescription,
+    x_studio_website: data.website || false,
+    x_studio_website_domain: data.website ? extractWebsiteDomain(data.website) : false,
+    x_studio_catalog_link: data.catalogLink || false,
+    x_studio_preferred_language: data.preferredLanguage,
+    x_studio_privacy_accepted: true,
+    x_studio_terms_accepted: true,
+    x_studio_policy_version: data.policyVersion,
+    x_studio_consent_at: data.consentAt,
+    x_studio_internal_notes: `المسؤول: ${data.contactName}`,
+    x_studio_material_category_ids: categoryIds.length ? [[6, 0, categoryIds]] : false,
+    x_studio_brand_ids: brandIds.length ? [[6, 0, brandIds]] : false,
+  });
+}
+
+/** حفظ مسودة قسم من نموذج الاستكمال — لا يُنشئ Outbox Event، فقط يحدّث حقل JSON + وقت الحفظ */
+export async function saveSupplierDraft(profileId: number, draftData: Record<string, unknown>): Promise<void> {
+  await write("x_build_supplier_profile", [profileId], {
+    x_studio_draft_data_json: JSON.stringify(draftData),
+    x_studio_last_saved_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+  });
+}
+
+export async function getSupplierDraft(profileId: number): Promise<Record<string, unknown> | null> {
+  const rows = await read<{ x_studio_draft_data_json: string | false }>("x_build_supplier_profile", [profileId], [
+    "x_studio_draft_data_json",
+  ]);
+  const raw = rows[0]?.x_studio_draft_data_json;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** كتابة عامة محدودة الحقول المسموحة — تُستخدم في مرحلة استكمال الملف (2A-4/2A-5) */
+export async function updateSupplierProfile(profileId: number, fields: Record<string, unknown>): Promise<void> {
+  await write("x_build_supplier_profile", [profileId], fields);
+}
+
+/** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للفئات/العلامات المُدخلة كنص من الموقع */
+async function resolveOrCreateLookup(model: string, names: string[]): Promise<number[]> {
+  const ids: number[] = [];
+  for (const rawName of names) {
+    const name = rawName.trim();
+    if (!name) continue;
+    const normalized = name.toLowerCase().replace(/\s+/g, " ");
+    const existing = await searchRead<{ id: number; x_studio_name: string }>(model, [], ["x_studio_name"], { limit: 500 });
+    const match = existing.find((r) => r.x_studio_name.trim().toLowerCase().replace(/\s+/g, " ") === normalized);
+    if (match) {
+      ids.push(match.id);
+    } else {
+      const id = await create(model, { x_studio_name: name, x_studio_active_flag: true });
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+export async function resolveOrCreateCategories(names: string[]): Promise<number[]> {
+  return resolveOrCreateLookup("x_build_material_category", names);
+}
+
+export async function resolveOrCreateBrands(names: string[]): Promise<number[]> {
+  return resolveOrCreateLookup("x_build_brand", names);
 }
 
 // ─────────────────────────────────────────────────────────────
