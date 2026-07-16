@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createERPNextSupplierBasicRegistration, updateERPNextDocument } from "@/lib/erpnext";
+import {
+  OdooClientError,
+  createOutboxEvent,
+  createSupplierPartner,
+  createSupplierProfile,
+  findPartnerByCR,
+  findPartnerByEmail,
+  findPartnerByPhone,
+  findSupplierProfileByPartner,
+  normalizeCR,
+} from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-import { sendNewVendorRegistrationNotification, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { verifyEmailToken } from "@/lib/otp";
 import { intlRegistrationRegex, isSaudiSupplierCountry, isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
 
@@ -51,57 +60,86 @@ export async function POST(req: NextRequest) {
   }
 
   const vendor = parsed.data;
+  const supplierType = isSaudiSupplierCountry(vendor.country) ? "local" : "international";
   const crNumber = isSaudiSupplierCountry(vendor.country)
     ? vendor.cr_number.replace(/\D/g, "")
     : vendor.cr_number.trim();
 
-  let createdSupplier: { name: string };
   try {
-    createdSupplier = await createERPNextSupplierBasicRegistration({ ...vendor, cr_number: crNumber });
-  } catch (error) {
-    if (error instanceof Error && error.name === "DuplicateSupplier") {
-      return NextResponse.json({ error: error.message }, { status: 409 });
+    // 1) تطابق السجل التجاري — يُعامَل كمصدر الحقيقة الأساسي لهوية المورد
+    const crMatch = await findPartnerByCR(crNumber);
+    if (crMatch) {
+      return NextResponse.json({
+        ok: true,
+        id: String(crMatch.partner.id),
+        status: "already_registered",
+        stage: crMatch.profile.status,
+      });
     }
-    console.error("ERPNext supplier registration failed:", error);
+
+    // 2) تطابق البريد أو الجوال — لا دمج تلقائي، لا إنشاء صامت عند وجود ملف مورد فعلي
+    const emailMatch = await findPartnerByEmail(vendor.email);
+    const phoneMatch = emailMatch ? null : await findPartnerByPhone(vendor.contact_number);
+    const softMatch = emailMatch ?? phoneMatch;
+
+    if (softMatch) {
+      const existingProfile = await findSupplierProfileByPartner(softMatch.id);
+      if (existingProfile) {
+        // بريد/جوال يتقاطع مع مورد قائم فعلياً برقم سجل مختلف — للمراجعة اليدوية، لا دمج تلقائي
+        console.warn(
+          `[vendors/register] needs_review: email/phone matches existing supplier partner (internal id only, no PII logged)`
+        );
+        return NextResponse.json({ ok: true, status: "needs_review" });
+      }
+
+      // جهة اتصال موجودة (بلا ملف مورد) — إعادة استخدام نفس Partner، إنشاء ملف مورد جديد عليه
+      const profileId = await createSupplierProfile(softMatch.id, {
+        supplierType,
+        crNumber,
+        managerName: vendor.manager_name,
+      });
+      const idempotencyKey = `supplier.pre_registered:${normalizeCR(crNumber)}`;
+      await createOutboxEvent({
+        eventType: "supplier.pre_registered",
+        resourceModel: "x_build_supplier_profile",
+        resourceId: profileId,
+        supplierProfileId: profileId,
+        idempotencyKey,
+        payload: { partner_id: softMatch.id, profile_id: profileId },
+      });
+      return NextResponse.json({ ok: true, id: String(softMatch.id), status: "registered" });
+    }
+
+    // 3) لا تطابق إطلاقاً — تسجيل جديد كامل
+    const partnerId = await createSupplierPartner({
+      establishmentName: vendor.establishment_name,
+      email: vendor.email,
+      phone: vendor.contact_number,
+    });
+    const profileId = await createSupplierProfile(partnerId, {
+      supplierType,
+      crNumber,
+      managerName: vendor.manager_name,
+    });
+
+    const idempotencyKey = `supplier.pre_registered:${normalizeCR(crNumber)}`;
+    await createOutboxEvent({
+      eventType: "supplier.pre_registered",
+      resourceModel: "x_build_supplier_profile",
+      resourceId: profileId,
+      supplierProfileId: profileId,
+      idempotencyKey,
+      payload: { partner_id: partnerId, profile_id: profileId },
+    });
+
+    return NextResponse.json({ ok: true, id: String(partnerId), status: "registered" });
+  } catch (error) {
+    if (error instanceof OdooClientError) {
+      console.error(`[vendors/register][${error.correlationId}] ${error.kind}: ${error.message}`);
+      const status = error.kind === "validation" ? 400 : error.kind === "conflict" ? 409 : 500;
+      return NextResponse.json({ error: error.publicMessage }, { status });
+    }
+    console.error("Vendor registration failed (unexpected):", error);
     return NextResponse.json({ error: "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: 500 });
   }
-
-  void updateERPNextDocument("Supplier", createdSupplier.name, {
-    build_agent_summary: [
-      "📋 طلب تسجيل أساسي من الموقع",
-      `المنشأة: ${vendor.establishment_name}`,
-      `الدولة: ${vendor.country}`,
-      `الجوال: ${vendor.contact_number}`,
-      `السجل: ${crNumber}`,
-      "⏳ Review → Approve = إرسال رابط إكمال الملف فقط",
-      "⚠️ الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات",
-    ].join("\n"),
-  }).catch((e) => console.error("Supplier agent summary failed:", e));
-
-  void Promise.allSettled([
-    sendVendorRegistrationConfirmation({
-      establishment_name: vendor.establishment_name,
-      manager_name: vendor.manager_name,
-      email: vendor.email,
-    }),
-    sendNewVendorRegistrationNotification({
-      id: createdSupplier.name,
-      establishment_name: vendor.establishment_name,
-      manager_name: vendor.manager_name,
-      contact_number: vendor.contact_number,
-      email: vendor.email,
-      cr_number: crNumber,
-      vendor_type: "pending",
-      product_categories: [],
-      coverage_regions: [],
-    }),
-  ]).then((results) => {
-    for (const result of results) {
-      if (result.status === "rejected") {
-        console.error("Vendor registration email failed:", result.reason);
-      }
-    }
-  });
-
-  return NextResponse.json({ ok: true, id: createdSupplier.name });
 }

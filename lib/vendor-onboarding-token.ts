@@ -3,12 +3,12 @@ import { createHmac, timingSafeEqual } from "crypto";
 const MAX_AGE_SECONDS = 14 * 24 * 60 * 60; // 14 days
 
 function getSecret(): string {
-  const secret = process.env.OTP_SECRET ?? process.env.ERPNEXT_WEBHOOK_SECRET;
+  const secret = process.env.VENDOR_ONBOARDING_TOKEN_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      throw new Error("OTP_SECRET is required in production");
+      throw new Error("VENDOR_ONBOARDING_TOKEN_SECRET is required in production");
     }
-    return "build-otp-dev-only";
+    return "build-vendor-onboarding-dev-only";
   }
   return secret;
 }

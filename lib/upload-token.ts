@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 function getSecret(): string {
-  const secret = process.env.UPLOAD_ATTACH_SECRET ?? process.env.OTP_SECRET ?? process.env.ERPNEXT_WEBHOOK_SECRET;
-  if (!secret) throw new Error("UPLOAD_ATTACH_SECRET is not configured");
+  const secret = process.env.UPLOAD_TOKEN_SECRET;
+  if (!secret) throw new Error("UPLOAD_TOKEN_SECRET is not configured");
   return secret;
 }
 

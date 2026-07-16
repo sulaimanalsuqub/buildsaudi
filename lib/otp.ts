@@ -1,7 +1,7 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 function getSecret(): string {
-  const secret = process.env.OTP_SECRET ?? process.env.ERPNEXT_WEBHOOK_SECRET;
+  const secret = process.env.OTP_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
       throw new Error("OTP_SECRET is required in production");
@@ -9,6 +9,17 @@ function getSecret(): string {
     return "build-otp-dev-only";
   }
   return secret;
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  try {
+    return timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
 }
 
 const STEP_SECONDS = 60;
@@ -28,8 +39,9 @@ export function generateOTP(email: string): string {
 
 export function verifyOTP(email: string, code: string): boolean {
   const currentStep = Math.floor(Date.now() / 1000 / STEP_SECONDS);
+  const trimmed = code.trim();
   for (let i = 0; i < VALID_WINDOWS; i++) {
-    if (computeCode(email, currentStep - i) === code.trim()) return true;
+    if (safeEqual(computeCode(email, currentStep - i), trimmed)) return true;
   }
   return false;
 }
@@ -56,5 +68,5 @@ export function verifyEmailToken(email: string, token: string): boolean {
     .update(`verified:${email.toLowerCase().trim()}:${ts}`)
     .digest("hex")
     .slice(0, 16);
-  return expected === parts[1];
+  return safeEqual(expected, parts[1]);
 }
