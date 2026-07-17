@@ -17,6 +17,7 @@ import {
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const CURRENT_POLICY_VERSION = "2026-07-v1";
 
@@ -49,6 +50,7 @@ const registerSchema = z
     preferred_language: z.enum(["ar", "en"]),
     privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
     terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
+    turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
   })
   .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
     path: ["email"],
@@ -67,6 +69,12 @@ export async function POST(req: NextRequest) {
   }
 
   const vendor = parsed.data;
+
+  const humanVerified = await verifyTurnstileToken(vendor.turnstile_token, clientId);
+  if (!humanVerified) {
+    return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
+  }
+
   const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
   // اسم الدولة المعروض — يُحسَب مرة واحدة ويُستخدم في كل الفحوصات والحفظ لضمان التطابق
   const countryDisplay = resolveCountryDisplayName(vendor.country);

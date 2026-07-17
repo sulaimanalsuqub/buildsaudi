@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
@@ -127,6 +128,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const [categories, setCategories] = useState<MaterialCategory[] | null>(null);
   const [categoriesFailed, setCategoriesFailed] = useState(false);
   const [showOther, setShowOther] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  // ربط الرد من ويدجت Turnstile بحالة الفورم عبر callback عام (النمط المتوافق مع سكربت Cloudflare)
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).onVendorTurnstileVerified = (token: string) => setTurnstileToken(token);
+    return () => {
+      delete (window as unknown as Record<string, unknown>).onVendorTurnstileVerified;
+    };
+  }, []);
 
   // الفئات Master Data تُقرأ من Odoo فقط — لا قائمة محلية ثابتة
   useEffect(() => {
@@ -160,6 +170,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       setSubmitError(isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first");
       return;
     }
+    if (!turnstileToken) {
+      setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
+      return;
+    }
     setSubmitError("");
     setIsLoading(true);
     try {
@@ -190,6 +204,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           preferred_language: isRtl ? "ar" : "en",
           privacy_accepted: data.privacyAccepted,
           terms_accepted: data.termsAccepted,
+          turnstile_token: turnstileToken,
         }),
       });
       const result = (await res.json().catch(() => null)) as { error?: string; status?: string } | null;
@@ -423,8 +438,20 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </AnimatePresence>
       </div>
 
+      {showDetails && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+        <div className="mt-6">
+          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+          <div
+            className="cf-turnstile"
+            data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            data-callback="onVendorTurnstileVerified"
+            data-language={isRtl ? "ar" : "en"}
+          />
+        </div>
+      )}
+
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !showDetails} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !showDetails || !turnstileToken} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
