@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { OdooClientError, getSupplierDraft, saveSupplierDraft } from "@/lib/odoo";
+import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
+import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+
+const EDITABLE_STATUSES = new Set(["completing_profile", "more_information_required"]);
+
+const draftSchema = z.object({
+  onboarding_token: z.string().min(10),
+  draft: z.record(z.string(), z.unknown()),
+  // بلا أثر جانبي غير الاستبدال الكامل — القيمة نفسها آمنة للتكرار (idempotent) بلا حاجة لتخزين منفصل
+  idempotency_key: z.string().optional(),
+});
+
+export async function PUT(req: NextRequest) {
+  const clientId = getClientIdentifier(req);
+  const { ok, resetAt } = checkRateLimit(clientId, "api");
+  if (!ok) return rateLimitError(resetAt, "حفظ المسودة");
+
+  const parsed = draftSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "بيانات المسودة غير صحيحة" }, { status: 400 });
+  }
+
+  const resolved = await resolveOnboardingProfile(parsed.data.onboarding_token, EDITABLE_STATUSES);
+  if (!resolved.ok) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+
+  try {
+    await saveSupplierDraft(resolved.profileId, parsed.data.draft);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof OdooClientError) {
+      console.error(`[vendors/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
+    }
+    return NextResponse.json({ error: "تعذر حفظ المسودة" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const token = req.nextUrl.searchParams.get("token");
+  if (!token) return NextResponse.json({ error: "رمز الدعوة مطلوب" }, { status: 400 });
+
+  const resolved = await resolveOnboardingProfile(
+    token,
+    new Set(["completing_profile", "more_information_required", "profile_completed"])
+  );
+  if (!resolved.ok) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+
+  try {
+    const draft = await getSupplierDraft(resolved.profileId);
+    return NextResponse.json({ ok: true, draft: draft || null });
+  } catch (error) {
+    if (error instanceof OdooClientError) {
+      console.error(`[vendors/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
+    }
+    return NextResponse.json({ error: "تعذر جلب المسودة" }, { status: 500 });
+  }
+}

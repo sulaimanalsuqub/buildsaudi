@@ -118,6 +118,40 @@ export function isSaudiSupplierCountry(country: string | undefined | null): bool
   return !country || country === "sa";
 }
 
+// القيم مطابقة تماماً لحقول Selection في Odoo (x_studio_business_type / x_studio_brand_relationship_type / x_studio_price_update_method)
+export const businessTypes: VendorOption[] = [
+  { value: "manufacturer", en: "Manufacturer", ar: "مصنع" },
+  { value: "authorized_distributor", en: "Authorized Distributor", ar: "موزع معتمد" },
+  { value: "distributor", en: "Distributor", ar: "موزع" },
+  { value: "importer", en: "Importer", ar: "مستورد" },
+  { value: "exporter", en: "Exporter", ar: "مُصدِّر" },
+  { value: "trader", en: "Trader", ar: "تاجر" },
+  { value: "service_provider", en: "Service Provider", ar: "مقدم خدمة" },
+];
+
+export const brandRelationshipTypes: VendorOption[] = [
+  { value: "manufacturer", en: "Manufacturer", ar: "مصنع" },
+  { value: "authorized_distributor", en: "Authorized Distributor", ar: "موزع معتمد" },
+  { value: "distributor", en: "Distributor", ar: "موزع" },
+  { value: "trader", en: "Trader", ar: "تاجر" },
+];
+
+export const priceUpdateMethods: VendorOption[] = [
+  { value: "manual", en: "Manual", ar: "يدوي" },
+  { value: "excel", en: "Excel", ar: "Excel" },
+  { value: "csv", en: "CSV", ar: "CSV" },
+  { value: "api", en: "API", ar: "API" },
+  { value: "email", en: "Email", ar: "Email" },
+];
+
+export const documentTypeLabels: Record<string, VendorOption> = {
+  cr_certificate: { value: "cr_certificate", en: "Commercial Registration", ar: "السجل التجاري" },
+  vat_certificate: { value: "vat_certificate", en: "VAT Certificate", ar: "شهادة ضريبة القيمة المضافة" },
+  bank_letter: { value: "bank_letter", en: "Bank Letter", ar: "الخطاب البنكي" },
+  national_address: { value: "national_address", en: "National Address", ar: "العنوان الوطني" },
+  registration_certificate: { value: "registration_certificate", en: "Registration Certificate", ar: "شهادة التسجيل" },
+};
+
 export const shippingArrangements: VendorOption[] = [
   { value: "build_freight", en: "Build's freight agent collects from supplier", ar: "وكيل شحن بيلد يستلم من المورد" },
   { value: "supplier_ships", en: "Supplier ships to KSA", ar: "المورد يشحن إلى السعودية" },

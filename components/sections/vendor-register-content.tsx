@@ -13,8 +13,8 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
     badge: isRtl ? "تسجيل الموردين" : "Supplier Registration",
     title: isRtl ? "سجّل منشأتك كمورد" : "Register your company as a supplier",
     body: isRtl
-      ? "المرحلة الأولى: أرسل بيانات منشأتك الأساسية ورقم السجل التجاري. بعد مراجعة بيلد والموافقة، يصلكم رابط لإكمال ملف التوريد الكامل."
-      : "Phase 1: submit your basic company details and CR number. After Build reviews and approves, you'll receive a link to complete your full supply profile.",
+      ? "المرحلة الأولى: أرسل بيانات منشأتك الأساسية وفئات منتجاتك. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف التوريد الكامل."
+      : "Phase 1: submit your basic company details and product categories. After Build reviews and approves, you'll receive a secure link to complete your full supply profile.",
   };
 
   return (

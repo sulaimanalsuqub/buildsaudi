@@ -1,6 +1,7 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 
-const MAX_AGE_SECONDS = 14 * 24 * 60 * 60; // 14 days
+const MAX_AGE_SECONDS = 14 * 24 * 60 * 60; // 14 يوماً
+const PURPOSE = "vendor_onboarding";
 
 function getSecret(): string {
   const secret = process.env.VENDOR_ONBOARDING_TOKEN_SECRET;
@@ -13,44 +14,73 @@ function getSecret(): string {
   return secret;
 }
 
-function sign(supplierName: string, email: string, exp: number): string {
-  return createHmac("sha256", getSecret())
-    .update(`vendor-onboard:${supplierName}:${email.toLowerCase().trim()}:${exp}`)
-    .digest("hex")
-    .slice(0, 24);
+type TokenPayload = {
+  profileId: number;
+  partnerId: number;
+  purpose: string;
+  issuedAt: number;
+  expiresAt: number;
+  tokenVersion: number;
+  nonce: string;
+};
+
+function sign(payloadJson: string): string {
+  return createHmac("sha256", getSecret()).update(payloadJson).digest("hex").slice(0, 32);
 }
 
-export function generateVendorOnboardingToken(supplierName: string, email: string): string {
-  const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
-  const sig = sign(supplierName, email, exp);
-  return `${encodeURIComponent(supplierName)}.${exp}.${sig}`;
-}
-
-export function verifyVendorOnboardingToken(
-  supplierName: string,
-  email: string,
-  token: string
-): boolean {
-  const parts = token.split(".");
-  if (parts.length !== 3) return false;
-  const name = decodeURIComponent(parts[0]);
-  const exp = parseInt(parts[1], 10);
-  if (isNaN(exp) || name !== supplierName) return false;
-  const age = exp - Math.floor(Date.now() / 1000);
-  if (age < 0) return false;
-  const expected = sign(supplierName, email, exp);
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
   try {
-    return timingSafeEqual(Buffer.from(expected), Buffer.from(parts[2]));
+    return timingSafeEqual(bufA, bufB);
   } catch {
     return false;
   }
 }
 
-export function parseVendorOnboardingToken(token: string): { supplierName: string; exp: number } | null {
+/** التوكن لا يحتوي إلا معرّفات + بيانات دورة حياة الرابط — لا CR/VAT/IBAN/ملاحظات داخلية إطلاقاً */
+export function generateOnboardingToken(profileId: number, partnerId: number, tokenVersion: number): string {
+  const now = Math.floor(Date.now() / 1000);
+  const payload: TokenPayload = {
+    profileId,
+    partnerId,
+    purpose: PURPOSE,
+    issuedAt: now,
+    expiresAt: now + MAX_AGE_SECONDS,
+    tokenVersion,
+    nonce: randomBytes(8).toString("hex"),
+  };
+  const payloadJson = JSON.stringify(payload);
+  const payloadB64 = Buffer.from(payloadJson).toString("base64url");
+  const sig = sign(payloadJson);
+  return `${payloadB64}.${sig}`;
+}
+
+export type OnboardingTokenVerifyResult =
+  | { ok: true; payload: TokenPayload }
+  | { ok: false; reason: "malformed" | "expired" | "bad_signature" | "wrong_purpose" };
+
+/** تحقق ذاتي من الشكل والتوقيع والانتهاء — لا يتحقق من tokenVersion الحالي (ذاك يحتاج قراءة Odoo، يتم في مستدعي الدالة) */
+export function verifyOnboardingTokenStructure(token: string): OnboardingTokenVerifyResult {
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const supplierName = decodeURIComponent(parts[0]);
-  const exp = parseInt(parts[1], 10);
-  if (!supplierName || isNaN(exp)) return null;
-  return { supplierName, exp };
+  if (parts.length !== 2) return { ok: false, reason: "malformed" };
+  const [payloadB64, sig] = parts;
+
+  let payload: TokenPayload;
+  try {
+    const payloadJson = Buffer.from(payloadB64, "base64url").toString("utf8");
+    payload = JSON.parse(payloadJson);
+    const expectedSig = sign(payloadJson);
+    if (!safeEqual(expectedSig, sig)) return { ok: false, reason: "bad_signature" };
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+
+  if (payload.purpose !== PURPOSE) return { ok: false, reason: "wrong_purpose" };
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (nowSeconds > payload.expiresAt) return { ok: false, reason: "expired" };
+
+  return { ok: true, payload };
 }

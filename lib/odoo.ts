@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { normalizeVendorPhone } from "@/lib/vendor-options";
 
 /**
- * عميل Odoo مستقل (JSON-RPC) — يستبدل lib/erpnext.ts تدريجياً.
+ * عميل Odoo مستقل (JSON-RPC) — النظام الوحيد المعتمد لرحلة تسجيل الموردين.
  * لا يُعاد استخدام أي شكل من ERPNext هنا؛ الواجهة مصممة لشكل بيانات Odoo نفسه.
  */
 
@@ -666,6 +666,59 @@ export async function updateSupplierProfile(profileId: number, fields: Record<st
   await write("x_build_supplier_profile", [profileId], fields);
 }
 
+/** يحلّ اسم دولة (عربي أو إنجليزي) إلى معرف res.country — لا يُنشئ دولاً جديدة */
+export async function resolveCountryId(name: string): Promise<number | false> {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  for (const lang of ["ar_001", "en_US"]) {
+    const rows = await callMethod<Array<{ id: number; name: string }>>(
+      "res.country",
+      "search_read",
+      [[["name", "ilike", trimmed]]],
+      { fields: ["id", "name"], limit: 1, context: { lang } }
+    );
+    if (rows[0]) return rows[0].id;
+  }
+  return false;
+}
+
+/** فحص تكرار نهائي بعد استكمال الملف — محلي: CR أو VAT مطابق لملف آخر */
+export async function findDuplicateLocalProfile(
+  crNumber: string,
+  vatNumber: string,
+  excludeProfileId: number
+): Promise<boolean> {
+  const normCr = normalizeCR(crNumber);
+  const normVat = normalizeVAT(vatNumber);
+  const rows = await searchRead<{ id: number }>(
+    "x_build_supplier_profile",
+    ["&", ["id", "!=", excludeProfileId], "|", ["x_studio_cr_number", "=", normCr], ["x_studio_vat_number", "=", normVat]],
+    ["id"],
+    { limit: 1 }
+  );
+  return rows.length > 0;
+}
+
+/** فحص تكرار نهائي بعد استكمال الملف — دولي: دولة التسجيل (معرف res.country) + رقم التسجيل مطابقان لملف آخر */
+export async function findDuplicateInternationalProfile(
+  countryOfRegistrationId: number,
+  registrationNumber: string,
+  excludeProfileId: number
+): Promise<boolean> {
+  const normalized = registrationNumber.trim().toLowerCase();
+  const rows = await searchRead<{ id: number }>(
+    "x_build_supplier_profile",
+    [
+      ["id", "!=", excludeProfileId],
+      ["x_studio_country_of_registration", "=", countryOfRegistrationId],
+      ["x_studio_registration_number", "=", normalized],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  return rows.length > 0;
+}
+
 /** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للفئات/العلامات المُدخلة كنص من الموقع */
 async function resolveOrCreateLookup(model: string, names: string[]): Promise<number[]> {
   const ids: number[] = [];
@@ -691,6 +744,209 @@ export async function resolveOrCreateCategories(names: string[]): Promise<number
 
 export async function resolveOrCreateBrands(names: string[]): Promise<number[]> {
   return resolveOrCreateLookup("x_build_brand", names);
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2A-7: مستندات المورد (Build Supplier Document)
+// ─────────────────────────────────────────────────────────────
+
+export type SupplierDocumentType =
+  | "cr_certificate"
+  | "vat_certificate"
+  | "bank_letter"
+  | "national_address"
+  | "registration_certificate"
+  | "other";
+
+export type SupplierDocumentRow = {
+  id: number;
+  x_studio_document_type: SupplierDocumentType;
+  x_studio_file_name: string;
+  x_studio_mimetype: string | false;
+  x_studio_file_size: number | false;
+  x_studio_uploaded_at: string | false;
+  x_studio_verification_status: "pending" | "verified" | "rejected";
+  x_studio_is_current: boolean;
+  x_studio_version: number;
+};
+
+/** يرفع مستنداً جديداً كإصدار حالي، ويطفئ is_current عن أي نسخة سابقة من نفس النوع */
+export async function createSupplierDocument(params: {
+  profileId: number;
+  documentType: SupplierDocumentType;
+  fileName: string;
+  base64Data: string;
+  mimeType: string;
+  fileSize: number;
+  checksumSha256: string;
+}): Promise<number> {
+  const previous = await searchRead<{ id: number; x_studio_version: number }>(
+    "x_build_supplier_document",
+    [
+      ["x_studio_supplier_profile_id", "=", params.profileId],
+      ["x_studio_document_type", "=", params.documentType],
+      ["x_studio_is_current", "=", true],
+    ],
+    ["x_studio_version"]
+  );
+
+  const nextVersion = (previous[0]?.x_studio_version ?? 0) + 1;
+  if (previous.length) {
+    await write(
+      "x_build_supplier_document",
+      previous.map((p) => p.id),
+      { x_studio_is_current: false }
+    );
+  }
+
+  const attachment = await createAttachment({
+    name: params.fileName,
+    base64Data: params.base64Data,
+    resModel: "x_build_supplier_document",
+    resId: 0,
+    mimeType: params.mimeType,
+  });
+
+  const docId = await create("x_build_supplier_document", {
+    x_studio_supplier_profile_id: params.profileId,
+    x_studio_document_type: params.documentType,
+    x_studio_attachment_id: attachment.id,
+    x_studio_file_name: params.fileName,
+    x_studio_mimetype: params.mimeType,
+    x_studio_file_size: params.fileSize,
+    x_studio_checksum_sha256: params.checksumSha256,
+    x_studio_uploaded_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    x_studio_upload_source: "vendor_portal",
+    x_studio_verification_status: "pending",
+    x_studio_is_current: true,
+    x_studio_version: nextVersion,
+    x_studio_visible_to_supplier: true,
+  });
+
+  await write("ir.attachment", [attachment.id], { res_id: docId });
+
+  return docId;
+}
+
+export type ExpiringDocumentRow = {
+  id: number;
+  x_studio_supplier_profile_id: [number, string] | false;
+  x_studio_document_type: SupplierDocumentType;
+  x_studio_expiry_date: string;
+  x_studio_expiry_alert_60_sent: boolean;
+  x_studio_expiry_alert_30_sent: boolean;
+  x_studio_expiry_alert_7_sent: boolean;
+  x_studio_expiry_alert_0_sent: boolean;
+};
+
+/** كل المستندات الحالية (is_current) التي لها تاريخ انتهاء — تُفلتَر بالأيام المتبقية على مستوى المستدعي */
+export async function listDocumentsWithExpiry(): Promise<ExpiringDocumentRow[]> {
+  return searchRead<ExpiringDocumentRow>(
+    "x_build_supplier_document",
+    [
+      ["x_studio_is_current", "=", true],
+      ["x_studio_expiry_date", "!=", false],
+    ],
+    [
+      "x_studio_supplier_profile_id",
+      "x_studio_document_type",
+      "x_studio_expiry_date",
+      "x_studio_expiry_alert_60_sent",
+      "x_studio_expiry_alert_30_sent",
+      "x_studio_expiry_alert_7_sent",
+      "x_studio_expiry_alert_0_sent",
+    ],
+    { limit: 1000 }
+  );
+}
+
+export async function listSupplierDocuments(profileId: number): Promise<SupplierDocumentRow[]> {
+  return searchRead<SupplierDocumentRow>(
+    "x_build_supplier_document",
+    [
+      ["x_studio_supplier_profile_id", "=", profileId],
+      ["x_studio_is_current", "=", true],
+    ],
+    [
+      "x_studio_document_type",
+      "x_studio_file_name",
+      "x_studio_mimetype",
+      "x_studio_file_size",
+      "x_studio_uploaded_at",
+      "x_studio_verification_status",
+      "x_studio_is_current",
+      "x_studio_version",
+    ]
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2A-9: بيانات الإشعار — تُقرأ من Odoo وقت الإرسال (لا تُخزَّن في Outbox)
+// ─────────────────────────────────────────────────────────────
+
+export type SupplierNotificationProfile = {
+  id: number;
+  partnerId: number;
+  establishmentName: string;
+  managerName: string;
+  email: string;
+  preferredLanguage: "ar" | "en";
+  tokenVersion: number;
+  missingInfoRequested: string;
+  rejectionReasonExternal: string;
+  finalMoreInfoRequested: string;
+  suspendedReason: string;
+};
+
+function extractManagerName(internalNotes: string | false): string {
+  const match = typeof internalNotes === "string" ? internalNotes.match(/المسؤول:\s*(.+)/) : null;
+  return match ? match[1].trim() : "";
+}
+
+export async function getSupplierProfileForNotification(profileId: number): Promise<SupplierNotificationProfile | null> {
+  const rows = await read<{
+    x_studio_partner_id: [number, string] | false;
+    x_studio_preferred_language: "ar" | "en" | false;
+    x_studio_token_version: number | false;
+    x_studio_missing_info_requested: string | false;
+    x_studio_rejection_reason_external: string | false;
+    x_studio_final_more_info_requested: string | false;
+    x_studio_suspended_reason: string | false;
+    x_studio_internal_notes: string | false;
+  }>("x_build_supplier_profile", [profileId], [
+    "x_studio_partner_id",
+    "x_studio_preferred_language",
+    "x_studio_token_version",
+    "x_studio_missing_info_requested",
+    "x_studio_rejection_reason_external",
+    "x_studio_final_more_info_requested",
+    "x_studio_suspended_reason",
+    "x_studio_internal_notes",
+  ]);
+  const row = rows[0];
+  if (!row || !row.x_studio_partner_id) return null;
+
+  const partnerRows = await read<{ name: string; email: string | false }>(
+    "res.partner",
+    [row.x_studio_partner_id[0]],
+    ["name", "email"]
+  );
+  const partner = partnerRows[0];
+  if (!partner?.email) return null;
+
+  return {
+    id: profileId,
+    partnerId: row.x_studio_partner_id[0],
+    establishmentName: partner.name,
+    managerName: extractManagerName(row.x_studio_internal_notes) || partner.name,
+    email: partner.email,
+    preferredLanguage: row.x_studio_preferred_language || "ar",
+    tokenVersion: row.x_studio_token_version || 1,
+    missingInfoRequested: row.x_studio_missing_info_requested || "",
+    rejectionReasonExternal: row.x_studio_rejection_reason_external || "",
+    finalMoreInfoRequested: row.x_studio_final_more_info_requested || "",
+    suspendedReason: row.x_studio_suspended_reason || "",
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/odoo-outbox",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/document-expiry-check",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

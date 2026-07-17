@@ -11,11 +11,14 @@ import { textByLang } from "@/lib/vendor-options";
 
 type OnboardingData = {
   ok: true;
-  supplier_id: string;
+  profile_id: number;
   establishment_name: string;
-  manager_name: string;
-  email: string;
-  is_saudi?: boolean;
+  supplier_type: "local" | "international";
+  country: string;
+  short_description: string;
+  status: string;
+  read_only: boolean;
+  draft: Record<string, unknown> | null;
 };
 
 type VendorCompleteContentProps = {
@@ -42,17 +45,9 @@ export function VendorCompleteContent({ isRtl = false }: VendorCompleteContentPr
     (async () => {
       try {
         const res = await fetch(`/api/vendors/onboarding?token=${encodeURIComponent(token)}`);
-        const body = (await res.json().catch(() => null)) as
-          | OnboardingData
-          | { error?: string; completed?: boolean }
-          | null;
+        const body = (await res.json().catch(() => null)) as OnboardingData | { error?: string } | null;
 
         if (cancelled) return;
-
-        if (res.status === 409 && body && "completed" in body && body.completed) {
-          setCompleted(true);
-          return;
-        }
 
         if (!res.ok || !body || !("ok" in body) || !body.ok) {
           setError(
@@ -60,6 +55,11 @@ export function VendorCompleteContent({ isRtl = false }: VendorCompleteContentPr
               ? body.error
               : textByLang(isRtl, "Could not validate your invitation.", "تعذر التحقق من رابط الدعوة.")
           );
+          return;
+        }
+
+        if (body.read_only) {
+          setCompleted(true);
           return;
         }
 
@@ -147,8 +147,8 @@ export function VendorCompleteContent({ isRtl = false }: VendorCompleteContentPr
               isRtl={isRtl}
               onboardingToken={token}
               establishmentName={data.establishment_name}
-              email={data.email}
-              isSaudi={data.is_saudi !== false}
+              supplierType={data.supplier_type}
+              initialDraft={data.draft}
             />
           ) : null}
         </Container>

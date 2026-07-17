@@ -10,38 +10,55 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { crNumberRegex, intlRegistrationRegex, isSaudiSupplierCountry, isValidVendorPhone, normalizeVendorPhone, optionLabel, parseVendorPhone, supplierCountries, textByLang } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  isSaudiSupplierCountry,
+  isValidVendorPhone,
+  normalizeVendorPhone,
+  optionLabel,
+  parseVendorPhone,
+  productCategories,
+  supplierCountries,
+  textByLang,
+} from "@/lib/vendor-options";
+import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type VendorRegistrationFormProps = {
   isRtl?: boolean;
 };
 
-const formSchema = z
-  .object({
-    country: z.string().min(1, "required"),
-    establishmentName: z.string().min(2, "required"),
-    managerName: z.string().min(2, "required"),
-    contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
-    email: z.string().email("invalidEmail"),
-    crNumber: z.string().min(1, "required"),
-  })
-  .superRefine((v, ctx) => {
-    const valid = isSaudiSupplierCountry(v.country)
-      ? crNumberRegex.test(v.crNumber.replace(/\D/g, ""))
-      : intlRegistrationRegex.test(v.crNumber.trim());
-    if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["crNumber"], message: "invalidCR" });
-  });
+const formSchema = z.object({
+  country: z.string().min(1, "required"),
+  establishmentName: z.string().min(2, "required"),
+  contactName: z.string().min(2, "required"),
+  jobTitle: z.string().optional(),
+  contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
+  email: z.string().email("invalidEmail"),
+  categories: z.array(z.string()).min(1, "required"),
+  brands: z.string().optional(),
+  shortDescription: z.string().min(5, "required"),
+  website: z.string().optional(),
+  catalogLink: z.string().optional(),
+  privacyAccepted: z.literal(true, { message: "required" }),
+  termsAccepted: z.literal(true, { message: "required" }),
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
 const defaultValues: FormValues = {
   country: "sa",
   establishmentName: "",
-  managerName: "",
+  contactName: "",
+  jobTitle: "",
   contactNumber: "",
   email: "",
-  crNumber: "",
+  categories: [],
+  brands: "",
+  shortDescription: "",
+  website: "",
+  catalogLink: "",
+  privacyAccepted: false as unknown as true,
+  termsAccepted: false as unknown as true,
 };
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
@@ -50,8 +67,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     formTitle: textByLang(isRtl, "Start your supplier application", "ابدأ طلب الانضمام"),
     formBody: textByLang(
       isRtl,
-      "Submit your basic company details. After Build reviews and approves your request, you will receive a link to complete your full supply profile.",
-      "أرسل بيانات منشأتك الأساسية. بعد مراجعة بيلد والموافقة، يصلكم رابط لإكمال ملف التوريد الكامل."
+      "Submit your basic company details. After Build reviews and approves your request, you will receive a secure link to complete your full supply profile.",
+      "أرسل بيانات منشأتك الأساسية. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف التوريد الكامل."
     ),
     secureNote: textByLang(isRtl, "Reviewed by Build operations", "تتم المراجعة من فريق عمليات بيلد"),
     submitStateTitle: textByLang(isRtl, "Application Received", "تم استلام طلب الانضمام"),
@@ -60,21 +77,42 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       "We received your basic details. After our initial review, you will get a link to complete your full supply profile. Final approval comes after we review your complete file and documents.",
       "استلمنا بياناتكم الأساسية. بعد المراجعة الأولية يصلكم رابط لإكمال ملف التوريد. الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات."
     ),
+    needsReviewTitle: textByLang(isRtl, "Under Review", "قيد المراجعة"),
+    needsReviewBody: textByLang(
+      isRtl,
+      "Some of your details match an existing application. Our team will review it and reach out if needed.",
+      "بعض بياناتكم تتطابق مع طلب سابق لدينا. سيراجع فريقنا الطلب وسيتواصل معكم عند الحاجة."
+    ),
+    alreadyRegisteredTitle: textByLang(isRtl, "Already Registered", "مسجّل مسبقاً"),
+    alreadyRegisteredBody: textByLang(
+      isRtl,
+      "We found an existing application for this establishment. No need to submit again — our team is already reviewing it.",
+      "لدينا طلب مسجّل مسبقاً لهذه المنشأة. لا حاجة لإعادة الإرسال — فريقنا يراجعه حالياً."
+    ),
     labels: {
       establishmentName: textByLang(isRtl, "Establishment Name", "اسم المنشأة"),
-      managerName: textByLang(isRtl, "Responsible Person", "المسؤول"),
+      contactName: textByLang(isRtl, "Responsible Person", "المسؤول"),
+      jobTitle: textByLang(isRtl, "Job Title (optional)", "المسمى الوظيفي (اختياري)"),
       contactNumber: textByLang(isRtl, "Mobile Number", "رقم الجوال"),
       email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
-      crNumber: textByLang(isRtl, "Commercial Registration Number", "رقم السجل"),
       country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
+      categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
+      brands: textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية الممثَّلة (اختياري)"),
+      shortDescription: textByLang(isRtl, "Brief description of your products", "وصف مختصر لمنتجاتكم"),
+      website: textByLang(isRtl, "Website (optional)", "الموقع الإلكتروني (اختياري)"),
+      catalogLink: textByLang(isRtl, "Catalog Link (optional)", "رابط الكتالوج (اختياري)"),
     },
     helpers: {
       establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
+      brands: textByLang(isRtl, "Separate multiple brands with a comma.", "افصل بين العلامات التجارية بفاصلة."),
     },
+    privacyLabel: textByLang(isRtl, "I agree to the Privacy Policy", "أوافق على سياسة الخصوصية"),
+    termsLabel: textByLang(isRtl, "I agree to the Registration Terms", "أوافق على شروط التسجيل"),
     submit: textByLang(isRtl, "Submit Application", "إرسال طلب الانضمام"),
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review">("registered");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
@@ -99,16 +137,31 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           establishment_name: data.establishmentName.trim(),
-          manager_name: data.managerName.trim(),
-          contact_number: normalizeVendorPhone(data.contactNumber),
+          country: data.country,
+          supplier_type: isSaudi ? "local" : "international",
+          contact_name: data.contactName.trim(),
+          job_title: data.jobTitle?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
-          country: data.country,
-          cr_number: isSaudi ? data.crNumber.replace(/\D/g, "") : data.crNumber.trim(),
+          phone: normalizeVendorPhone(data.contactNumber),
+          categories: data.categories,
+          brands: data.brands
+            ? data.brands
+                .split(",")
+                .map((b) => b.trim())
+                .filter(Boolean)
+            : [],
+          short_description: data.shortDescription.trim(),
+          website: data.website?.trim() || undefined,
+          catalog_link: data.catalogLink?.trim() || undefined,
+          preferred_language: isRtl ? "ar" : "en",
+          privacy_accepted: data.privacyAccepted,
+          terms_accepted: data.termsAccepted,
         }),
       });
-      const result = (await res.json().catch(() => null)) as { error?: string } | null;
+      const result = (await res.json().catch(() => null)) as { error?: string; status?: string } | null;
       if (!res.ok) throw new Error(result?.error ?? "تعذر إرسال الطلب");
+      setResultStatus((result?.status as typeof resultStatus) ?? "registered");
       setIsSubmitted(true);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ."));
@@ -118,13 +171,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   });
 
   if (isSubmitted) {
+    const title = resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
+    const body = resultStatus === "needs_review" ? t.needsReviewBody : resultStatus === "already_registered" ? t.alreadyRegisteredBody : t.submitStateBody;
     return (
       <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center md:p-10">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
           <CheckCircle2 className="h-7 w-7" />
         </div>
-        <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{t.submitStateTitle}</h2>
-        <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{t.submitStateBody}</p>
+        <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{title}</h2>
+        <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{body}</p>
         <a href={isRtl ? "/ar" : "/"} className="mt-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-sm font-semibold text-white hover:bg-brand-dark">
           {isRtl ? "العودة للرئيسية" : "Back to Home"}
         </a>
@@ -132,12 +187,18 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     );
   }
 
-  const showManager = values.establishmentName.trim().length >= 2;
-  const showPhone = showManager && values.managerName.trim().length >= 2;
+  const showContactName = values.establishmentName.trim().length >= 2;
+  const showPhone = showContactName && values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.contactNumber).localNumber;
   const showEmail = showPhone && phoneDigits.length >= 8;
   const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
-  const showCR = showEmail;
+  const showDetails = showEmail && emailVerified;
+
+  const toggleCategory = (value: string) => {
+    const current = values.categories;
+    const next = current.includes(value) ? current.filter((c) => c !== value) : [...current, value];
+    form.setValue("categories", next, { shouldValidate: true });
+  };
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
@@ -175,11 +236,14 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </VendorField>
 
         <AnimatePresence>
-          {showManager && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={t.labels.managerName}>
-                <Input {...form.register("managerName")} className="h-12 text-base" />
-                <VendorErrorText text={form.formState.errors.managerName?.message} isRtl={isRtl} />
+          {showContactName && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid gap-5 sm:grid-cols-2">
+              <VendorField label={t.labels.contactName}>
+                <Input {...form.register("contactName")} className="h-12 text-base" />
+                <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
+              </VendorField>
+              <VendorField label={t.labels.jobTitle}>
+                <Input {...form.register("jobTitle")} className="h-12 text-base" />
               </VendorField>
             </motion.div>
           )}
@@ -241,25 +305,69 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </AnimatePresence>
 
         <AnimatePresence>
-          {showCR && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={isSaudi ? t.labels.crNumber : textByLang(isRtl, "Company Registration Number", "رقم تسجيل الشركة")}>
-                <Input
-                  {...form.register("crNumber")}
-                  inputMode={isSaudi ? "numeric" : "text"}
-                  className="h-12 text-base"
-                  dir="ltr"
-                  placeholder={isSaudi ? "" : textByLang(isRtl, "Company / trade license No.", "رقم السجل / الرخصة التجارية")}
-                />
-                <VendorErrorText text={form.formState.errors.crNumber?.message} isRtl={isRtl} />
+          {showDetails && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+              <VendorField label={t.labels.categories}>
+                <VendorOptionGrid>
+                  {productCategories.map((cat) => (
+                    <VendorOptionCard key={cat.value} checked={values.categories.includes(cat.value)}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-brand-primary"
+                        checked={values.categories.includes(cat.value)}
+                        onChange={() => toggleCategory(cat.value)}
+                      />
+                      {optionLabel(isRtl, productCategories, cat.value)}
+                    </VendorOptionCard>
+                  ))}
+                </VendorOptionGrid>
+                <VendorErrorText text={form.formState.errors.categories?.message} isRtl={isRtl} />
               </VendorField>
+
+              <VendorField label={t.labels.brands} helper={t.helpers.brands}>
+                <Input {...form.register("brands")} className="h-12 text-base" />
+              </VendorField>
+
+              <VendorField label={t.labels.shortDescription}>
+                <textarea
+                  {...form.register("shortDescription")}
+                  className="min-h-[96px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                />
+                <VendorErrorText text={form.formState.errors.shortDescription?.message} isRtl={isRtl} />
+              </VendorField>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <VendorField label={t.labels.website}>
+                  <Input {...form.register("website")} dir="ltr" className="h-12 text-base" />
+                </VendorField>
+                <VendorField label={t.labels.catalogLink}>
+                  <Input {...form.register("catalogLink")} dir="ltr" className="h-12 text-base" />
+                </VendorField>
+              </div>
+
+              <div className="space-y-3 rounded-xl bg-brand-light/40 p-4">
+                <label className="flex items-start gap-3 text-sm text-brand-dark/85">
+                  <Checkbox
+                    checked={values.privacyAccepted}
+                    onCheckedChange={(v) => form.setValue("privacyAccepted", (v === true) as true, { shouldValidate: true })}
+                  />
+                  {t.privacyLabel}
+                </label>
+                <label className="flex items-start gap-3 text-sm text-brand-dark/85">
+                  <Checkbox
+                    checked={values.termsAccepted}
+                    onCheckedChange={(v) => form.setValue("termsAccepted", (v === true) as true, { shouldValidate: true })}
+                  />
+                  {t.termsLabel}
+                </label>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !showCR} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !showDetails} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
