@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
@@ -17,7 +17,6 @@ import {
   normalizeVendorPhone,
   optionLabel,
   parseVendorPhone,
-  productCategories,
   supplierCountries,
   textByLang,
 } from "@/lib/vendor-options";
@@ -27,6 +26,9 @@ type VendorRegistrationFormProps = {
   isRtl?: boolean;
 };
 
+/** Master Data — تُقرأ من Odoo وقت التحميل، لا تُكتب أو تُنشأ من الموقع إطلاقاً */
+type MaterialCategory = { id: number; nameAr: string; nameEn: string };
+
 const formSchema = z.object({
   country: z.string().min(1, "required"),
   establishmentName: z.string().min(2, "required"),
@@ -34,7 +36,8 @@ const formSchema = z.object({
   jobTitle: z.string().optional(),
   contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   email: z.string().email("invalidEmail"),
-  categories: z.array(z.string()).min(1, "required"),
+  categoryIds: z.array(z.number()).min(1, "required"),
+  otherCategorySuggestion: z.string().optional(),
   brands: z.string().optional(),
   shortDescription: z.string().min(5, "required"),
   website: z.string().optional(),
@@ -52,7 +55,8 @@ const defaultValues: FormValues = {
   jobTitle: "",
   contactNumber: "",
   email: "",
-  categories: [],
+  categoryIds: [],
+  otherCategorySuggestion: "",
   brands: "",
   shortDescription: "",
   website: "",
@@ -97,6 +101,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
       country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
       categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
+      other: textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)"),
       brands: textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية الممثَّلة (اختياري)"),
       shortDescription: textByLang(isRtl, "Brief description of your products", "وصف مختصر لمنتجاتكم"),
       website: textByLang(isRtl, "Website (optional)", "الموقع الإلكتروني (اختياري)"),
@@ -105,6 +110,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     helpers: {
       establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
       brands: textByLang(isRtl, "Separate multiple brands with a comma.", "افصل بين العلامات التجارية بفاصلة."),
+      categoriesLoading: textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…"),
+      categoriesError: textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة."),
     },
     privacyLabel: textByLang(isRtl, "I agree to the Privacy Policy", "أوافق على سياسة الخصوصية"),
     termsLabel: textByLang(isRtl, "I agree to the Registration Terms", "أوافق على شروط التسجيل"),
@@ -117,6 +124,30 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailToken, setEmailToken] = useState("");
+  const [categories, setCategories] = useState<MaterialCategory[] | null>(null);
+  const [categoriesFailed, setCategoriesFailed] = useState(false);
+  const [showOther, setShowOther] = useState(false);
+
+  // الفئات Master Data تُقرأ من Odoo فقط — لا قائمة محلية ثابتة
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/reference/material-categories")
+      .then((res) => res.json())
+      .then((body) => {
+        if (cancelled) return;
+        if (body?.ok && Array.isArray(body.categories)) {
+          setCategories(body.categories);
+        } else {
+          setCategoriesFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
@@ -137,14 +168,16 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           establishment_name: data.establishmentName.trim(),
-          country: data.country,
+          // نرسل الاسم المعروض لا الرمز الداخلي (مثال: "السعودية" وليس "sa")
+          country: optionLabel(true, supplierCountries, data.country),
           supplier_type: isSaudi ? "local" : "international",
           contact_name: data.contactName.trim(),
           job_title: data.jobTitle?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.contactNumber),
-          categories: data.categories,
+          category_ids: data.categoryIds,
+          other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
           brands: data.brands
             ? data.brands
                 .split(",")
@@ -194,10 +227,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
   const showDetails = showEmail && emailVerified;
 
-  const toggleCategory = (value: string) => {
-    const current = values.categories;
-    const next = current.includes(value) ? current.filter((c) => c !== value) : [...current, value];
-    form.setValue("categories", next, { shouldValidate: true });
+  const toggleCategory = (id: number) => {
+    const current = values.categoryIds;
+    const next = current.includes(id) ? current.filter((c) => c !== id) : [...current, id];
+    form.setValue("categoryIds", next, { shouldValidate: true });
   };
 
   return (
@@ -308,20 +341,44 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           {showDetails && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
               <VendorField label={t.labels.categories}>
-                <VendorOptionGrid>
-                  {productCategories.map((cat) => (
-                    <VendorOptionCard key={cat.value} checked={values.categories.includes(cat.value)}>
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-brand-primary"
-                        checked={values.categories.includes(cat.value)}
-                        onChange={() => toggleCategory(cat.value)}
+                {categoriesFailed ? (
+                  <p className="text-sm text-red-600">{t.helpers.categoriesError}</p>
+                ) : !categories ? (
+                  <p className="text-sm text-brand-dark/50">{t.helpers.categoriesLoading}</p>
+                ) : (
+                  <>
+                    <VendorOptionGrid>
+                      {categories.map((cat) => (
+                        <VendorOptionCard key={cat.id} checked={values.categoryIds.includes(cat.id)}>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-brand-primary"
+                            checked={values.categoryIds.includes(cat.id)}
+                            onChange={() => toggleCategory(cat.id)}
+                          />
+                          {isRtl ? cat.nameAr : cat.nameEn}
+                        </VendorOptionCard>
+                      ))}
+                      <VendorOptionCard checked={showOther}>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-brand-primary"
+                          checked={showOther}
+                          onChange={() => setShowOther((s) => !s)}
+                        />
+                        {t.labels.other}
+                      </VendorOptionCard>
+                    </VendorOptionGrid>
+                    {showOther && (
+                      <Input
+                        {...form.register("otherCategorySuggestion")}
+                        className="mt-3 h-12 text-base"
+                        placeholder={t.labels.other}
                       />
-                      {optionLabel(isRtl, productCategories, cat.value)}
-                    </VendorOptionCard>
-                  ))}
-                </VendorOptionGrid>
-                <VendorErrorText text={form.formState.errors.categories?.message} isRtl={isRtl} />
+                    )}
+                  </>
+                )}
+                <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
               </VendorField>
 
               <VendorField label={t.labels.brands} helper={t.helpers.brands}>

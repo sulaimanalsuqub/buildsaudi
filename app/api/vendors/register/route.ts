@@ -12,13 +12,18 @@ import {
   findSupplierProfileByPartner,
   normalizeCompanyName,
   resolveOrCreateBrands,
-  resolveOrCreateCategories,
+  validateActiveCategoryIds,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
-import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
+import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 
 const CURRENT_POLICY_VERSION = "2026-07-v1";
+
+/** يحوّل رمز الدولة الداخلي (مثال: "sa") إلى اسمه المعروض — إن كانت القيمة اسماً بالفعل تُعاد كما هي */
+function resolveCountryDisplayName(country: string): string {
+  return optionLabel(true, supplierCountries, country.trim());
+}
 
 const registerSchema = z
   .object({
@@ -34,7 +39,9 @@ const registerSchema = z
       .trim()
       .transform((v) => normalizeVendorPhone(v))
       .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
-    categories: z.array(z.string().trim().min(1)).min(1, "اختر فئة واحدة على الأقل"),
+    // معرّفات فئات حقيقية من Odoo (Master Data) — لا أسماء نصية حرة
+    category_ids: z.array(z.number().int().positive()).min(1, "اختر فئة واحدة على الأقل"),
+    other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
     brands: z.array(z.string().trim().min(1)).optional().default([]),
     short_description: z.string().trim().min(5, "أضف وصفاً مختصراً للمواد أو المنتجات"),
     website: z.string().trim().optional().or(z.literal("")),
@@ -61,10 +68,18 @@ export async function POST(req: NextRequest) {
 
   const vendor = parsed.data;
   const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+  // اسم الدولة المعروض — يُحسَب مرة واحدة ويُستخدم في كل الفحوصات والحفظ لضمان التطابق
+  const countryDisplay = resolveCountryDisplayName(vendor.country);
+
+  // الفئات Master Data من Odoo فقط — نرفض أي معرّف غير موجود أو غير نشط قبل أي إنشاء
+  const categoriesValid = await validateActiveCategoryIds(vendor.category_ids);
+  if (!categoriesValid) {
+    return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+  }
 
   try {
     // 1) نفس البريد + نفس اسم المنشأة (بعد التطبيع) + الدولة — نفس التسجيل، لا إنشاء
-    const exactMatch = await findSupplierByEmailNameCountry(vendor.email, vendor.establishment_name, vendor.country);
+    const exactMatch = await findSupplierByEmailNameCountry(vendor.email, vendor.establishment_name, countryDisplay);
     if (exactMatch) {
       return NextResponse.json({
         ok: true,
@@ -93,7 +108,7 @@ export async function POST(req: NextRequest) {
         });
       } else {
         // Partner موجود بلا Profile — إعادة استخدامه (قاعدة 5)
-        return await registerOnExistingPartner(emailMatch.id, vendor, consentAt);
+        return await registerOnExistingPartner(emailMatch.id, vendor, countryDisplay, consentAt);
       }
     }
 
@@ -106,12 +121,12 @@ export async function POST(req: NextRequest) {
           console.warn("[vendors/register] needs_review: phone matches existing partner with a supplier profile");
           return NextResponse.json({ ok: true, status: "needs_review" });
         }
-        return await registerOnExistingPartner(phoneMatch.id, vendor, consentAt);
+        return await registerOnExistingPartner(phoneMatch.id, vendor, countryDisplay, consentAt);
       }
     }
 
     // 4) نفس اسم المنشأة + الدولة، بيانات اتصال مختلفة
-    const nameMatch = await findSupplierByNameAndCountry(vendor.establishment_name, vendor.country);
+    const nameMatch = await findSupplierByNameAndCountry(vendor.establishment_name, countryDisplay);
     if (nameMatch) {
       console.warn("[vendors/register] needs_review: establishment name + country matches an existing supplier");
       return NextResponse.json({ ok: true, status: "needs_review" });
@@ -124,7 +139,7 @@ export async function POST(req: NextRequest) {
       phone: vendor.phone,
       website: vendor.website || undefined,
     });
-    return await finishRegistration(partnerId, vendor, consentAt);
+    return await finishRegistration(partnerId, vendor, countryDisplay, consentAt);
   } catch (error) {
     if (error instanceof OdooClientError) {
       console.error(`[vendors/register][${error.correlationId}] ${error.kind}: ${error.message}`);
@@ -138,36 +153,32 @@ export async function POST(req: NextRequest) {
 
 type VendorInput = z.infer<typeof registerSchema>;
 
-async function registerOnExistingPartner(partnerId: number, vendor: VendorInput, consentAt: string) {
-  return finishRegistration(partnerId, vendor, consentAt);
+async function registerOnExistingPartner(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
+  return finishRegistration(partnerId, vendor, countryDisplay, consentAt);
 }
 
-async function finishRegistration(partnerId: number, vendor: VendorInput, consentAt: string) {
-  const [categoryIds, brandIds] = await Promise.all([
-    resolveOrCreateCategories(vendor.categories),
-    resolveOrCreateBrands(vendor.brands ?? []),
-  ]);
+async function finishRegistration(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
+  const brandIds = await resolveOrCreateBrands(vendor.brands ?? []);
 
   const profileId = await createPreliminarySupplierProfile(
     partnerId,
     {
       establishmentName: vendor.establishment_name,
-      country: vendor.country,
+      country: countryDisplay,
       supplierType: vendor.supplier_type,
       contactName: vendor.contact_name,
       jobTitle: vendor.job_title || undefined,
       email: vendor.email,
       phone: vendor.phone,
-      categories: vendor.categories,
-      brands: vendor.brands,
       shortDescription: vendor.short_description,
       website: vendor.website || undefined,
       catalogLink: vendor.catalog_link || undefined,
       preferredLanguage: vendor.preferred_language,
       policyVersion: CURRENT_POLICY_VERSION,
       consentAt,
+      otherCategorySuggestion: vendor.other_category_suggestion || undefined,
     },
-    categoryIds,
+    vendor.category_ids,
     brandIds
   );
 

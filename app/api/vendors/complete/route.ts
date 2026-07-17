@@ -11,7 +11,7 @@ import {
   read,
   resolveCountryId,
   resolveOrCreateBrands,
-  resolveOrCreateCategories,
+  validateActiveCategoryIds,
   updateOnboardingProfile,
 } from "@/lib/odoo";
 import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
@@ -82,7 +82,9 @@ const BUSINESS_TYPES = [
 
 const businessFieldsSchema = z.object({
   business_type: z.enum(BUSINESS_TYPES),
-  material_categories: z.array(z.string().trim().min(1)).min(1),
+  // معرّفات فئات حقيقية من Odoo (Master Data) — لا أسماء نصية حرة
+  category_ids: z.array(z.number().int().positive()).min(1),
+  other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
   brands: z.array(z.string().trim().min(1)).optional().default([]),
   service_areas: z.array(z.string().trim().min(1)).optional().default([]),
   delivery_cities: z.string().trim().optional().or(z.literal("")),
@@ -215,13 +217,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const categoryIds = await resolveOrCreateCategories(data.business.material_categories);
+    const categoriesValid = await validateActiveCategoryIds(data.business.category_ids);
+    if (!categoriesValid) {
+      return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+    }
     const brandIds = data.business.brands.length ? await resolveOrCreateBrands(data.business.brands) : [];
 
     const fields: Record<string, unknown> = {
       // النطاق التجاري
       x_studio_business_type: data.business.business_type,
-      x_studio_material_category_ids: [[6, 0, categoryIds]],
+      x_studio_material_category_ids: [[6, 0, data.business.category_ids]],
+      x_studio_other_category_suggestion: data.business.other_category_suggestion || false,
       x_studio_brand_ids: brandIds.length ? [[6, 0, brandIds]] : false,
       x_studio_delivery_cities: data.business.delivery_cities || false,
       x_studio_avg_lead_time_days: data.business.avg_lead_time_days ?? false,

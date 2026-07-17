@@ -469,20 +469,21 @@ export function extractWebsiteDomain(url: string): string {
 
 export type PreliminaryRegistrationInput = {
   establishmentName: string;
+  /** اسم الدولة المعروض (وليس رمزها الداخلي) — يُخزَّن كما هو في هذا الحقل النصي التوصيفي */
   country: string;
   supplierType: "local" | "international";
   contactName: string;
   jobTitle?: string;
   email: string;
   phone: string;
-  categories: string[];
-  brands?: string[];
   shortDescription: string;
   website?: string;
   catalogLink?: string;
   preferredLanguage: "ar" | "en";
   policyVersion: string;
   consentAt: string;
+  /** يُحفَظ للمراجعة اليدوية فقط — لا يُنشئ فئة جديدة تلقائياً */
+  otherCategorySuggestion?: string;
 };
 
 function normalizeCountry(country: string): string {
@@ -589,6 +590,7 @@ export async function createPreliminarySupplierProfile(
     x_studio_internal_notes: `المسؤول: ${data.contactName}`,
     x_studio_material_category_ids: categoryIds.length ? [[6, 0, categoryIds]] : false,
     x_studio_brand_ids: brandIds.length ? [[6, 0, brandIds]] : false,
+    x_studio_other_category_suggestion: data.otherCategorySuggestion || false,
   });
 }
 
@@ -903,7 +905,7 @@ export async function findDuplicateInternationalProfile(
   return rows.length > 0;
 }
 
-/** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للفئات/العلامات المُدخلة كنص من الموقع */
+/** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للعلامات/مناطق الخدمة/المركبات المُدخلة كنص من الموقع */
 async function resolveOrCreateLookup(model: string, names: string[]): Promise<number[]> {
   const ids: number[] = [];
   for (const rawName of names) {
@@ -915,13 +917,57 @@ async function resolveOrCreateLookup(model: string, names: string[]): Promise<nu
     if (match) {
       ids.push(match.id);
     } else {
-      const id = await create(model, { x_studio_name: name, x_studio_active_flag: true });
+      // x_name يُملأ أيضاً — هو الحقل الفعلي الذي يعرضه Odoo كاسم السجل (Display Name)، إغفاله ينتج "غير مسمى"
+      const id = await create(model, { x_name: name, x_studio_name: name, x_studio_active_flag: true });
       ids.push(id);
     }
   }
   return ids;
 }
 
+export type MaterialCategoryOption = {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+};
+
+/** فئات المواد الرئيسية النشطة — Master Data تُدار من داخل Odoo فقط، الموقع يقرأها ولا ينشئها */
+export async function listActiveMaterialCategories(): Promise<MaterialCategoryOption[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_name: string;
+    x_studio_name_en: string | false;
+    x_studio_sequence: number | false;
+  }>(
+    "x_build_material_category",
+    [["x_studio_active_flag", "=", true]],
+    ["x_studio_name", "x_studio_name_en", "x_studio_sequence"],
+    { order: "id asc", limit: 200 }
+  );
+  return rows
+    .map((r) => ({ id: r.id, nameAr: r.x_studio_name, nameEn: r.x_studio_name_en || r.x_studio_name, seq: r.x_studio_sequence || 0 }))
+    .sort((a, b) => a.seq - b.seq)
+    .map(({ id, nameAr, nameEn }) => ({ id, nameAr, nameEn }));
+}
+
+/** يتحقق أن كل معرّف فئة موجود فعلياً ونشط في Odoo — لا يثق بأي شيء أرسله المتصفح بلا تحقق */
+export async function validateActiveCategoryIds(ids: number[]): Promise<boolean> {
+  if (ids.length === 0) return false;
+  const rows = await searchRead<{ id: number }>(
+    "x_build_material_category",
+    [
+      ["id", "in", ids],
+      ["x_studio_active_flag", "=", true],
+    ],
+    ["id"]
+  );
+  return rows.length === ids.length;
+}
+
+/**
+ * @deprecated لرحلة المورد — استُبدلت بـ validateActiveCategoryIds (الفئات Master Data من Odoo، لا تُنشأ من الموقع).
+ * لا تزال مستخدَمة في رحلة الناقل مؤقتاً (خارج نطاق هذا الإصلاح).
+ */
 export async function resolveOrCreateCategories(names: string[]): Promise<number[]> {
   return resolveOrCreateLookup("x_build_material_category", names);
 }

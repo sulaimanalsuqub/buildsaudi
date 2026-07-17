@@ -18,7 +18,6 @@ import {
   optionLabel,
   paymentTerms,
   priceUpdateMethods,
-  productCategories,
   regions,
   textByLang,
 } from "@/lib/vendor-options";
@@ -39,10 +38,14 @@ type Props = {
   initialDraft?: Record<string, unknown> | null;
 };
 
+/** Master Data — تُقرأ من Odoo وقت التحميل، لا تُكتب أو تُنشأ من الموقع إطلاقاً */
+type MaterialCategory = { id: number; nameAr: string; nameEn: string };
+
 const schema = z.object({
   // النطاق التجاري
   businessType: z.string().min(1, "required"),
-  categories: z.array(z.string()).min(1, "required"),
+  categoryIds: z.array(z.number()).min(1, "required"),
+  otherCategorySuggestion: z.string().optional(),
   brands: z.string().optional(),
   serviceAreas: z.array(z.string()).optional(),
   deliveryCities: z.string().optional(),
@@ -83,7 +86,8 @@ type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = {
   businessType: "",
-  categories: [],
+  categoryIds: [],
+  otherCategorySuggestion: "",
   brands: "",
   serviceAreas: [],
   deliveryCities: "",
@@ -111,7 +115,7 @@ const emptyValues: FormValues = {
 };
 
 const stepFields: (keyof FormValues)[][] = [
-  ["businessType", "categories", "paymentTerms"],
+  ["businessType", "categoryIds", "paymentTerms"],
   ["legalName", "crNumber", "vatNumber", "city", "region", "legalCompanyName", "countryOfRegistration", "registrationNumber"],
   ["bankName", "beneficiaryName", "iban"],
   [],
@@ -129,6 +133,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
   const [submitError, setSubmitError] = useState("");
   const [docs, setDocs] = useState<Partial<Record<DocType, UploadedDoc>>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [categories, setCategories] = useState<MaterialCategory[] | null>(null);
+  const [categoriesFailed, setCategoriesFailed] = useState(false);
+  const [showOther, setShowOther] = useState(false);
 
   const t = {
     stepLabels: isRtl
@@ -184,10 +191,37 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
     };
   }, [form, onboardingToken]);
 
-  const toggleMulti = (field: "categories" | "serviceAreas" | "paymentTerms", value: string) => {
+  const toggleMulti = (field: "serviceAreas" | "paymentTerms", value: string) => {
     const current = form.getValues(field) ?? [];
     const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
     form.setValue(field, next, { shouldValidate: true });
+  };
+
+  // الفئات Master Data تُقرأ من Odoo فقط — لا قائمة محلية ثابتة
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/reference/material-categories")
+      .then((res) => res.json())
+      .then((body) => {
+        if (cancelled) return;
+        if (body?.ok && Array.isArray(body.categories)) {
+          setCategories(body.categories);
+        } else {
+          setCategoriesFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleCategory = (id: number) => {
+    const current = form.getValues("categoryIds") ?? [];
+    const next = current.includes(id) ? current.filter((v) => v !== id) : [...current, id];
+    form.setValue("categoryIds", next, { shouldValidate: true });
   };
 
   async function uploadDoc(file: File, docType: DocType) {
@@ -264,7 +298,8 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
           },
           business: {
             business_type: data.businessType,
-            material_categories: data.categories,
+            category_ids: data.categoryIds,
+            other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
             brands: data.brands
               ? data.brands.split(",").map((b) => b.trim()).filter(Boolean)
               : [],
@@ -361,15 +396,36 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Product Categories", "فئات المنتجات")}>
-              <VendorOptionGrid className="lg:grid-cols-3">
-                {productCategories.map((opt) => (
-                  <VendorOptionCard key={opt.value} checked={values.categories.includes(opt.value)}>
-                    <Checkbox checked={values.categories.includes(opt.value)} onCheckedChange={() => toggleMulti("categories", opt.value)} />
-                    <span>{optionLabel(isRtl, productCategories, opt.value)}</span>
-                  </VendorOptionCard>
-                ))}
-              </VendorOptionGrid>
-              <VendorErrorText text={form.formState.errors.categories?.message} isRtl={isRtl} />
+              {categoriesFailed ? (
+                <p className="text-sm text-red-600">
+                  {textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة.")}
+                </p>
+              ) : !categories ? (
+                <p className="text-sm text-brand-dark/50">{textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…")}</p>
+              ) : (
+                <>
+                  <VendorOptionGrid className="lg:grid-cols-3">
+                    {categories.map((cat) => (
+                      <VendorOptionCard key={cat.id} checked={values.categoryIds.includes(cat.id)}>
+                        <Checkbox checked={values.categoryIds.includes(cat.id)} onCheckedChange={() => toggleCategory(cat.id)} />
+                        <span>{isRtl ? cat.nameAr : cat.nameEn}</span>
+                      </VendorOptionCard>
+                    ))}
+                    <VendorOptionCard checked={showOther}>
+                      <Checkbox checked={showOther} onCheckedChange={() => setShowOther((s) => !s)} />
+                      <span>{textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)")}</span>
+                    </VendorOptionCard>
+                  </VendorOptionGrid>
+                  {showOther && (
+                    <Input
+                      {...form.register("otherCategorySuggestion")}
+                      className="mt-3 h-12 text-base"
+                      placeholder={textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)")}
+                    />
+                  )}
+                </>
+              )}
+              <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية (اختياري)")}>
@@ -535,7 +591,15 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             </div>
             <dl className="grid gap-3 md:grid-cols-2">
               <VendorReviewRow label={textByLang(isRtl, "Business Type", "نوع النشاط")} value={values.businessType ? optionLabel(isRtl, businessTypes, values.businessType) : t.notProvided} />
-              <VendorReviewRow label={textByLang(isRtl, "Categories", "الفئات")} value={values.categories.map((c) => optionLabel(isRtl, productCategories, c)).join("، ") || t.notProvided} />
+              <VendorReviewRow
+                label={textByLang(isRtl, "Categories", "الفئات")}
+                value={
+                  (categories ?? [])
+                    .filter((cat) => values.categoryIds.includes(cat.id))
+                    .map((cat) => (isRtl ? cat.nameAr : cat.nameEn))
+                    .join("، ") || t.notProvided
+                }
+              />
               <VendorReviewRow label={isLocal ? textByLang(isRtl, "CR Number", "رقم السجل") : textByLang(isRtl, "Registration Number", "رقم التسجيل")} value={(isLocal ? values.crNumber : values.registrationNumber) || t.notProvided} />
               <VendorReviewRow label="IBAN" value={values.iban || t.notProvided} />
               <VendorReviewRow label={textByLang(isRtl, "Bank", "البنك")} value={values.bankName || t.notProvided} />
