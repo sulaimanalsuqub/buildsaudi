@@ -34,7 +34,13 @@ export const maxDuration = 60;
 
 const BATCH_SIZE = 20;
 const LOCK_DURATION_MS = 5 * 60 * 1000;
-const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa").replace(/\/$/, "");
+// على Production نستخدم النطاق الرسمي دائماً؛ على Preview/local نربط الرابط بنفس النشر الحالي
+// حتى لا يصل بريد اختباري يشير لبيانات Production بينما الكود الفعلي يعمل على بيئة أخرى
+const BASE_URL = (
+  process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production" && process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa"
+).replace(/\/$/, "");
 
 type OutboxRow = {
   id: number;
