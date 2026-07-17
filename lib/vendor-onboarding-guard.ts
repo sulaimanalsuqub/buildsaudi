@@ -1,23 +1,34 @@
 import { read } from "@/lib/odoo";
-import { verifyOnboardingTokenStructure } from "@/lib/vendor-onboarding-token";
+import { verifyOnboardingTokenStructure, type OnboardingKind } from "@/lib/vendor-onboarding-token";
 
 export type ProfileGuardResult =
   | { ok: true; profileId: number; status: string }
   | { ok: false; error: string; status: number };
 
-/** يتحقق من بنية/توقيع/انتهاء التوكن، ثم من مطابقة tokenVersion الحالي في Odoo، ثم من أن حالة الملف ضمن المسموح */
+const MODEL_BY_KIND: Record<OnboardingKind, string> = {
+  supplier: "x_build_supplier_profile",
+  carrier: "x_build_carrier_profile",
+};
+
+/** يتحقق من بنية/توقيع/انتهاء التوكن، من تطابق kind (مورد/ناقل) مع النوع المتوقَّع، من tokenVersion، ومن أن حالة الملف ضمن المسموح */
 export async function resolveOnboardingProfile(
   token: string,
-  allowedStatuses: Set<string>
+  allowedStatuses: Set<string>,
+  expectedKind: OnboardingKind = "supplier"
 ): Promise<ProfileGuardResult> {
   const verification = verifyOnboardingTokenStructure(token);
   if (!verification.ok) {
     return { ok: false, error: "رابط الدعوة غير صالح أو منتهي الصلاحية", status: 401 };
   }
 
-  const { profileId, tokenVersion } = verification.payload;
+  const { profileId, tokenVersion, kind } = verification.payload;
+  if ((kind ?? "supplier") !== expectedKind) {
+    return { ok: false, error: "رابط الدعوة غير صالح أو منتهي الصلاحية", status: 401 };
+  }
+
+  const model = MODEL_BY_KIND[expectedKind];
   const rows = await read<{ x_studio_status: string; x_studio_token_version: number | false }>(
-    "x_build_supplier_profile",
+    model,
     [profileId],
     ["x_studio_status", "x_studio_token_version"]
   );

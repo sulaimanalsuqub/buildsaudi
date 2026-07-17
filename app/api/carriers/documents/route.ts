@@ -14,8 +14,10 @@ const ALLOWED_DOCUMENT_TYPES: SupplierDocumentType[] = [
   "cr_certificate",
   "vat_certificate",
   "bank_letter",
-  "national_address",
   "registration_certificate",
+  "license",
+  "insurance",
+  "vehicle_registration",
   "other",
 ];
 
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "حجم الملف أكبر من 10MB" }, { status: 400 });
   }
 
-  const resolved = await resolveOnboardingProfile(token, EDITABLE_STATUSES);
+  const resolved = await resolveOnboardingProfile(token, EDITABLE_STATUSES, "carrier");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
   try {
     const checksum = createHash("sha256").update(buffer).digest("hex");
     const docId = await createOnboardingDocument({
-      kind: "supplier",
+      kind: "carrier",
       profileId: resolved.profileId,
       documentType,
       fileName: file.name,
@@ -74,9 +76,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, document_id: docId });
   } catch (error) {
     if (error instanceof OdooClientError) {
-      console.error(`[vendors/documents][${error.correlationId}] ${error.kind}: ${error.message}`);
+      console.error(`[carriers/documents][${error.correlationId}] ${error.kind}: ${error.message}`);
     } else {
-      console.error("Vendor document upload failed (unexpected):", error);
+      console.error("Carrier document upload failed (unexpected):", error);
     }
     return NextResponse.json({ error: "تعذر رفع المستند — حاول مرة أخرى" }, { status: 500 });
   }
@@ -86,13 +88,13 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ error: "رمز الدعوة مطلوب" }, { status: 400 });
 
-  const resolved = await resolveOnboardingProfile(token, EDITABLE_STATUSES);
+  const resolved = await resolveOnboardingProfile(token, EDITABLE_STATUSES, "carrier");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   try {
-    const documents = await listOnboardingDocuments("supplier", resolved.profileId);
+    const documents = await listOnboardingDocuments("carrier", resolved.profileId);
     return NextResponse.json({
       ok: true,
       documents: documents.map((d) => ({
@@ -104,7 +106,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     if (error instanceof OdooClientError) {
-      console.error(`[vendors/documents][${error.correlationId}] ${error.kind}: ${error.message}`);
+      console.error(`[carriers/documents][${error.correlationId}] ${error.kind}: ${error.message}`);
     }
     return NextResponse.json({ error: "تعذر جلب المستندات" }, { status: 500 });
   }

@@ -20,12 +20,12 @@ export default function MaintenancePage() {
               نعمل على تجهيز تجربة بيلد الجديدة
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-[#1D3F1F]/62">
-              الموقع متوقف مؤقتًا أثناء ربط العمليات مع ERPNext. سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
+              الموقع متوقف مؤقتًا أثناء ربط العمليات مع نظام العمليات. سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
             </p>
 
             <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
               <div className="rounded-xl border border-[#1D3F1F]/10 bg-white p-4">
-                <p className="text-sm font-bold">ERPNext</p>
+                <p className="text-sm font-bold">Odoo</p>
                 <p className="mt-1 text-sm text-[#1D3F1F]/55">ربط العمليات</p>
               </div>
               <div className="rounded-xl border border-[#1D3F1F]/10 bg-white p-4">

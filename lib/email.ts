@@ -11,7 +11,6 @@ const BASE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ??
   "https://www.build.sa"
 ).replace(/\/$/, "");
-const ERPNEXT_URL = process.env.ERPNEXT_URL?.replace(/\/$/, "");
 
 const LOGO_URL   = `${BASE_URL}/brand/logo-en.svg`;
 const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.svg`;
@@ -57,14 +56,6 @@ function safeUrl(url: string): string {
   } catch {
     return "#";
   }
-}
-
-function erpnextDocUrl(doctype: "opportunity" | "supplier", id: string): string {
-  const fallbackPath = doctype === "opportunity" ? "/get-quote" : "/ar/register";
-  const encodedId = encodeURIComponent(id);
-  return safeUrl(
-    ERPNEXT_URL ? `${ERPNEXT_URL}/app/${doctype}/${encodedId}` : `${BASE_URL}${fallbackPath}`
-  );
 }
 
 const ODOO_BASE_URL = process.env.ODOO_BASE_URL?.replace(/\/$/, "");
@@ -209,119 +200,6 @@ function highlightBox(content: string, color = "#09B14B") {
 
 function sectionTitle(text: string) {
   return `<p style="margin:24px 0 12px;font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">${esc(text)}</p>`;
-}
-
-// ─────────────────────────────────────────────
-//  1. إشعار الأدمن — طلب تسعير جديد
-// ─────────────────────────────────────────────
-export async function sendNewQuoteNotification(quote: {
-  id: string;
-  project_name: string;
-  client_name: string;
-  phone: string;
-  delivery_address: string;
-  materials: string;
-}) {
-  const opportunityUrl = erpnextDocUrl("opportunity", quote.id);
-
-  return sendEmail({
-    from: FROM,
-    to: ADMIN_EMAIL,
-    subject: `طلب تسعير جديد — ${quote.project_name}`,
-    html: emailShell({
-      previewText: `طلب تسعير جديد من ${quote.client_name} لمشروع ${quote.project_name}`,
-      accentColor: "#09B14B",
-      badgeIcon: "📋",
-      badgeLabel: "طلب تسعير جديد",
-      content: `
-        ${greeting(quote.client_name, `مشروع: ${quote.project_name}`)}
-        ${sectionTitle("تفاصيل الطلب")}
-        ${infoTable(
-          infoRow("المشروع", esc(quote.project_name)) +
-          infoRow("العميل", esc(quote.client_name)) +
-          infoRow("الجوال", esc(quote.phone), "ltr") +
-          infoRow("عنوان التسليم", esc(quote.delivery_address))
-        )}
-        ${sectionTitle("المواد المطلوبة")}
-        <div style="background:#f8faf8;border:1px solid #e8ede8;border-radius:10px;padding:16px 20px;margin-bottom:8px;font-size:14px;color:#374151;line-height:1.8;">${esc(quote.materials)}</div>
-        ${ctaButton(opportunityUrl, "فتح الطلب في لوحة التحكم")}
-      `,
-    }),
-  });
-}
-
-// ─────────────────────────────────────────────
-//  2. تأكيد للعميل — استلام طلبه
-// ─────────────────────────────────────────────
-export async function sendQuoteConfirmationToClient(quote: {
-  project_name: string;
-  client_name: string;
-  client_email: string;
-}) {
-  return sendEmail({
-    from: FROM,
-    to: quote.client_email,
-    subject: `تم استلام طلبك — ${quote.project_name}`,
-    html: emailShell({
-      previewText: `تم استلام طلبك لمشروع ${quote.project_name} بنجاح`,
-      accentColor: "#09B14B",
-      badgeIcon: "✅",
-      badgeLabel: "تم استلام الطلب",
-      content: `
-        ${greeting(quote.client_name)}
-        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          تم استلام طلب عرض السعر الخاص بمشروع <strong style="color:#1D3F1F;">${esc(quote.project_name)}</strong> بنجاح.
-        </p>
-        ${highlightBox(`سيتواصل معك فريق Build Saudi خلال <strong>24 ساعة</strong> بعرض سعر مفصّل يشمل جميع المواد المطلوبة.`)}
-        ${sectionTitle("تفاصيل الطلب")}
-        ${infoTable(infoRow("المشروع", esc(quote.project_name)))}
-        <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">للاستفسار، يمكنك التواصل معنا مباشرةً عبر الموقع أو البريد الإلكتروني.</p>
-      `,
-    }),
-  });
-}
-
-// ─────────────────────────────────────────────
-//  3. رابط توقيع العقد للمورد
-// ─────────────────────────────────────────────
-export async function sendContractSignLink(vendor: {
-  establishment_name: string;
-  manager_name: string;
-  email: string;
-  token: string;
-  contractTitle: string;
-}) {
-  const signUrl = safeUrl(`${BASE_URL}/vendor/sign/${vendor.token}`);
-
-  return sendEmail({
-    from: FROM,
-    to: vendor.email,
-    subject: `طلب توقيع عقد — ${vendor.contractTitle}`,
-    html: emailShell({
-      previewText: `يرجى مراجعة عقد ${vendor.contractTitle} والتوقيع عليه`,
-      accentColor: "#1D3F1F",
-      badgeIcon: "📝",
-      badgeLabel: "طلب توقيع عقد",
-      content: `
-        ${greeting(`${vendor.manager_name} / ${vendor.establishment_name}`)}
-        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
-          يرجى مراجعة عقد الشراكة مع Build Saudi والموافقة عليه.
-        </p>
-        ${sectionTitle("تفاصيل العقد")}
-        ${infoTable(
-          infoRow("اسم العقد", esc(vendor.contractTitle)) +
-          infoRow("المنشأة", esc(vendor.establishment_name)) +
-          infoRow("المسؤول", esc(vendor.manager_name))
-        )}
-        ${highlightBox("يُرجى مراجعة بنود العقد بعناية قبل التوقيع. الرابط صالح لمدة محدودة.", "#f59e0b")}
-        ${ctaButton(signUrl, "مراجعة العقد والتوقيع")}
-        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.7;">
-          إذا لم يعمل الزر، انسخ هذا الرابط:<br/>
-          <span dir="ltr" style="word-break:break-all;color:#6b7280;">${signUrl}</span>
-        </p>
-      `,
-    }),
-  });
 }
 
 // ─────────────────────────────────────────────
@@ -713,6 +591,360 @@ export async function sendSupplierFinalReviewNotification(vendor: {
 }
 
 // ─────────────────────────────────────────────
+//  قوالب رحلة الناقل (Carrier) — نصوص مستقلة تماماً عن قوالب المورد
+// ─────────────────────────────────────────────
+
+export async function sendCarrierRegistrationConfirmation(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Your carrier application has been received — Build Saudi" : "تم استلام طلب انضمامكم كناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `${carrier.establishment_name}'s carrier application has been received`
+        : `تم استلام طلب انضمام ${carrier.establishment_name} كناقل`,
+      accentColor: "#09B14B",
+      badgeIcon: "🚚",
+      badgeLabel: isEn ? "Carrier application received" : "تم استلام طلب الانضمام كناقل",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          Thank you for your interest in joining the Build Saudi carrier network. We've received your basic information and our logistics team will review it.
+        </p>
+        ${highlightBox("After preliminary approval, you'll receive a link to complete your carrier profile (service areas, vehicle types, licenses, insurance, and banking).")}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          شكرًا لاهتمامكم بالانضمام إلى شبكة ناقلي Build Saudi. تم استلام بياناتكم الأساسية وسيراجعها فريق العمليات اللوجستية.
+        </p>
+        ${highlightBox("بعد الموافقة الأولية، يصلكم رابط لإكمال ملف الناقل (مناطق الخدمة، أنواع المركبات، التراخيص، التأمين، والبيانات البنكية).")}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierJourneyStartedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  onboarding_url: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const completeUrl = safeUrl(carrier.onboarding_url);
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Your carrier onboarding has started — Build Saudi" : "استكمال ملف الناقل بدأ — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `${carrier.establishment_name}'s carrier application was approved — complete your profile`
+        : `تمت الموافقة على طلب انضمام ${carrier.establishment_name} كناقل — أكملوا ملفكم`,
+      accentColor: "#09B14B",
+      badgeIcon: "🚀",
+      badgeLabel: isEn ? "Carrier onboarding started" : "استكمال ملف الناقل بدأ",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          Your application to join the Build Saudi carrier network has been <strong style="color:#09B14B;">approved</strong>.
+          Next step: complete your fleet and coverage profile.
+        </p>
+        ${highlightBox("You'll need to provide: service areas, vehicle types, accepted material types, transport license, insurance, and banking details.")}
+        ${ctaButton(completeUrl, "Complete carrier profile")}
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.7;">This link is valid for 14 days. If the button doesn't work, copy this link:<br/><span dir="ltr" style="word-break:break-all;color:#6b7280;">${completeUrl}</span></p>
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          تمت <strong style="color:#09B14B;">الموافقة على طلب انضمامكم</strong> إلى شبكة ناقلي Build Saudi.
+          الخطوة التالية: أكملوا ملف الأسطول والتغطية الخاص بكم.
+        </p>
+        ${highlightBox("ستحتاجون لتوفير: مناطق الخدمة، أنواع المركبات، أنواع المواد المقبولة، ترخيص النقل، التأمين، والبيانات البنكية.")}
+        ${ctaButton(completeUrl, "إكمال ملف الناقل")}
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.7;">الرابط صالح لمدة 14 يوماً. إذا لم يعمل الزر، انسخ الرابط:<br/><span dir="ltr" style="word-break:break-all;color:#6b7280;">${completeUrl}</span></p>
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierMoreInfoRequestedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  requestedInfo?: string;
+  onboardingUrl?: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const requested = carrier.requestedInfo?.trim();
+  const requestedBlock = requested ? highlightBox(esc(requested), "#f59e0b") : "";
+  const completeUrl = carrier.onboardingUrl ? safeUrl(carrier.onboardingUrl) : "";
+  const signOff = isEn
+    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
+    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Additional carrier information needed — Build Saudi" : "مطلوب توضيح إضافي لملف الناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `We need a bit more information to continue reviewing ${carrier.establishment_name}'s carrier application`
+        : `نحتاج بعض التوضيحات الإضافية لمواصلة مراجعة طلب الناقل ${carrier.establishment_name}`,
+      accentColor: "#f59e0b",
+      badgeIcon: "✏️",
+      badgeLabel: isEn ? "Additional information needed" : "مطلوب توضيح إضافي",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">We're reviewing your carrier application and need a bit more information before we can continue.</p>
+        ${requestedBlock}
+        ${completeUrl ? ctaButton(completeUrl, "Update your carrier profile") : ""}
+        ${signOff}
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">نراجع طلب انضمامكم كناقل ونحتاج بعض التوضيحات الإضافية قبل أن نتمكن من المتابعة.</p>
+        ${requestedBlock}
+        ${completeUrl ? ctaButton(completeUrl, "تحديث ملف الناقل") : ""}
+        ${signOff}
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierRejectedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  reason?: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const reasonText = carrier.reason?.trim();
+  const reasonBlock = reasonText
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    : "";
+  const signOff = isEn
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Regarding your carrier application — Build Saudi" : "بخصوص طلب الانضمام كناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `Regarding ${carrier.establishment_name}'s carrier application to Build Saudi`
+        : `بخصوص طلب انضمام ${carrier.establishment_name} كناقل إلى Build Saudi`,
+      accentColor: "#1D3F1F",
+      badgeLabel: isEn ? "Regarding your application" : "بخصوص طلب الانضمام",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">Thank you for your interest in joining the Build Saudi carrier network.</p>
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">Unfortunately, we're unable to accept your carrier application at this time. You may reach out to us by email with any questions, or re-apply in the future.</p>
+        ${reasonBlock}
+        ${signOff}
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">نشكركم على اهتمامكم بالانضمام إلى شبكة ناقلي Build Saudi.</p>
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">للأسف، لم نتمكن من قبول طلبكم كناقل في الوقت الحالي. يمكنكم التواصل معنا عبر البريد الإلكتروني للاستفسار أو إعادة التقديم مستقبلاً.</p>
+        ${reasonBlock}
+        ${signOff}
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierFullyApprovedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const signOff = isEn
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Your carrier account is now active — Build Saudi" : "تم تفعيل حسابك كناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `${carrier.establishment_name} is now an approved carrier on Build Saudi`
+        : `أصبحت ${carrier.establishment_name} ناقلاً معتمداً في Build Saudi`,
+      accentColor: "#09B14B",
+      badgeIcon: "✅",
+      badgeLabel: isEn ? "Approved carrier" : "ناقل معتمد",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          Your profile has been reviewed and <strong style="color:#1D3F1F;">${esc(carrier.establishment_name)}</strong>
+          is now <strong style="color:#09B14B;">fully approved</strong> as a carrier on Build Saudi.
+        </p>
+        ${highlightBox("You're now eligible to receive shipment and trip requests matching your coverage and fleet whenever one comes up.")}
+        ${signOff}
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
+          تمت مراجعة ملفكم واعتماد <strong style="color:#1D3F1F;">${esc(carrier.establishment_name)}</strong>
+          كناقل <strong style="color:#09B14B;">معتمد نهائياً</strong> في Build Saudi.
+        </p>
+        ${highlightBox("أنتم الآن مؤهلون لاستقبال طلبات الشحن والرحلات المطابقة لتغطيتكم وأسطولكم عند توفرها.")}
+        ${signOff}
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierSuspendedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  reason?: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const reasonText = carrier.reason?.trim();
+  const reasonBlock = reasonText
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    : "";
+  const signOff = isEn
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Your carrier account has been suspended — Build Saudi" : "تم إيقاف حسابك كناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `${carrier.establishment_name}'s carrier account has been temporarily suspended`
+        : `تم إيقاف حساب ${carrier.establishment_name} كناقل مؤقتاً`,
+      accentColor: "#ef4444",
+      badgeIcon: "⏸️",
+      badgeLabel: isEn ? "Account suspended" : "الحساب موقوف",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">Your carrier account with Build Saudi has been temporarily suspended and you will not receive new shipment requests during this period.</p>
+        ${reasonBlock}
+        <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;">Please contact us by email if you have any questions.</p>
+        ${signOff}
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">تم إيقاف حسابكم كناقل لدى Build Saudi مؤقتاً، ولن تصلكم طلبات شحن جديدة خلال هذه الفترة.</p>
+        ${reasonBlock}
+        <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;">للاستفسار، يمكنكم التواصل معنا عبر البريد الإلكتروني.</p>
+        ${signOff}
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierReactivatedEmail(carrier: {
+  establishment_name: string;
+  manager_name: string;
+  email: string;
+  lang?: "ar" | "en";
+}) {
+  const lang = carrier.lang ?? "ar";
+  const isEn = lang === "en";
+  const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
+  const signOff = isEn
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+  return sendEmail({
+    from: FROM,
+    to: carrier.email,
+    subject: isEn ? "Your carrier account is active again — Build Saudi" : "تمت إعادة تفعيل حسابك كناقل — Build Saudi",
+    html: emailShell({
+      lang,
+      previewText: isEn
+        ? `${carrier.establishment_name}'s carrier account is active again`
+        : `تمت إعادة تفعيل حساب ${carrier.establishment_name} كناقل`,
+      accentColor: "#09B14B",
+      badgeIcon: "✅",
+      badgeLabel: isEn ? "Account reactivated" : "تمت إعادة التفعيل",
+      content: isEn
+        ? `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">Your carrier account with Build Saudi is active again. You're now eligible to receive shipment requests as before.</p>
+        ${signOff}
+      `
+        : `
+        ${greeting(fullName)}
+        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">تمت إعادة تفعيل حسابكم كناقل لدى Build Saudi، وأصبحتم مؤهلين لاستقبال طلبات الشحن كما كان سابقاً.</p>
+        ${signOff}
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierFinalReviewNotification(carrier: {
+  profileId: number;
+  establishment_name: string;
+  email: string;
+}) {
+  const profileUrl = odooRecordUrl("x_build_carrier_profile", carrier.profileId);
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `ملف ناقل جاهز للمراجعة النهائية — ${carrier.establishment_name}`,
+    html: emailShell({
+      previewText: `الناقل ${carrier.establishment_name} أكمل ملفه — مراجعة نهائية مطلوبة`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "🚚",
+      badgeLabel: "ملف ناقل جاهز للمراجعة",
+      content: `
+        ${greeting("فريق Build", "ملف ناقل مكتمل")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          أكمل الناقل <strong>${esc(carrier.establishment_name)}</strong> ملفه من الموقع.
+          راجع نطاق الخدمة، التراخيص، التأمين، والمستندات ثم اعتمد نهائياً من Odoo.
+        </p>
+        ${infoTable(
+          infoRow("المنشأة", esc(carrier.establishment_name)) +
+            infoRow("البريد", esc(carrier.email), "ltr")
+        )}
+        ${ctaButton(profileUrl, "مراجعة الناقل في Odoo")}
+      `,
+    }),
+  });
+}
+
+// ─────────────────────────────────────────────
 //  5e. تنبيه انتهاء صلاحية مستند — Outbox/Cron
 // ─────────────────────────────────────────────
 const DOCUMENT_TYPE_LABELS: Record<string, { ar: string; en: string }> = {
@@ -721,6 +953,9 @@ const DOCUMENT_TYPE_LABELS: Record<string, { ar: string; en: string }> = {
   bank_letter: { ar: "الخطاب البنكي", en: "Bank Letter" },
   national_address: { ar: "العنوان الوطني", en: "National Address" },
   registration_certificate: { ar: "شهادة التسجيل", en: "Registration Certificate" },
+  license: { ar: "ترخيص النقل", en: "Transport License" },
+  insurance: { ar: "وثيقة التأمين", en: "Insurance Policy" },
+  vehicle_registration: { ar: "استمارة المركبة", en: "Vehicle Registration" },
   other: { ar: "مستند", en: "Document" },
 };
 
@@ -786,229 +1021,6 @@ export async function sendDocumentExpiryAlertEmail(vendor: {
 }
 
 // ─────────────────────────────────────────────
-//  6. طلب عرض سعر للمورد (RFQ)
-// ─────────────────────────────────────────────
-export async function sendRfqToVendor(params: {
-  vendorName: string;
-  managerName: string;
-  vendorEmail: string;
-  rfqId: string;
-  projectName: string;
-  deliveryAddress: string;
-  deliveryDate: string;
-  deadline: string;
-  items: { name: string; quantity: number; unit: string; category?: string; description?: string | null }[];
-  notes?: string | null;
-}) {
-  const itemRows = params.items
-    .map((item, i) => `
-      <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8faf8"};">
-        <td style="padding:10px 14px;font-size:13px;color:#1D3F1F;font-weight:500;">${esc(item.name)}</td>
-        <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;color:#09B14B;">${esc(String(item.quantity))}</td>
-        <td style="padding:10px 14px;font-size:13px;color:#6b7280;">${esc(item.unit)}</td>
-        <td style="padding:10px 14px;font-size:12px;color:#9ca3af;">${esc(item.description ?? "") || "—"}</td>
-      </tr>`)
-    .join("");
-
-  return sendEmail({
-    from: FROM,
-    to: params.vendorEmail,
-    subject: `طلب عرض سعر — ${params.projectName}`,
-    html: emailShell({
-      previewText: `طلب عرض سعر لمشروع ${params.projectName} — الموعد النهائي: ${params.deadline}`,
-      accentColor: "#1D3F1F",
-      badgeIcon: "💼",
-      badgeLabel: "طلب عرض سعر (RFQ)",
-      content: `
-        ${greeting(`${params.managerName} / ${params.vendorName}`)}
-        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          نرجو التكرم بتزويدنا بعرض سعر للمواد المذكورة أدناه لمشروع <strong style="color:#1D3F1F;">${esc(params.projectName)}</strong>.
-        </p>
-
-        ${sectionTitle("معلومات التسليم")}
-        ${infoTable(
-          infoRow("عنوان التسليم", esc(params.deliveryAddress)) +
-          infoRow("تاريخ التسليم", esc(params.deliveryDate))
-        )}
-
-        ${sectionTitle("المواد المطلوبة")}
-        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border:1px solid #e8ede8;border-radius:10px;overflow:hidden;margin-bottom:24px;">
-          <thead>
-            <tr style="background:#1D3F1F;">
-              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الصنف</th>
-              <th style="padding:10px 14px;text-align:center;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الكمية</th>
-              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الوحدة</th>
-              <th style="padding:10px 14px;text-align:right;font-size:12px;color:rgba(255,255,255,.8);font-weight:600;">الوصف</th>
-            </tr>
-          </thead>
-          <tbody>${itemRows}</tbody>
-        </table>
-
-        ${highlightBox(`⏰ الموعد النهائي للرد: <strong>${esc(params.deadline)}</strong>`, "#f59e0b")}
-
-        ${params.notes ? `${sectionTitle("ملاحظات إضافية")}<p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;background:#f8faf8;border-radius:10px;padding:14px 18px;">${esc(params.notes)}</p>` : ""}
-
-        <p style="margin:24px 0 0;font-size:14px;color:#374151;line-height:1.8;">
-          يُرجى الرد على هذا البريد مباشرةً بعرض سعركم متضمنًا: السعر الإجمالي، مدة التوريد، وأي شروط خاصة.
-        </p>
-        <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">رقم الطلب: <span dir="ltr">${esc(params.rfqId.split("-")[0])}</span></p>
-      `,
-    }),
-  });
-}
-
-// ─────────────────────────────────────────────
-//  7. عرض السعر النهائي للعميل (DDP)
-// ─────────────────────────────────────────────
-export async function sendClientOfferEmail(offer: {
-  client_name: string;
-  client_email: string;
-  project_name: string;
-  materials_total: number;
-  freight_total: number;
-  platform_fee: number;
-  grand_total: number;
-  validity_days: number;
-  offer_token: string;
-  delivery_address: string;
-  delivery_date: string;
-}) {
-  const offerUrl = safeUrl(`${BASE_URL}/offer/${offer.offer_token}`);
-  const fmt = (n: number) => n.toLocaleString("ar-SA") + " ر.س";
-
-  return sendEmail({
-    from: FROM,
-    to: offer.client_email,
-    subject: `عرض سعر جاهز — ${offer.project_name}`,
-    html: emailShell({
-      previewText: `عرض السعر لمشروع ${offer.project_name} جاهز — الإجمالي: ${fmt(offer.grand_total)}`,
-      accentColor: "#09B14B",
-      badgeIcon: "✅",
-      badgeLabel: "عرض السعر جاهز",
-      content: `
-        ${greeting(offer.client_name)}
-        <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          يسعدنا إبلاغك بأن عرض السعر لمشروع <strong style="color:#1D3F1F;">${esc(offer.project_name)}</strong> جاهز الآن.
-          يُرجى مراجعته والرد خلال <strong>${esc(String(offer.validity_days))} أيام</strong>.
-        </p>
-
-        ${sectionTitle("تفاصيل العرض المالي")}
-        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f8faf8;border:1px solid #e8ede8;border-radius:12px;overflow:hidden;margin-bottom:24px;">
-          <tr style="border-bottom:1px solid #e8ede8;">
-            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">قيمة المواد والتوريد</td>
-            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.materials_total)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e8ede8;">
-            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">التوصيل والجمارك (DDP)</td>
-            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.freight_total)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e8ede8;">
-            <td style="padding:14px 20px;font-size:14px;color:#4b5563;">رسوم خدمة المنصة</td>
-            <td style="padding:14px 20px;text-align:left;font-size:14px;font-weight:600;color:#1D3F1F;" dir="ltr">${fmt(offer.platform_fee)}</td>
-          </tr>
-          <tr style="background:#1D3F1F;">
-            <td style="padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;">الإجمالي DDP</td>
-            <td style="padding:16px 20px;text-align:left;font-size:20px;font-weight:800;color:#09B14B;" dir="ltr">${fmt(offer.grand_total)}</td>
-          </tr>
-        </table>
-
-        ${sectionTitle("تفاصيل التسليم")}
-        ${infoTable(
-          infoRow("عنوان التسليم", esc(offer.delivery_address)) +
-          infoRow("تاريخ التسليم", esc(offer.delivery_date))
-        )}
-
-        ${ctaButton(offerUrl, "مراجعة العرض والرد عليه")}
-        <p style="margin:14px 0 0;text-align:center;font-size:12px;color:#9ca3af;">
-          صالح لمدة ${esc(String(offer.validity_days))} أيام — ينتهي تلقائيًا بعد انتهاء المدة
-        </p>
-      `,
-    }),
-  });
-}
-
-// ─────────────────────────────────────────────
-//  8. إشعار العميل — تحديث حالة الطلب
-// ─────────────────────────────────────────────
-const STATUS_CLIENT_MAP: Record<string, { subject: string; title: string; message: string; color: string; icon: string }> = {
-  admin_approved: {
-    subject: "طلبك تحت المعالجة",
-    title: "طلبك قيد المعالجة",
-    message: "تم مراجعة طلبك والموافقة عليه. نعمل الآن على تجهيز عروض الأسعار من الموردين المعتمدين وسنوافيك بالعرض النهائي في أقرب وقت.",
-    color: "#09B14B",
-    icon: "⚙️",
-  },
-  payment_pending: {
-    subject: "بانتظار تأكيد الدفع",
-    title: "بانتظار الدفع",
-    message: "شكرًا لموافقتك على العرض. يُرجى إتمام عملية الدفع حتى نتمكن من البدء بتجهيز طلبك.",
-    color: "#f59e0b",
-    icon: "💳",
-  },
-  payment_confirmed: {
-    subject: "تم تأكيد الدفع",
-    title: "تم تأكيد الدفع",
-    message: "تم استلام وتأكيد الدفع بنجاح. سنبدأ بتجهيز طلبك وشحنه في أقرب وقت.",
-    color: "#09B14B",
-    icon: "✅",
-  },
-  in_delivery: {
-    subject: "طلبك في الطريق",
-    title: "طلبك في الطريق إليك",
-    message: "تم شحن طلبك وهو في الطريق إلى موقع التسليم. سنوافيك بالتفاصيل عند الوصول.",
-    color: "#3b82f6",
-    icon: "🚚",
-  },
-  done: {
-    subject: "تم تسليم طلبك بنجاح",
-    title: "تم التسليم بنجاح",
-    message: "تم تسليم طلبك بنجاح إلى الموقع المحدد. شكرًا لثقتك في Build Saudi ونتطلع للتعاون معك مجددًا.",
-    color: "#09B14B",
-    icon: "🎉",
-  },
-  cancelled: {
-    subject: "تم إلغاء الطلب",
-    title: "تم إلغاء الطلب",
-    message: "نود إبلاغك بأنه تم إلغاء طلبك. إذا كان لديك أي استفسار، لا تتردد في التواصل معنا.",
-    color: "#ef4444",
-    icon: "❌",
-  },
-};
-
-export function getClientNotifiableStatuses(): string[] {
-  return Object.keys(STATUS_CLIENT_MAP);
-}
-
-export async function sendQuoteStatusToClient(params: {
-  client_name: string;
-  client_email: string;
-  project_name: string;
-  status: string;
-}) {
-  const config = STATUS_CLIENT_MAP[params.status];
-  if (!config) return null;
-
-  return sendEmail({
-    from: FROM,
-    to: params.client_email,
-    subject: `${config.subject} — ${params.project_name}`,
-    html: emailShell({
-      previewText: `${config.subject} — مشروع ${params.project_name}`,
-      accentColor: config.color,
-      badgeIcon: config.icon,
-      badgeLabel: config.title,
-      content: `
-        ${greeting(params.client_name)}
-        ${highlightBox(config.message, config.color)}
-        ${sectionTitle("تفاصيل المشروع")}
-        ${infoTable(infoRow("المشروع", esc(params.project_name)))}
-        <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">للاستفسار، يمكنك التواصل معنا مباشرةً.</p>
-      `,
-    }),
-  });
-}
-
-// ─────────────────────────────────────────────
 //  10. تأكيد تسجيل المورد
 // ─────────────────────────────────────────────
 export async function sendVendorRegistrationConfirmation(vendor: {
@@ -1054,15 +1066,6 @@ export async function sendVendorRegistrationConfirmation(vendor: {
   });
 }
 
-/* ─────────────────────────────────────────────── */
-/*  10. إشعار الأدمن عند رد العميل على العرض      */
-/* ─────────────────────────────────────────────── */
-
-const ACTION_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  accepted:               { label: "وافق على العرض", color: "#09B14B", icon: "✅" },
-  rejected:               { label: "رفض العرض",      color: "#dc2626", icon: "❌" },
-  modification_requested: { label: "طلب تعديل",      color: "#f59e0b", icon: "✏️" },
-};
 
 // ─────────────────────────────────────────────
 //  OTP — التحقق من البريد الإلكتروني
@@ -1089,41 +1092,6 @@ export async function sendEmailVerificationOTP(params: { email: string; code: st
         <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">
           هذا الرمز صالح لمدة <strong>5 دقائق</strong>. لا تشاركه مع أي شخص.
         </p>
-      `,
-    }),
-  });
-}
-
-export async function sendClientResponseNotification(data: {
-  project_name: string;
-  client_name: string;
-  action: string;
-  reason?: string;
-  quote_id: string;
-}) {
-  const actionInfo = ACTION_LABELS[data.action] ?? { label: data.action, color: "#6b7280", icon: "💬" };
-  const adminUrl = erpnextDocUrl("opportunity", data.quote_id);
-
-  return sendEmail({
-    from: FROM,
-    to: ADMIN_EMAIL,
-    subject: `رد العميل: ${actionInfo.label} — ${data.project_name}`,
-    html: emailShell({
-      previewText: `${data.client_name} ${actionInfo.label} على عرض مشروع ${data.project_name}`,
-      accentColor: actionInfo.color,
-      badgeIcon: actionInfo.icon,
-      badgeLabel: `رد العميل: ${actionInfo.label}`,
-      content: `
-        ${greeting(data.client_name, `مشروع: ${data.project_name}`)}
-        ${sectionTitle("تفاصيل الرد")}
-        ${infoTable(
-          infoRow("المشروع", esc(data.project_name)) +
-          infoRow("العميل", esc(data.client_name)) +
-          infoRow("القرار", `<span style="background:${actionInfo.color}1a;color:${actionInfo.color};padding:3px 12px;border-radius:999px;font-weight:700;font-size:13px;">${esc(actionInfo.icon)} ${esc(actionInfo.label)}</span>`)
-        )}
-        ${data.reason ? `${sectionTitle("سبب القرار")}
-        <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.8;background:#f8faf8;border-radius:10px;padding:14px 18px;">${esc(data.reason)}</p>` : ""}
-        ${ctaButton(adminUrl, "فتح الطلب في لوحة التحكم")}
       `,
     }),
   });

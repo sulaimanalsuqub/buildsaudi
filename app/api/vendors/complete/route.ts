@@ -5,14 +5,14 @@ import {
   createOutboxEvent,
   findDuplicateInternationalProfile,
   findDuplicateLocalProfile,
-  listSupplierDocuments,
+  listOnboardingDocuments,
   normalizeCR,
   normalizeVAT,
   read,
   resolveCountryId,
   resolveOrCreateBrands,
   resolveOrCreateCategories,
-  updateSupplierProfile,
+  updateOnboardingProfile,
 } from "@/lib/odoo";
 import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
     }
 
     // مستندات إلزامية قبل الإرسال للمراجعة النهائية
-    const documents = await listSupplierDocuments(profileId);
+    const documents = await listOnboardingDocuments("supplier", profileId);
     const hasType = (t: string) => documents.some((d) => d.x_studio_document_type === t);
     const requiredMissing: string[] = [];
     if (!hasType("bank_letter")) requiredMissing.push("خطاب بنكي");
@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    await updateSupplierProfile(profileId, fields);
+    await updateOnboardingProfile("supplier", profileId, fields);
 
     await createOutboxEvent({
       eventType: "supplier.profile_submitted_final_review",

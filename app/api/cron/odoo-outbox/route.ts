@@ -2,13 +2,24 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   OdooClientError,
+  getCarrierProfileForNotification,
   getSupplierProfileForNotification,
   read,
   searchRead,
   write,
+  type CarrierNotificationProfile,
+  type SupplierNotificationProfile,
 } from "@/lib/odoo";
 import { generateOnboardingToken } from "@/lib/vendor-onboarding-token";
 import {
+  sendCarrierFinalReviewNotification,
+  sendCarrierFullyApprovedEmail,
+  sendCarrierJourneyStartedEmail,
+  sendCarrierMoreInfoRequestedEmail,
+  sendCarrierReactivatedEmail,
+  sendCarrierRegistrationConfirmation,
+  sendCarrierRejectedEmail,
+  sendCarrierSuspendedEmail,
   sendSupplierFinalReviewNotification,
   sendVendorFullyApprovedEmail,
   sendVendorJourneyStartedEmail,
@@ -30,27 +41,28 @@ type OutboxRow = {
   x_studio_event_type: string;
   x_studio_resource_id: number;
   x_studio_supplier_profile_id: [number, string] | false;
+  x_studio_carrier_profile_id: [number, string] | false;
   x_studio_attempts: number;
   x_studio_max_attempts: number;
 };
 
-function onboardingUrl(profileId: number, partnerId: number, tokenVersion: number, lang: "ar" | "en"): string {
-  const token = generateOnboardingToken(profileId, partnerId, tokenVersion);
+function onboardingUrl(
+  kind: "supplier" | "carrier",
+  profileId: number,
+  partnerId: number,
+  tokenVersion: number,
+  lang: "ar" | "en"
+): string {
+  const token = generateOnboardingToken(profileId, partnerId, tokenVersion, kind);
+  const base = kind === "supplier" ? "register" : "carriers/register";
   // العربي على /ar (مجموعة locale)، الإنجليزي بلا بادئة (مجموعة (site))
-  const path = lang === "ar" ? "/ar/register/complete" : "/register/complete";
+  const path = lang === "ar" ? `/ar/${base}/complete` : `/${base}/complete`;
   return `${BASE_URL}${path}?token=${token}`;
 }
 
-/** يُرجع true إذا أُرسل الحدث بنجاح؛ يرمي خطأً وصفياً عند الفشل */
-async function dispatchEvent(row: OutboxRow): Promise<void> {
-  const profileId = row.x_studio_supplier_profile_id ? row.x_studio_supplier_profile_id[0] : row.x_studio_resource_id;
-  const profile = await getSupplierProfileForNotification(profileId);
-  if (!profile) {
-    throw new Error(`supplier profile ${profileId} not found or has no email`);
-  }
+async function dispatchSupplierEvent(eventType: string, profile: SupplierNotificationProfile): Promise<void> {
   const lang = profile.preferredLanguage;
-
-  switch (row.x_studio_event_type) {
+  switch (eventType) {
     case "supplier.pre_registered":
       await sendVendorRegistrationConfirmation({
         establishment_name: profile.establishmentName,
@@ -59,17 +71,15 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.preliminary_approved":
       await sendVendorJourneyStartedEmail({
         establishment_name: profile.establishmentName,
         manager_name: profile.managerName,
         email: profile.email,
-        onboarding_url: onboardingUrl(profile.id, profile.partnerId, profile.tokenVersion, lang),
+        onboarding_url: onboardingUrl("supplier", profile.id, profile.partnerId, profile.tokenVersion, lang),
         lang,
       });
       return;
-
     case "supplier.preliminary_more_information_required":
       await sendVendorMoreInfoRequestedEmail({
         establishment_name: profile.establishmentName,
@@ -79,7 +89,6 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.preliminary_rejected":
       await sendVendorRejectedEmail({
         establishment_name: profile.establishmentName,
@@ -89,7 +98,6 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.profile_submitted_final_review":
       await sendSupplierFinalReviewNotification({
         profileId: profile.id,
@@ -97,7 +105,6 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         email: profile.email,
       });
       return;
-
     case "supplier.fully_approved":
       await sendVendorFullyApprovedEmail({
         establishment_name: profile.establishmentName,
@@ -106,18 +113,16 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.final_more_information_required":
       await sendVendorMoreInfoRequestedEmail({
         establishment_name: profile.establishmentName,
         manager_name: profile.managerName,
         email: profile.email,
         requestedInfo: profile.finalMoreInfoRequested,
-        onboardingUrl: onboardingUrl(profile.id, profile.partnerId, profile.tokenVersion, lang),
+        onboardingUrl: onboardingUrl("supplier", profile.id, profile.partnerId, profile.tokenVersion, lang),
         lang,
       });
       return;
-
     case "supplier.finally_rejected":
       await sendVendorRejectedEmail({
         establishment_name: profile.establishmentName,
@@ -127,7 +132,6 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.suspended":
       await sendVendorSuspendedEmail({
         establishment_name: profile.establishmentName,
@@ -137,7 +141,6 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     case "supplier.reactivated":
       await sendVendorReactivatedEmail({
         establishment_name: profile.establishmentName,
@@ -146,11 +149,118 @@ async function dispatchEvent(row: OutboxRow): Promise<void> {
         lang,
       });
       return;
-
     default:
-      // نوع حدث غير معروف — لا نُعيد المحاولة إلى ما لا نهاية، نُسقطه في Dead Letter مباشرة عبر رمي خطأ غير قابل للتراجع
-      throw new Error(`unknown event type: ${row.x_studio_event_type}`);
+      throw new Error(`unknown event type: ${eventType}`);
   }
+}
+
+async function dispatchCarrierEvent(eventType: string, profile: CarrierNotificationProfile): Promise<void> {
+  const lang = profile.preferredLanguage;
+  switch (eventType) {
+    case "carrier.pre_registered":
+      await sendCarrierRegistrationConfirmation({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        lang,
+      });
+      return;
+    case "carrier.preliminary_approved":
+      await sendCarrierJourneyStartedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        onboarding_url: onboardingUrl("carrier", profile.id, profile.partnerId, profile.tokenVersion, lang),
+        lang,
+      });
+      return;
+    case "carrier.preliminary_more_information_required":
+      await sendCarrierMoreInfoRequestedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        requestedInfo: profile.missingInfoRequested,
+        lang,
+      });
+      return;
+    case "carrier.preliminary_rejected":
+      await sendCarrierRejectedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        reason: profile.rejectionReasonExternal,
+        lang,
+      });
+      return;
+    case "carrier.profile_submitted_final_review":
+      await sendCarrierFinalReviewNotification({
+        profileId: profile.id,
+        establishment_name: profile.establishmentName,
+        email: profile.email,
+      });
+      return;
+    case "carrier.fully_approved":
+      await sendCarrierFullyApprovedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        lang,
+      });
+      return;
+    case "carrier.final_more_information_required":
+      await sendCarrierMoreInfoRequestedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        requestedInfo: profile.finalMoreInfoRequested,
+        onboardingUrl: onboardingUrl("carrier", profile.id, profile.partnerId, profile.tokenVersion, lang),
+        lang,
+      });
+      return;
+    case "carrier.finally_rejected":
+      await sendCarrierRejectedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        reason: profile.rejectionReasonExternal,
+        lang,
+      });
+      return;
+    case "carrier.suspended":
+      await sendCarrierSuspendedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        reason: profile.suspendedReason,
+        lang,
+      });
+      return;
+    case "carrier.reactivated":
+      await sendCarrierReactivatedEmail({
+        establishment_name: profile.establishmentName,
+        manager_name: profile.managerName,
+        email: profile.email,
+        lang,
+      });
+      return;
+    default:
+      throw new Error(`unknown event type: ${eventType}`);
+  }
+}
+
+/** يرمي خطأً وصفياً عند الفشل — يُحدَّد المسار (مورد/ناقل) من الحقل المربوط بالحدث */
+async function dispatchEvent(row: OutboxRow): Promise<void> {
+  if (row.x_studio_carrier_profile_id) {
+    const profileId = row.x_studio_carrier_profile_id[0];
+    const profile = await getCarrierProfileForNotification(profileId);
+    if (!profile) throw new Error(`carrier profile ${profileId} not found or has no email`);
+    return dispatchCarrierEvent(row.x_studio_event_type, profile);
+  }
+
+  const profileId = row.x_studio_supplier_profile_id ? row.x_studio_supplier_profile_id[0] : row.x_studio_resource_id;
+  const profile = await getSupplierProfileForNotification(profileId);
+  if (!profile) throw new Error(`supplier profile ${profileId} not found or has no email`);
+  return dispatchSupplierEvent(row.x_studio_event_type, profile);
 }
 
 function backoffMinutes(attempts: number): number {
@@ -187,7 +297,7 @@ export async function GET(req: NextRequest) {
         ["x_studio_available_at", "=", false],
         ["x_studio_available_at", "<=", nowStr],
       ],
-      ["x_studio_event_type", "x_studio_resource_id", "x_studio_supplier_profile_id", "x_studio_attempts", "x_studio_max_attempts"],
+      ["x_studio_event_type", "x_studio_resource_id", "x_studio_supplier_profile_id", "x_studio_carrier_profile_id", "x_studio_attempts", "x_studio_max_attempts"],
       { limit: BATCH_SIZE, order: "id asc" }
     );
   } catch (error) {

@@ -3,33 +3,22 @@
 import { useState } from "react";
 import { CheckCircle2, Check, ClipboardList, Clock, Copy, Mail, SendHorizontal } from "lucide-react";
 
-import { GetQuoteForm } from "@/components/forms/get-quote-form";
 import { Container } from "@/components/ui/container";
 
 type QuotePageContentProps = {
   isRtl?: boolean;
+  /** يُمرَّر من صفحة الخادم (page.tsx) — مصدره متغير بيئة QUOTE_INTAKE_EMAIL، لا يُكتب هنا */
+  quoteEmail: string;
 };
 
-/** أعد تفعيل النموذج بضبط NEXT_PUBLIC_ENABLE_QUOTE_FORM=true في Vercel ثم أعد النشر */
-const QUOTE_FORM_ENABLED = process.env.NEXT_PUBLIC_ENABLE_QUOTE_FORM === "true";
-const SALES_EMAIL = "sales@build.sa";
-
-export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
-  const t = QUOTE_FORM_ENABLED
-    ? {
-        badge: isRtl ? "أطلب المنتجات" : "Order Products",
-        title: isRtl ? "أرسل احتياج مشروعك" : "Send Your Project Request",
-        body: isRtl
-          ? "أدخل المواد المطلوبة، موقع التسليم، والموعد المستهدف. يمكنك إضافة ملف BOQ لتسريع المراجعة."
-          : "Enter the required materials, delivery location, and target date. You can attach a BOQ to speed up review.",
-      }
-    : {
-        badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
-        title: isRtl ? "تواصل معنا عبر البريد" : "Contact Us by Email",
-        body: isRtl
-          ? "أرسل تفاصيل مشروعك والمواد المطلوبة إلى فريق المبيعات، وسنعود إليك في أقرب وقت."
-          : "Send your project details and required materials to our sales team, and we will get back to you shortly.",
-      };
+export function QuotePageContent({ isRtl = false, quoteEmail }: QuotePageContentProps) {
+  const t = {
+    badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
+    title: isRtl ? "تواصل معنا عبر البريد" : "Contact Us by Email",
+    body: isRtl
+      ? "أرسل تفاصيل مشروعك والمواد المطلوبة إلى فريق المبيعات، وسنعود إليك في أقرب وقت."
+      : "Send your project details and required materials to our sales team, and we will get back to you shortly.",
+  };
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
@@ -49,11 +38,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
       <section className="bg-[#f7f9f6] py-10 md:py-14">
         <Container>
           <div className="mx-auto max-w-4xl">
-            {QUOTE_FORM_ENABLED ? (
-              <GetQuoteForm isRtl={isRtl} />
-            ) : (
-              <QuoteEmailFallback isRtl={isRtl} />
-            )}
+            <QuoteEmailFallback isRtl={isRtl} salesEmail={quoteEmail} />
           </div>
         </Container>
       </section>
@@ -61,7 +46,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
   );
 }
 
-function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
+function QuoteEmailFallback({ isRtl, salesEmail }: { isRtl: boolean; salesEmail: string }) {
   const [copied, setCopied] = useState(false);
 
   const subject = isRtl
@@ -95,11 +80,11 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
 
   const encSubject = encodeURIComponent(subject);
   const encBody = encodeURIComponent(body);
-  const encTo = encodeURIComponent(SALES_EMAIL);
+  const encTo = encodeURIComponent(salesEmail);
 
   const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encTo}&su=${encSubject}&body=${encBody}`;
   const outlookHref = `https://outlook.live.com/mail/0/deeplink/compose?to=${encTo}&subject=${encSubject}&body=${encBody}`;
-  const otherHref = `mailto:${SALES_EMAIL}?subject=${encSubject}&body=${encBody}`;
+  const otherHref = `mailto:${salesEmail}?subject=${encSubject}&body=${encBody}`;
 
   const checklist = isRtl
     ? ["اسم المنشأة أو العميل", "رقم الجوال", "مدينة التسليم", "المواد المطلوبة أو ملف BOQ"]
@@ -113,7 +98,7 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(SALES_EMAIL);
+      await navigator.clipboard.writeText(salesEmail);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -170,7 +155,7 @@ function QuoteEmailFallback({ isRtl }: { isRtl: boolean }) {
             className="truncate text-lg font-bold tracking-wide text-brand-primary hover:underline"
             dir="ltr"
           >
-            {SALES_EMAIL}
+            {salesEmail}
           </a>
           <button
             type="button"

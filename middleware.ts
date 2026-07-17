@@ -3,13 +3,14 @@ import { type NextRequest, NextResponse } from "next/server";
 // ====== تفعيل / إيقاف وضع الصيانة ======
 // اضبط NEXT_PUBLIC_MAINTENANCE_MODE=true في .env.local أو Vercel لتفعيله
 const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
-const ERPNEXT_URL = process.env.NEXT_PUBLIC_ERPNEXT_URL;
+// ملاحظة: قراءة مباشرة بلا NEXT_PUBLIC_ — middleware يعمل على الخادم، والقيمة لا تدخل حزمة العميل
+const ODOO_URL = process.env.ODOO_BASE_URL;
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    return NextResponse.redirect(new URL(ERPNEXT_URL || "/", request.url));
+    return NextResponse.redirect(new URL(ODOO_URL || "/", request.url));
   }
 
   // إذا كان وضع الصيانة مفعلًا ولم يكن المسار هو صفحة الصيانة أو static/assets

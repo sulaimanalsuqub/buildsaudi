@@ -451,54 +451,6 @@ export async function findSupplierProfileByPartner(partnerId: number): Promise<O
 }
 
 // ─────────────────────────────────────────────────────────────
-// Supplier registration writes
-// ─────────────────────────────────────────────────────────────
-
-export async function createSupplierPartner(data: {
-  establishmentName: string;
-  email: string;
-  phone: string;
-}): Promise<number> {
-  return create("res.partner", {
-    name: data.establishmentName,
-    is_company: true,
-    email: normalizeEmail(data.email),
-    phone: normalizeSaudiPhone(data.phone),
-  });
-}
-
-export async function createSupplierProfile(
-  partnerId: number,
-  data: {
-    supplierType: "local" | "international";
-    crNumber?: string;
-    vatNumber?: string;
-    managerName?: string;
-  }
-): Promise<number> {
-  return create("x_build_supplier_profile", {
-    x_studio_partner_id: partnerId,
-    x_studio_supplier_type: data.supplierType,
-    x_studio_cr_number: data.crNumber ? normalizeCR(data.crNumber) : false,
-    x_studio_vat_number: data.vatNumber ? normalizeVAT(data.vatNumber) : false,
-    x_studio_status: "under_preliminary_review",
-    x_studio_profile_completed: false,
-    x_studio_active_flag: true,
-    x_studio_internal_notes: data.managerName ? `المسؤول: ${data.managerName}` : false,
-  });
-}
-
-export async function updatePreRegistration(
-  profileId: number,
-  data: { internalNotes?: string }
-): Promise<void> {
-  await write("x_build_supplier_profile", [profileId], {
-    x_studio_status: "under_preliminary_review",
-    ...(data.internalNotes ? { x_studio_internal_notes: data.internalNotes } : {}),
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
 // 2A-2: تسجيل أولي خفيف (بلا CR/VAT/بنك) + منع تكرار موسّع
 // ─────────────────────────────────────────────────────────────
 
@@ -640,16 +592,248 @@ export async function createPreliminarySupplierProfile(
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// رحلة الناقل (Carrier) — تسجيل أولي، مطابقة تماماً لنمط المورد
+// ─────────────────────────────────────────────────────────────
+
+export type OdooCarrierProfileRef = {
+  id: number;
+  partnerId: number;
+  status: string;
+  profileCompleted: boolean;
+};
+
+export type PreliminaryCarrierRegistrationInput = {
+  establishmentName: string;
+  country: string;
+  carrierType: "local" | "international";
+  contactName: string;
+  jobTitle?: string;
+  email: string;
+  phone: string;
+  serviceAreas: string[];
+  vehicleTypes: string[];
+  materialCategories: string[];
+  shortDescription: string;
+  website?: string;
+  preferredLanguage: "ar" | "en";
+  policyVersion: string;
+  consentAt: string;
+};
+
+export async function findCarrierProfileByPartner(partnerId: number): Promise<OdooCarrierProfileRef | null> {
+  const rows = await searchRead<{ id: number; x_studio_status: string; x_studio_profile_completed: boolean }>(
+    "x_build_carrier_profile",
+    [["x_studio_partner_id", "=", partnerId]],
+    ["x_studio_status", "x_studio_profile_completed"],
+    { limit: 1 }
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return { id: row.id, partnerId, status: row.x_studio_status, profileCompleted: Boolean(row.x_studio_profile_completed) };
+}
+
+/** يبحث عن ملف ناقل بنفس البريد + نفس اسم المنشأة (بعد التطبيع) + نفس الدولة */
+export async function findCarrierByEmailNameCountry(
+  email: string,
+  establishmentName: string,
+  country: string
+): Promise<{ partner: OdooPartnerRef; profile: OdooCarrierProfileRef } | null> {
+  const partner = await findPartnerByEmail(email);
+  if (!partner) return null;
+  const profile = await findCarrierProfileByPartner(partner.id);
+  if (!profile) return null;
+  const rows = await read<{ x_studio_country_name: string | false }>("x_build_carrier_profile", [profile.id], [
+    "x_studio_country_name",
+  ]);
+  const partnerRows = await read<{ name: string }>("res.partner", [partner.id], ["name"]);
+  const sameName = normalizeCompanyName(partnerRows[0]?.name ?? "") === normalizeCompanyName(establishmentName);
+  const sameCountry = normalizeCountry(rows[0]?.x_studio_country_name || "") === normalizeCountry(country);
+  if (!sameName || !sameCountry) return null;
+  return { partner, profile };
+}
+
+/** يبحث عن ملف ناقل بنفس اسم المنشأة + الدولة (بصرف النظر عن البريد/الجوال) */
+export async function findCarrierByNameAndCountry(
+  establishmentName: string,
+  country: string
+): Promise<{ partner: OdooPartnerRef; profile: OdooCarrierProfileRef } | null> {
+  const normalizedName = normalizeCompanyName(establishmentName);
+  const normalizedCountry = normalizeCountry(country);
+  const candidates = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_status: string;
+    x_studio_profile_completed: boolean;
+    x_studio_country_name: string | false;
+  }>(
+    "x_build_carrier_profile",
+    [],
+    ["x_studio_partner_id", "x_studio_status", "x_studio_profile_completed", "x_studio_country_name"],
+    { limit: 200 }
+  );
+  for (const c of candidates) {
+    if (!c.x_studio_partner_id) continue;
+    if (
+      normalizeCompanyName(c.x_studio_partner_id[1]) === normalizedName &&
+      normalizeCountry(c.x_studio_country_name || "") === normalizedCountry
+    ) {
+      return {
+        partner: { id: c.x_studio_partner_id[0], name: c.x_studio_partner_id[1] },
+        profile: {
+          id: c.id,
+          partnerId: c.x_studio_partner_id[0],
+          status: c.x_studio_status,
+          profileCompleted: Boolean(c.x_studio_profile_completed),
+        },
+      };
+    }
+  }
+  return null;
+}
+
+export async function createPreliminaryCarrierProfile(
+  partnerId: number,
+  data: PreliminaryCarrierRegistrationInput,
+  serviceAreaIds: number[],
+  vehicleTypeIds: number[],
+  materialCategoryIds: number[]
+): Promise<number> {
+  return create("x_build_carrier_profile", {
+    x_studio_partner_id: partnerId,
+    x_studio_carrier_type: data.carrierType,
+    x_studio_country_name: data.country,
+    x_studio_status: "under_preliminary_review",
+    x_studio_profile_completed: false,
+    x_studio_active_flag: true,
+    x_studio_job_title: data.jobTitle || false,
+    x_studio_short_description: data.shortDescription,
+    x_studio_website: data.website || false,
+    x_studio_website_domain: data.website ? extractWebsiteDomain(data.website) : false,
+    x_studio_preferred_language: data.preferredLanguage,
+    x_studio_privacy_accepted: true,
+    x_studio_terms_accepted: true,
+    x_studio_policy_version: data.policyVersion,
+    x_studio_consent_at: data.consentAt,
+    x_studio_internal_notes: `المسؤول: ${data.contactName}`,
+    x_studio_service_area_ids: serviceAreaIds.length ? [[6, 0, serviceAreaIds]] : false,
+    x_studio_vehicle_type_ids: vehicleTypeIds.length ? [[6, 0, vehicleTypeIds]] : false,
+    x_studio_material_category_ids: materialCategoryIds.length ? [[6, 0, materialCategoryIds]] : false,
+  });
+}
+
+/** فحص تكرار نهائي بعد استكمال الملف — محلي: CR أو VAT مطابق لملف ناقل آخر */
+export async function findDuplicateLocalCarrierProfile(
+  crNumber: string,
+  vatNumber: string,
+  excludeProfileId: number
+): Promise<boolean> {
+  const normCr = normalizeCR(crNumber);
+  const normVat = normalizeVAT(vatNumber);
+  const rows = await searchRead<{ id: number }>(
+    "x_build_carrier_profile",
+    ["&", ["id", "!=", excludeProfileId], "|", ["x_studio_cr_number", "=", normCr], ["x_studio_vat_number", "=", normVat]],
+    ["id"],
+    { limit: 1 }
+  );
+  return rows.length > 0;
+}
+
+/** فحص تكرار نهائي بعد استكمال الملف — دولي: دولة التسجيل (معرف res.country) + رقم التسجيل مطابقان لملف ناقل آخر */
+export async function findDuplicateInternationalCarrierProfile(
+  countryOfRegistrationId: number,
+  registrationNumber: string,
+  excludeProfileId: number
+): Promise<boolean> {
+  const normalized = registrationNumber.trim().toLowerCase();
+  const rows = await searchRead<{ id: number }>(
+    "x_build_carrier_profile",
+    [
+      ["id", "!=", excludeProfileId],
+      ["x_studio_country_of_registration", "=", countryOfRegistrationId],
+      ["x_studio_registration_number", "=", normalized],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  return rows.length > 0;
+}
+
+export type CarrierNotificationProfile = {
+  id: number;
+  partnerId: number;
+  establishmentName: string;
+  managerName: string;
+  email: string;
+  preferredLanguage: "ar" | "en";
+  tokenVersion: number;
+  missingInfoRequested: string;
+  rejectionReasonExternal: string;
+  finalMoreInfoRequested: string;
+  suspendedReason: string;
+};
+
+export async function getCarrierProfileForNotification(profileId: number): Promise<CarrierNotificationProfile | null> {
+  const rows = await read<{
+    x_studio_partner_id: [number, string] | false;
+    x_studio_preferred_language: "ar" | "en" | false;
+    x_studio_token_version: number | false;
+    x_studio_missing_info_requested: string | false;
+    x_studio_rejection_reason_external: string | false;
+    x_studio_final_more_info_requested: string | false;
+    x_studio_suspended_reason: string | false;
+    x_studio_internal_notes: string | false;
+  }>("x_build_carrier_profile", [profileId], [
+    "x_studio_partner_id",
+    "x_studio_preferred_language",
+    "x_studio_token_version",
+    "x_studio_missing_info_requested",
+    "x_studio_rejection_reason_external",
+    "x_studio_final_more_info_requested",
+    "x_studio_suspended_reason",
+    "x_studio_internal_notes",
+  ]);
+  const row = rows[0];
+  if (!row || !row.x_studio_partner_id) return null;
+
+  const partnerRows = await read<{ name: string; email: string | false }>(
+    "res.partner",
+    [row.x_studio_partner_id[0]],
+    ["name", "email"]
+  );
+  const partner = partnerRows[0];
+  if (!partner?.email) return null;
+
+  return {
+    id: profileId,
+    partnerId: row.x_studio_partner_id[0],
+    establishmentName: partner.name,
+    managerName: extractManagerName(row.x_studio_internal_notes) || partner.name,
+    email: partner.email,
+    preferredLanguage: row.x_studio_preferred_language || "ar",
+    tokenVersion: row.x_studio_token_version || 1,
+    missingInfoRequested: row.x_studio_missing_info_requested || "",
+    rejectionReasonExternal: row.x_studio_rejection_reason_external || "",
+    finalMoreInfoRequested: row.x_studio_final_more_info_requested || "",
+    suspendedReason: row.x_studio_suspended_reason || "",
+  };
+}
+
 /** حفظ مسودة قسم من نموذج الاستكمال — لا يُنشئ Outbox Event، فقط يحدّث حقل JSON + وقت الحفظ */
-export async function saveSupplierDraft(profileId: number, draftData: Record<string, unknown>): Promise<void> {
-  await write("x_build_supplier_profile", [profileId], {
+const PROFILE_MODEL: Record<"supplier" | "carrier", string> = {
+  supplier: "x_build_supplier_profile",
+  carrier: "x_build_carrier_profile",
+};
+
+export async function saveOnboardingDraft(kind: "supplier" | "carrier", profileId: number, draftData: Record<string, unknown>): Promise<void> {
+  await write(PROFILE_MODEL[kind], [profileId], {
     x_studio_draft_data_json: JSON.stringify(draftData),
     x_studio_last_saved_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   });
 }
 
-export async function getSupplierDraft(profileId: number): Promise<Record<string, unknown> | null> {
-  const rows = await read<{ x_studio_draft_data_json: string | false }>("x_build_supplier_profile", [profileId], [
+export async function getOnboardingDraft(kind: "supplier" | "carrier", profileId: number): Promise<Record<string, unknown> | null> {
+  const rows = await read<{ x_studio_draft_data_json: string | false }>(PROFILE_MODEL[kind], [profileId], [
     "x_studio_draft_data_json",
   ]);
   const raw = rows[0]?.x_studio_draft_data_json;
@@ -661,9 +845,9 @@ export async function getSupplierDraft(profileId: number): Promise<Record<string
   }
 }
 
-/** كتابة عامة محدودة الحقول المسموحة — تُستخدم في مرحلة استكمال الملف (2A-4/2A-5) */
-export async function updateSupplierProfile(profileId: number, fields: Record<string, unknown>): Promise<void> {
-  await write("x_build_supplier_profile", [profileId], fields);
+/** كتابة عامة محدودة الحقول المسموحة — تُستخدم في مرحلة استكمال الملف (مورد أو ناقل) */
+export async function updateOnboardingProfile(kind: "supplier" | "carrier", profileId: number, fields: Record<string, unknown>): Promise<void> {
+  await write(PROFILE_MODEL[kind], [profileId], fields);
 }
 
 /** يحلّ اسم دولة (عربي أو إنجليزي) إلى معرف res.country — لا يُنشئ دولاً جديدة */
@@ -746,6 +930,14 @@ export async function resolveOrCreateBrands(names: string[]): Promise<number[]> 
   return resolveOrCreateLookup("x_build_brand", names);
 }
 
+export async function resolveOrCreateServiceAreas(names: string[]): Promise<number[]> {
+  return resolveOrCreateLookup("x_build_service_area", names);
+}
+
+export async function resolveOrCreateVehicleTypes(names: string[]): Promise<number[]> {
+  return resolveOrCreateLookup("x_build_vehicle_type", names);
+}
+
 // ─────────────────────────────────────────────────────────────
 // 2A-7: مستندات المورد (Build Supplier Document)
 // ─────────────────────────────────────────────────────────────
@@ -756,6 +948,9 @@ export type SupplierDocumentType =
   | "bank_letter"
   | "national_address"
   | "registration_certificate"
+  | "license"
+  | "insurance"
+  | "vehicle_registration"
   | "other";
 
 export type SupplierDocumentRow = {
@@ -770,8 +965,9 @@ export type SupplierDocumentRow = {
   x_studio_version: number;
 };
 
-/** يرفع مستنداً جديداً كإصدار حالي، ويطفئ is_current عن أي نسخة سابقة من نفس النوع */
-export async function createSupplierDocument(params: {
+/** يرفع مستنداً جديداً كإصدار حالي (مورد أو ناقل)، ويطفئ is_current عن أي نسخة سابقة من نفس النوع لنفس الملف */
+export async function createOnboardingDocument(params: {
+  kind: "supplier" | "carrier";
   profileId: number;
   documentType: SupplierDocumentType;
   fileName: string;
@@ -780,10 +976,12 @@ export async function createSupplierDocument(params: {
   fileSize: number;
   checksumSha256: string;
 }): Promise<number> {
+  const fkField = params.kind === "carrier" ? "x_studio_carrier_profile_id" : "x_studio_supplier_profile_id";
+
   const previous = await searchRead<{ id: number; x_studio_version: number }>(
     "x_build_supplier_document",
     [
-      ["x_studio_supplier_profile_id", "=", params.profileId],
+      [fkField, "=", params.profileId],
       ["x_studio_document_type", "=", params.documentType],
       ["x_studio_is_current", "=", true],
     ],
@@ -808,7 +1006,7 @@ export async function createSupplierDocument(params: {
   });
 
   const docId = await create("x_build_supplier_document", {
-    x_studio_supplier_profile_id: params.profileId,
+    [fkField]: params.profileId,
     x_studio_document_type: params.documentType,
     x_studio_attachment_id: attachment.id,
     x_studio_file_name: params.fileName,
@@ -831,6 +1029,7 @@ export async function createSupplierDocument(params: {
 export type ExpiringDocumentRow = {
   id: number;
   x_studio_supplier_profile_id: [number, string] | false;
+  x_studio_carrier_profile_id: [number, string] | false;
   x_studio_document_type: SupplierDocumentType;
   x_studio_expiry_date: string;
   x_studio_expiry_alert_60_sent: boolean;
@@ -839,7 +1038,7 @@ export type ExpiringDocumentRow = {
   x_studio_expiry_alert_0_sent: boolean;
 };
 
-/** كل المستندات الحالية (is_current) التي لها تاريخ انتهاء — تُفلتَر بالأيام المتبقية على مستوى المستدعي */
+/** كل المستندات الحالية (is_current) التي لها تاريخ انتهاء (مورد أو ناقل) — تُفلتَر بالأيام المتبقية على مستوى المستدعي */
 export async function listDocumentsWithExpiry(): Promise<ExpiringDocumentRow[]> {
   return searchRead<ExpiringDocumentRow>(
     "x_build_supplier_document",
@@ -849,6 +1048,7 @@ export async function listDocumentsWithExpiry(): Promise<ExpiringDocumentRow[]> 
     ],
     [
       "x_studio_supplier_profile_id",
+      "x_studio_carrier_profile_id",
       "x_studio_document_type",
       "x_studio_expiry_date",
       "x_studio_expiry_alert_60_sent",
@@ -860,11 +1060,12 @@ export async function listDocumentsWithExpiry(): Promise<ExpiringDocumentRow[]> 
   );
 }
 
-export async function listSupplierDocuments(profileId: number): Promise<SupplierDocumentRow[]> {
+export async function listOnboardingDocuments(kind: "supplier" | "carrier", profileId: number): Promise<SupplierDocumentRow[]> {
+  const fkField = kind === "carrier" ? "x_studio_carrier_profile_id" : "x_studio_supplier_profile_id";
   return searchRead<SupplierDocumentRow>(
     "x_build_supplier_document",
     [
-      ["x_studio_supplier_profile_id", "=", profileId],
+      [fkField, "=", profileId],
       ["x_studio_is_current", "=", true],
     ],
     [

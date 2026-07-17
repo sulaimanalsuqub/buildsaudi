@@ -14,9 +14,12 @@ function getSecret(): string {
   return secret;
 }
 
+export type OnboardingKind = "supplier" | "carrier";
+
 type TokenPayload = {
   profileId: number;
   partnerId: number;
+  kind: OnboardingKind;
   purpose: string;
   issuedAt: number;
   expiresAt: number;
@@ -40,11 +43,17 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /** التوكن لا يحتوي إلا معرّفات + بيانات دورة حياة الرابط — لا CR/VAT/IBAN/ملاحظات داخلية إطلاقاً */
-export function generateOnboardingToken(profileId: number, partnerId: number, tokenVersion: number): string {
+export function generateOnboardingToken(
+  profileId: number,
+  partnerId: number,
+  tokenVersion: number,
+  kind: OnboardingKind = "supplier"
+): string {
   const now = Math.floor(Date.now() / 1000);
   const payload: TokenPayload = {
     profileId,
     partnerId,
+    kind,
     purpose: PURPOSE,
     issuedAt: now,
     expiresAt: now + MAX_AGE_SECONDS,

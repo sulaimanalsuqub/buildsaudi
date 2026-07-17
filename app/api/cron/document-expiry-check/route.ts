@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OdooClientError, getSupplierProfileForNotification, listDocumentsWithExpiry, write } from "@/lib/odoo";
+import {
+  OdooClientError,
+  getCarrierProfileForNotification,
+  getSupplierProfileForNotification,
+  listDocumentsWithExpiry,
+  write,
+} from "@/lib/odoo";
 import { sendDocumentExpiryAlertEmail } from "@/lib/email";
 
 export const maxDuration = 60;
@@ -37,10 +43,16 @@ export async function GET(req: NextRequest) {
   }
 
   const results = { checked: documents.length, alerted: 0, skipped: 0, failed: 0 };
-  const profileCache = new Map<number, Awaited<ReturnType<typeof getSupplierProfileForNotification>>>();
+  const supplierCache = new Map<number, Awaited<ReturnType<typeof getSupplierProfileForNotification>>>();
+  const carrierCache = new Map<number, Awaited<ReturnType<typeof getCarrierProfileForNotification>>>();
 
   for (const doc of documents) {
-    if (!doc.x_studio_supplier_profile_id) {
+    const kind: "supplier" | "carrier" | null = doc.x_studio_supplier_profile_id
+      ? "supplier"
+      : doc.x_studio_carrier_profile_id
+        ? "carrier"
+        : null;
+    if (!kind) {
       results.skipped += 1;
       continue;
     }
@@ -53,12 +65,21 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    const profileId = doc.x_studio_supplier_profile_id[0];
+    const profileId = kind === "supplier" ? doc.x_studio_supplier_profile_id ? doc.x_studio_supplier_profile_id[0] : 0 : doc.x_studio_carrier_profile_id ? doc.x_studio_carrier_profile_id[0] : 0;
     try {
-      let profile = profileCache.get(profileId);
-      if (profile === undefined) {
-        profile = await getSupplierProfileForNotification(profileId);
-        profileCache.set(profileId, profile);
+      let profile;
+      if (kind === "supplier") {
+        profile = supplierCache.get(profileId);
+        if (profile === undefined) {
+          profile = await getSupplierProfileForNotification(profileId);
+          supplierCache.set(profileId, profile);
+        }
+      } else {
+        profile = carrierCache.get(profileId);
+        if (profile === undefined) {
+          profile = await getCarrierProfileForNotification(profileId);
+          carrierCache.set(profileId, profile);
+        }
       }
       if (!profile) {
         results.skipped += 1;
@@ -80,12 +101,10 @@ export async function GET(req: NextRequest) {
         acc[t.flag] = true;
         return acc;
       }, {});
-      if (due.days === 0) {
-        flagsToMark["x_studio_documents_expired"] = true;
-      }
       await write("x_build_supplier_document", [doc.id], flagsToMark);
       if (due.days === 0) {
-        await write("x_build_supplier_profile", [profileId], { x_studio_documents_expired: true });
+        const profileModel = kind === "supplier" ? "x_build_supplier_profile" : "x_build_carrier_profile";
+        await write(profileModel, [profileId], { x_studio_documents_expired: true });
       }
 
       results.alerted += 1;

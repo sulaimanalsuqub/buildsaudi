@@ -9,8 +9,6 @@ const EDITABLE_STATUSES = new Set(["completing_profile", "more_information_requi
 const draftSchema = z.object({
   onboarding_token: z.string().min(10),
   draft: z.record(z.string(), z.unknown()),
-  // بلا أثر جانبي غير الاستبدال الكامل — القيمة نفسها آمنة للتكرار (idempotent) بلا حاجة لتخزين منفصل
-  idempotency_key: z.string().optional(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -23,17 +21,17 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "بيانات المسودة غير صحيحة" }, { status: 400 });
   }
 
-  const resolved = await resolveOnboardingProfile(parsed.data.onboarding_token, EDITABLE_STATUSES);
+  const resolved = await resolveOnboardingProfile(parsed.data.onboarding_token, EDITABLE_STATUSES, "carrier");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   try {
-    await saveOnboardingDraft("supplier", resolved.profileId, parsed.data.draft);
+    await saveOnboardingDraft("carrier", resolved.profileId, parsed.data.draft);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof OdooClientError) {
-      console.error(`[vendors/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
+      console.error(`[carriers/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
     }
     return NextResponse.json({ error: "تعذر حفظ المسودة" }, { status: 500 });
   }
@@ -45,18 +43,19 @@ export async function GET(req: NextRequest) {
 
   const resolved = await resolveOnboardingProfile(
     token,
-    new Set(["completing_profile", "more_information_required", "profile_completed"])
+    new Set(["completing_profile", "more_information_required", "profile_completed"]),
+    "carrier"
   );
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
   try {
-    const draft = await getOnboardingDraft("supplier", resolved.profileId);
+    const draft = await getOnboardingDraft("carrier", resolved.profileId);
     return NextResponse.json({ ok: true, draft: draft || null });
   } catch (error) {
     if (error instanceof OdooClientError) {
-      console.error(`[vendors/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
+      console.error(`[carriers/draft][${error.correlationId}] ${error.kind}: ${error.message}`);
     }
     return NextResponse.json({ error: "تعذر جلب المسودة" }, { status: 500 });
   }

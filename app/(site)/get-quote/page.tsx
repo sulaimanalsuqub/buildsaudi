@@ -17,5 +17,5 @@ export const metadata = pageMetadata({
 });
 
 export default function GetQuotePage() {
-  return <QuotePageContent />;
+  return <QuotePageContent quoteEmail={process.env.QUOTE_INTAKE_EMAIL || "sales@build.sa"} />;
 }
