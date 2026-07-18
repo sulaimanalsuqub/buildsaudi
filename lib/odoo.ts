@@ -1053,6 +1053,7 @@ export async function createOnboardingDocument(params: {
 
   const docId = await create("x_build_supplier_document", {
     [fkField]: params.profileId,
+    x_name: params.fileName,
     x_studio_document_type: params.documentType,
     x_studio_attachment_id: attachment.id,
     x_studio_file_name: params.fileName,
