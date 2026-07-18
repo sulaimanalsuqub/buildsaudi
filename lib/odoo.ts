@@ -1202,6 +1202,167 @@ export async function getSupplierProfileForNotification(profileId: number): Prom
 }
 
 // ─────────────────────────────────────────────────────────────
+// طلبات التوريد (Customer Procurement Requests) — استقبال فقط بهذي المرحلة
+// المطابقة/RFQ/التسعير/الشحن تبقى يدوية بأودو (إجراءات جاهزة من مرحلة سابقة)
+// ─────────────────────────────────────────────────────────────
+
+export type ProcurementRequestInput = {
+  contactName: string;
+  companyName?: string;
+  email: string;
+  phone: string;
+  /** المشروع أهم بيانات الطلب — إلزامي */
+  projectName: string;
+  deliveryAddressNotes?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  requestedDeliveryDate?: string;
+  description: string;
+};
+
+/** ينشئ طلب توريد جديداً بحالة "جديد" — لا يُنشئ بنوداً (تُضاف يدوياً وقت التحليل) */
+export async function createProcurementRequest(data: ProcurementRequestInput, categoryIds: number[]): Promise<number> {
+  return create("x_build_procurement_request", {
+    x_name: data.projectName,
+    x_studio_email: normalizeEmail(data.email),
+    x_studio_phone: normalizeSaudiPhone(data.phone),
+    x_studio_project_name: data.projectName,
+    x_studio_delivery_address: data.deliveryAddressNotes || false,
+    x_studio_delivery_latitude: data.deliveryLatitude ?? false,
+    x_studio_delivery_longitude: data.deliveryLongitude ?? false,
+    x_studio_requested_delivery_date: data.requestedDeliveryDate || false,
+    x_studio_request_description: `${data.contactName}${data.companyName ? " / " + data.companyName : ""}\n${data.description}`,
+    x_studio_source: "website",
+    x_studio_internal_status: "new",
+    x_studio_customer_status: "received",
+    x_studio_request_date: new Date().toISOString().slice(0, 19).replace("T", " "),
+    x_studio_material_category_ids: categoryIds.length ? [[6, 0, categoryIds]] : false,
+  });
+}
+
+/** يرفق ملفات (BOQ، مخططات...) بطلب التوريد كمرفقات عادية — بلا أي استخراج/تحليل آلي بهذي المرحلة */
+export async function attachProcurementRequestFiles(
+  requestId: number,
+  files: { name: string; base64Data: string; mimeType: string }[]
+): Promise<void> {
+  for (const file of files) {
+    await createAttachment({
+      name: file.name,
+      base64Data: file.base64Data,
+      mimeType: file.mimeType,
+      resModel: "x_build_procurement_request",
+      resId: requestId,
+    });
+  }
+}
+
+const GENERATE_TRACKING_ACTION_ID = 929;
+
+/** يستدعي إجراء أودو الجاهز (نفس المنطق المستخدم يدوياً) لتوليد رقم/رمز التتبع بشكل متّسق */
+export async function generateProcurementTracking(requestId: number): Promise<{ trackingNumber: string; trackingToken: string }> {
+  await executeKw("ir.actions.server", "run", [[GENERATE_TRACKING_ACTION_ID]], {
+    context: { active_model: "x_build_procurement_request", active_id: requestId, active_ids: [requestId] },
+  });
+  const rows = await read<{ x_studio_tracking_number: string | false; x_studio_tracking_token: string | false }>(
+    "x_build_procurement_request",
+    [requestId],
+    ["x_studio_tracking_number", "x_studio_tracking_token"]
+  );
+  const row = rows[0];
+  if (!row?.x_studio_tracking_number || !row.x_studio_tracking_token) {
+    throw new OdooClientError({
+      message: `Tracking generation did not populate fields for request ${requestId}`,
+      kind: "unknown",
+      retryable: false,
+      correlationId: randomUUID(),
+    });
+  }
+  return { trackingNumber: row.x_studio_tracking_number, trackingToken: row.x_studio_tracking_token };
+}
+
+export type ProcurementRequestTrackingView = {
+  trackingNumber: string;
+  projectName: string;
+  customerStatus: string;
+  requestDate: string;
+};
+
+/** عرض العميل عبر التتبع — حقول ظاهرة فقط، لا حالة داخلية ولا بيانات تسعير/موردين */
+export async function getProcurementRequestByTrackingToken(token: string): Promise<ProcurementRequestTrackingView | null> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_tracking_number: string | false;
+    x_studio_project_name: string | false;
+    x_studio_customer_status: string | false;
+    x_studio_request_date: string | false;
+  }>(
+    "x_build_procurement_request",
+    [["x_studio_tracking_token", "=", token]],
+    ["x_studio_tracking_number", "x_studio_project_name", "x_studio_customer_status", "x_studio_request_date"],
+    { limit: 1 }
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    trackingNumber: row.x_studio_tracking_number || "",
+    projectName: row.x_studio_project_name || "",
+    customerStatus: row.x_studio_customer_status || "received",
+    requestDate: row.x_studio_request_date || "",
+  };
+}
+
+export type ProcurementRequestNotification = {
+  id: number;
+  contactName: string;
+  email: string;
+  phone: string;
+  projectName: string;
+  description: string;
+  trackingNumber: string;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
+};
+
+export async function getProcurementRequestForNotification(requestId: number): Promise<ProcurementRequestNotification | null> {
+  const rows = await read<{
+    x_studio_email: string | false;
+    x_studio_phone: string | false;
+    x_studio_project_name: string | false;
+    x_studio_request_description: string | false;
+    x_studio_tracking_number: string | false;
+    x_studio_delivery_latitude: number | false;
+    x_studio_delivery_longitude: number | false;
+    x_name: string | false;
+  }>(
+    "x_build_procurement_request",
+    [requestId],
+    [
+      "x_studio_email",
+      "x_studio_phone",
+      "x_studio_project_name",
+      "x_studio_request_description",
+      "x_studio_tracking_number",
+      "x_studio_delivery_latitude",
+      "x_studio_delivery_longitude",
+      "x_name",
+    ]
+  );
+  const row = rows[0];
+  if (!row?.x_studio_email) return null;
+  return {
+    id: requestId,
+    contactName: row.x_name || "",
+    email: row.x_studio_email,
+    phone: row.x_studio_phone || "",
+    projectName: row.x_studio_project_name || "",
+    description: row.x_studio_request_description || "",
+    trackingNumber: row.x_studio_tracking_number || "",
+    deliveryLatitude: row.x_studio_delivery_latitude || null,
+    deliveryLongitude: row.x_studio_delivery_longitude || null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Outbox
 // ─────────────────────────────────────────────────────────────
 
@@ -1211,6 +1372,7 @@ export async function createOutboxEvent(params: {
   resourceId: number;
   supplierProfileId?: number;
   carrierProfileId?: number;
+  procurementRequestId?: number;
   idempotencyKey: string;
   /** يُحتفظ به محدوداً — IDs ومعلومات إرسال فقط، لا أسرار ولا بيانات حساسة */
   payload: Record<string, unknown>;
@@ -1232,6 +1394,7 @@ export async function createOutboxEvent(params: {
     x_studio_resource_id: params.resourceId,
     x_studio_supplier_profile_id: params.supplierProfileId ?? false,
     x_studio_carrier_profile_id: params.carrierProfileId ?? false,
+    x_studio_procurement_request_id: params.procurementRequestId ?? false,
     x_studio_idempotency_key: params.idempotencyKey,
     x_studio_status: "pending",
     x_studio_attempts: 0,

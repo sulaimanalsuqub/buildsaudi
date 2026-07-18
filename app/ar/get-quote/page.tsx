@@ -19,5 +19,5 @@ export const metadata = pageMetadata({
 });
 
 export default function ArabicGetQuotePage() {
-  return <QuotePageContent isRtl quoteEmail={process.env.QUOTE_INTAKE_EMAIL || "sales@build.sa"} />;
+  return <QuotePageContent isRtl />;
 }

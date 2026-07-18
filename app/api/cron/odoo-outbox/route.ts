@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   OdooClientError,
   getCarrierProfileForNotification,
+  getProcurementRequestForNotification,
   getSupplierProfileForNotification,
   read,
   searchRead,
   write,
   type CarrierNotificationProfile,
+  type ProcurementRequestNotification,
   type SupplierNotificationProfile,
 } from "@/lib/odoo";
 import { generateOnboardingToken } from "@/lib/vendor-onboarding-token";
@@ -20,6 +22,8 @@ import {
   sendCarrierRegistrationConfirmation,
   sendCarrierRejectedEmail,
   sendCarrierSuspendedEmail,
+  sendInternalNewProcurementRequestNotification,
+  sendProcurementRequestReceivedEmail,
   sendSupplierFinalReviewNotification,
   sendVendorFullyApprovedEmail,
   sendVendorJourneyStartedEmail,
@@ -48,6 +52,7 @@ type OutboxRow = {
   x_studio_resource_id: number;
   x_studio_supplier_profile_id: [number, string] | false;
   x_studio_carrier_profile_id: [number, string] | false;
+  x_studio_procurement_request_id: [number, string] | false;
   x_studio_attempts: number;
   x_studio_max_attempts: number;
 };
@@ -64,6 +69,38 @@ function onboardingUrl(
   // العربي على /ar (مجموعة locale)، الإنجليزي بلا بادئة (مجموعة (site))
   const path = lang === "ar" ? `/ar/${base}/complete` : `/${base}/complete`;
   return `${BASE_URL}${path}?token=${token}`;
+}
+
+function procurementTrackingUrl(trackingToken: string): string {
+  return `${BASE_URL}/ar/track-request?token=${trackingToken}`;
+}
+
+async function dispatchProcurementEvent(eventType: string, req: ProcurementRequestNotification, trackingToken: string): Promise<void> {
+  switch (eventType) {
+    case "procurement.request_received":
+      await sendProcurementRequestReceivedEmail({
+        contactName: req.contactName,
+        email: req.email,
+        trackingNumber: req.trackingNumber,
+        trackingUrl: procurementTrackingUrl(trackingToken),
+      });
+      await sendInternalNewProcurementRequestNotification({
+        id: req.id,
+        contactName: req.contactName,
+        email: req.email,
+        phone: req.phone,
+        projectName: req.projectName,
+        deliveryMapUrl:
+          req.deliveryLatitude !== null && req.deliveryLongitude !== null
+            ? `https://www.google.com/maps?q=${req.deliveryLatitude},${req.deliveryLongitude}`
+            : "",
+        description: req.description,
+        trackingNumber: req.trackingNumber,
+      });
+      return;
+    default:
+      throw new Error(`unknown event type: ${eventType}`);
+  }
 }
 
 async function dispatchSupplierEvent(eventType: string, profile: SupplierNotificationProfile): Promise<void> {
@@ -256,6 +293,19 @@ async function dispatchCarrierEvent(eventType: string, profile: CarrierNotificat
 
 /** يرمي خطأً وصفياً عند الفشل — يُحدَّد المسار (مورد/ناقل) من الحقل المربوط بالحدث */
 async function dispatchEvent(row: OutboxRow): Promise<void> {
+  if (row.x_studio_procurement_request_id) {
+    const requestId = row.x_studio_procurement_request_id[0];
+    const reqData = await getProcurementRequestForNotification(requestId);
+    if (!reqData) throw new Error(`procurement request ${requestId} not found or has no email`);
+    const tokenRows = await read<{ x_studio_tracking_token: string | false }>(
+      "x_build_procurement_request",
+      [requestId],
+      ["x_studio_tracking_token"]
+    );
+    const trackingToken = tokenRows[0]?.x_studio_tracking_token || "";
+    return dispatchProcurementEvent(row.x_studio_event_type, reqData, trackingToken);
+  }
+
   if (row.x_studio_carrier_profile_id) {
     const profileId = row.x_studio_carrier_profile_id[0];
     const profile = await getCarrierProfileForNotification(profileId);
@@ -303,7 +353,7 @@ export async function GET(req: NextRequest) {
         ["x_studio_available_at", "=", false],
         ["x_studio_available_at", "<=", nowStr],
       ],
-      ["x_studio_event_type", "x_studio_resource_id", "x_studio_supplier_profile_id", "x_studio_carrier_profile_id", "x_studio_attempts", "x_studio_max_attempts"],
+      ["x_studio_event_type", "x_studio_resource_id", "x_studio_supplier_profile_id", "x_studio_carrier_profile_id", "x_studio_procurement_request_id", "x_studio_attempts", "x_studio_max_attempts"],
       { limit: BATCH_SIZE, order: "id asc" }
     );
   } catch (error) {

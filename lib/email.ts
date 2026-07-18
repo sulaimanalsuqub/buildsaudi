@@ -1068,6 +1068,76 @@ export async function sendVendorRegistrationConfirmation(vendor: {
 
 
 // ─────────────────────────────────────────────
+//  طلبات التوريد (Procurement Requests) — استقبال فقط بهذي المرحلة
+// ─────────────────────────────────────────────
+
+export async function sendProcurementRequestReceivedEmail(req: {
+  contactName: string;
+  email: string;
+  trackingNumber: string;
+  trackingUrl: string;
+}) {
+  return sendEmail({
+    from: FROM,
+    to: req.email,
+    subject: `تم استلام طلبكم — ${req.trackingNumber} — Build Saudi`,
+    html: emailShell({
+      previewText: `تم استلام طلب التوريد الخاص بكم، رقم التتبع ${req.trackingNumber}`,
+      accentColor: "#09B14B",
+      badgeIcon: "📦",
+      badgeLabel: "تم استلام الطلب",
+      content: `
+        ${greeting(req.contactName)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          استلمنا طلب التوريد الخاص بكم، وسيراجعه فريقنا للبدء بترتيب الأسعار والتوريد.
+        </p>
+        ${highlightBox(`رقم التتبع: <strong dir="ltr" style="font-variant-numeric:tabular-nums;">${esc(req.trackingNumber)}</strong>`)}
+        ${ctaButton(req.trackingUrl, "تتبع حالة الطلب")}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
+export async function sendInternalNewProcurementRequestNotification(req: {
+  id: number;
+  contactName: string;
+  email: string;
+  phone: string;
+  projectName: string;
+  deliveryMapUrl: string;
+  description: string;
+  trackingNumber: string;
+}) {
+  const to = process.env.QUOTE_INTAKE_EMAIL || ADMIN_EMAIL;
+  const recordUrl = odooRecordUrl("x_build_procurement_request", req.id);
+  return sendEmail({
+    from: FROM,
+    to,
+    subject: `طلب توريد جديد — ${req.trackingNumber}`,
+    html: emailShell({
+      previewText: `طلب توريد جديد من ${req.contactName} — ${req.trackingNumber}`,
+      accentColor: "#1D3F1F",
+      badgeIcon: "🆕",
+      badgeLabel: "طلب توريد جديد",
+      content: `
+        ${greeting("فريق Build", "طلب توريد جديد من الموقع")}
+        ${infoTable(
+          infoRow("الاسم", esc(req.contactName)) +
+            infoRow("البريد", esc(req.email), "ltr") +
+            infoRow("الجوال", esc(req.phone), "ltr") +
+            (req.projectName ? infoRow("المشروع", esc(req.projectName)) : "") +
+            (req.deliveryMapUrl ? infoRow("موقع التسليم", `<a href="${req.deliveryMapUrl}" style="color:#09B14B;">فتح في خرائط جوجل</a>`) : "") +
+            infoRow("رقم التتبع", esc(req.trackingNumber), "ltr")
+        )}
+        <p style="margin:20px 0 0;font-size:14px;color:#374151;line-height:1.8;white-space:pre-wrap;">${esc(req.description)}</p>
+        ${ctaButton(recordUrl, "فتح الطلب في Odoo")}
+      `,
+    }),
+  });
+}
+
+// ─────────────────────────────────────────────
 //  OTP — التحقق من البريد الإلكتروني
 // ─────────────────────────────────────────────
 export async function sendEmailVerificationOTP(params: { email: string; code: string }) {
