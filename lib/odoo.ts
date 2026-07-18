@@ -876,9 +876,13 @@ export async function findDuplicateLocalProfile(
 ): Promise<boolean> {
   const normCr = normalizeCR(crNumber);
   const normVat = normalizeVAT(vatNumber);
+  // رقم الضريبي أصبح اختيارياً — لا نطابق عليه إن كان فارغاً حتى لا يتصادم كل الملفات بلا رقم ضريبي مع بعضها
+  const domain = normVat
+    ? ["&", ["id", "!=", excludeProfileId], "|", ["x_studio_cr_number", "=", normCr], ["x_studio_vat_number", "=", normVat]]
+    : ["&", ["id", "!=", excludeProfileId], ["x_studio_cr_number", "=", normCr]];
   const rows = await searchRead<{ id: number }>(
     "x_build_supplier_profile",
-    ["&", ["id", "!=", excludeProfileId], "|", ["x_studio_cr_number", "=", normCr], ["x_studio_vat_number", "=", normVat]],
+    domain,
     ["id"],
     { limit: 1 }
   );

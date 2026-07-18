@@ -26,7 +26,7 @@ const localFieldsSchema = z.object({
   cr_number: z.string().trim().min(5),
   cr_expiry_date: z.string().trim().optional().or(z.literal("")),
   unified_number: z.string().trim().optional().or(z.literal("")),
-  vat_number: z.string().trim().min(5),
+  vat_number: z.string().trim().optional().or(z.literal("")),
   city: z.string().trim().min(1),
   region: z.string().trim().min(1),
   national_address: z.string().trim().optional().or(z.literal("")),
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
 
     // فحص تكرار نهائي — يمنع إفلات مورد بنفس السجل/الرقم عبر مسارين متزامنين
     if (supplierType === "local" && data.local) {
-      const dup = await findDuplicateLocalProfile(data.local.cr_number, data.local.vat_number, profileId);
+      const dup = await findDuplicateLocalProfile(data.local.cr_number, data.local.vat_number || "", profileId);
       if (dup) {
         return NextResponse.json({ error: "السجل التجاري أو الرقم الضريبي مسجّل مسبقاً لمورد آخر" }, { status: 409 });
       }
@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
         x_studio_cr_number: normalizeCR(data.local.cr_number),
         x_studio_cr_expiry_date: data.local.cr_expiry_date || false,
         x_studio_unified_number: data.local.unified_number || false,
-        x_studio_vat_number: normalizeVAT(data.local.vat_number),
+        x_studio_vat_number: data.local.vat_number ? normalizeVAT(data.local.vat_number) : false,
         x_studio_city: data.local.city,
         x_studio_region: data.local.region,
         x_studio_national_address: data.local.national_address || false,

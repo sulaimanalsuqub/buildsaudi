@@ -479,14 +479,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             <VendorField label={textByLang(isRtl, "Entity Type", "الكيان القانوني")}>
               <Input {...form.register("entityType")} className="h-12" placeholder={textByLang(isRtl, "e.g. LLC, Establishment", "مثال: مؤسسة فردية، شركة ذات مسؤولية محدودة")} />
             </VendorField>
-            <div className="grid gap-4 md:grid-cols-2">
-              <VendorField label={textByLang(isRtl, "Commercial Registration No.", "رقم السجل التجاري")}>
-                <Input {...form.register("crNumber")} className="h-12" dir="ltr" inputMode="numeric" />
-              </VendorField>
-              <VendorField label={textByLang(isRtl, "VAT Number", "الرقم الضريبي")}>
-                <Input {...form.register("vatNumber")} className="h-12" dir="ltr" inputMode="numeric" />
-              </VendorField>
-            </div>
+            <VendorField label={textByLang(isRtl, "Commercial Registration No.", "رقم السجل التجاري")}>
+              <Input {...form.register("crNumber")} className="h-12" dir="ltr" inputMode="numeric" />
+            </VendorField>
             <div className="grid gap-4 md:grid-cols-2">
               <VendorField label={textByLang(isRtl, "City", "المدينة")}>
                 <select
@@ -601,8 +596,6 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
               ? docUploadField("cr_certificate", documentTypeLabels.cr_certificate[isRtl ? "ar" : "en"], true)
               : docUploadField("registration_certificate", documentTypeLabels.registration_certificate[isRtl ? "ar" : "en"], true)}
             {docUploadField("bank_letter", documentTypeLabels.bank_letter[isRtl ? "ar" : "en"], true)}
-            {docUploadField("vat_certificate", documentTypeLabels.vat_certificate[isRtl ? "ar" : "en"], false)}
-            {isLocal && docUploadField("national_address", documentTypeLabels.national_address[isRtl ? "ar" : "en"], false)}
           </>
         )}
 
