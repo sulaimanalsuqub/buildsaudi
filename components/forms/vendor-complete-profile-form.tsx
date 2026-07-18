@@ -19,6 +19,7 @@ import {
   paymentTerms,
   priceUpdateMethods,
   regions,
+  saudiCities,
   textByLang,
 } from "@/lib/vendor-options";
 import {
@@ -28,6 +29,7 @@ import {
   VendorOptionGrid,
   VendorReviewRow,
   VendorStepTabs,
+  VendorTagInput,
 } from "@/components/forms/vendor-form-shared";
 
 type Props = {
@@ -46,7 +48,7 @@ const schema = z.object({
   businessType: z.string().min(1, "required"),
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
-  brands: z.string().optional(),
+  brands: z.array(z.string()).optional(),
   serviceAreas: z.array(z.string()).optional(),
   deliveryCities: z.string().optional(),
   paymentTerms: z.array(z.string()).min(1, "required"),
@@ -88,7 +90,7 @@ const emptyValues: FormValues = {
   businessType: "",
   categoryIds: [],
   otherCategorySuggestion: "",
-  brands: "",
+  brands: [],
   serviceAreas: [],
   deliveryCities: "",
   paymentTerms: [],
@@ -278,8 +280,9 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
                 entity_type: data.entityType,
                 cr_number: data.crNumber,
                 vat_number: data.vatNumber,
-                city: data.city,
-                region: data.region,
+                // نرسل الاسم المعروض لا الرمز الداخلي (نفس منطق حقل الدولة)
+                city: optionLabel(true, saudiCities, data.city ?? ""),
+                region: optionLabel(true, regions, data.region ?? ""),
               }
             : undefined,
           international: !isLocal
@@ -300,9 +303,7 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             business_type: data.businessType,
             category_ids: data.categoryIds,
             other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
-            brands: data.brands
-              ? data.brands.split(",").map((b) => b.trim()).filter(Boolean)
-              : [],
+            brands: data.brands ?? [],
             service_areas: data.serviceAreas ?? [],
             delivery_cities: data.deliveryCities || "",
             payment_terms: data.paymentTerms,
@@ -429,7 +430,11 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية (اختياري)")}>
-              <Input {...form.register("brands")} className="h-12" />
+              <VendorTagInput
+                values={values.brands ?? []}
+                onChange={(next) => form.setValue("brands", next, { shouldValidate: true })}
+                placeholder={textByLang(isRtl, "Type a brand and press Enter", "اكتب اسم العلامة واضغط Enter")}
+              />
             </VendorField>
 
             {isLocal && (
@@ -484,10 +489,32 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <VendorField label={textByLang(isRtl, "City", "المدينة")}>
-                <Input {...form.register("city")} className="h-12" />
+                <select
+                  value={values.city}
+                  onChange={(e) => form.setValue("city", e.target.value, { shouldValidate: true })}
+                  className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                >
+                  <option value="">{textByLang(isRtl, "Select…", "اختر…")}</option>
+                  {saudiCities.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {optionLabel(isRtl, saudiCities, c.value)}
+                    </option>
+                  ))}
+                </select>
               </VendorField>
               <VendorField label={textByLang(isRtl, "Region", "المنطقة")}>
-                <Input {...form.register("region")} className="h-12" />
+                <select
+                  value={values.region}
+                  onChange={(e) => form.setValue("region", e.target.value, { shouldValidate: true })}
+                  className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                >
+                  <option value="">{textByLang(isRtl, "Select…", "اختر…")}</option>
+                  {regions.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {optionLabel(isRtl, regions, r.value)}
+                    </option>
+                  ))}
+                </select>
               </VendorField>
             </div>
           </>

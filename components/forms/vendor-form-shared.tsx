@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { RadioGroupItem } from "@/components/ui/radio-group";
@@ -184,6 +185,58 @@ export function VendorReviewRow({ label, value }: { label: string; value: string
     <div className="rounded-lg bg-white p-3">
       <dt className="type-small font-semibold text-brand-dark/70">{label}</dt>
       <dd className="type-small mt-1 text-brand-dark">{value}</dd>
+    </div>
+  );
+}
+
+/** إدخال متعدد على شكل شرائح (Tags) — بديل عن كتابة قائمة مفصولة بفواصل يدوياً */
+export function VendorTagInput({
+  values,
+  onChange,
+  placeholder,
+}: {
+  values: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const commit = () => {
+    const v = draft.trim();
+    if (v && !values.includes(v)) onChange([...values, v]);
+    setDraft("");
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-dark/15 bg-white px-3 py-2 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/20">
+      {values.map((v) => (
+        <span key={v} className="inline-flex items-center gap-1 rounded-full bg-brand-light px-3 py-1 text-sm text-brand-dark">
+          {v}
+          <button
+            type="button"
+            onClick={() => onChange(values.filter((x) => x !== v))}
+            className="text-brand-dark/45 hover:text-red-600"
+            aria-label="remove"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </span>
+      ))}
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Backspace" && !draft && values.length) {
+            onChange(values.slice(0, -1));
+          }
+        }}
+        onBlur={commit}
+        placeholder={values.length ? "" : placeholder}
+        className="h-8 min-w-[140px] flex-1 border-none bg-transparent text-sm outline-none placeholder:text-brand-dark/35"
+      />
     </div>
   );
 }
