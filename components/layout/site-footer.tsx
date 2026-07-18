@@ -15,7 +15,6 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
       { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
       { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
-      { href: isRtl ? "/ar/carriers/register" : "/carriers/register", label: isRtl ? "كُن ناقلاً" : "Become a Carrier" },
     ],
     legal: [
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
