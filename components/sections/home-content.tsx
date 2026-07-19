@@ -54,9 +54,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   ];
 
   const t = {
-    title: isRtl
-      ? "رحلة توريد أسرع، أسهل"
-      : "A Faster, Easier Supply Journey",
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
@@ -135,13 +132,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <h1 className="type-hero text-brand-dark leading-[1.15]">
                   {isRtl ? (
                     <>
-                      مورد مواد بناء وتشطيب{" "}
-                      <span className="text-brand-primary">للمشاريع الإنشائية</span>
+                      رحلة توريد المواد{" "}
+                      <span className="text-brand-primary">أسرع</span>
                     </>
                   ) : (
                     <>
-                      Building Materials &amp; Finishes Supplier{" "}
-                      <span className="text-brand-primary">for Construction Projects</span>
+                      Materials Supply,{" "}
+                      <span className="text-brand-primary">Faster</span>
                     </>
                   )}
                 </h1>
