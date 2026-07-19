@@ -1216,6 +1216,7 @@ export type ProcurementRequestInput = {
   deliveryAddressNotes?: string;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
+  nationalAddressCode?: string;
   requestedDeliveryDate?: string;
   description: string;
 };
@@ -1232,15 +1233,48 @@ export async function findOrCreateCustomerPartner(data: { contactName: string; c
   });
 }
 
-/** ينشئ طلب توريد جديداً بحالة "جديد" — لا يُنشئ بنوداً (تُضاف يدوياً وقت التحليل) */
+export type CustomerProject = { id: number; name: string };
+
+/** يبحث عن مشروع نشط بنفس الاسم لهذا العميل، وإلا ينشئ سجلاً جديداً */
+export async function findOrCreateCustomerProject(customerId: number, projectName: string): Promise<number> {
+  const existing = await searchRead<{ id: number }>(
+    "x_build_customer_project",
+    [["x_studio_customer_id", "=", customerId], ["x_name", "=", projectName], ["x_studio_active_flag", "=", true]],
+    ["id"],
+    { limit: 1 }
+  );
+  if (existing[0]) return existing[0].id;
+  return create("x_build_customer_project", {
+    x_name: projectName,
+    x_studio_customer_id: customerId,
+    x_studio_active_flag: true,
+  });
+}
+
+/** يخفي مشروعاً من قائمة العميل (حذف منطقي) — بعد التحقق أنه يخص نفس العميل صاحب البريد المُتحقق منه */
+export async function deleteCustomerProject(projectId: number, customerId: number): Promise<boolean> {
+  const rows = await read<{ x_studio_customer_id: [number, string] | false }>(
+    "x_build_customer_project",
+    [projectId],
+    ["x_studio_customer_id"]
+  );
+  const row = rows[0];
+  if (!row || !row.x_studio_customer_id || row.x_studio_customer_id[0] !== customerId) return false;
+  await write("x_build_customer_project", [projectId], { x_studio_active_flag: false });
+  return true;
+}
+
+/** ينشئ طلب توريد جديداً بحالة "جديد" — لا يُنشئ بنود مواد (تُضاف يدوياً وقت التحليل، إلا إذا أرسلها العميل مباشرة) */
 export async function createProcurementRequest(
   data: ProcurementRequestInput,
   categoryIds: number[],
-  customerId: number
+  customerId: number,
+  projectId: number
 ): Promise<number> {
   return create("x_build_procurement_request", {
     x_name: data.projectName,
     x_studio_customer_id: customerId,
+    x_studio_project_id: projectId,
     x_studio_contact_name: data.contactName,
     x_studio_company_name: data.companyName || false,
     x_studio_email: normalizeEmail(data.email),
@@ -1249,6 +1283,7 @@ export async function createProcurementRequest(
     x_studio_delivery_address: data.deliveryAddressNotes || false,
     x_studio_delivery_latitude: data.deliveryLatitude ?? false,
     x_studio_delivery_longitude: data.deliveryLongitude ?? false,
+    x_studio_national_address_code: data.nationalAddressCode || false,
     x_studio_requested_delivery_date: data.requestedDeliveryDate || false,
     x_studio_request_description: data.description,
     x_studio_source: "website",
@@ -1259,41 +1294,63 @@ export async function createProcurementRequest(
   });
 }
 
+/** يضيف بنود مواد بمعرفة العميل مباشرة (اسم صنف + كمية) — تبقى بحالة "جديد" بانتظار مراجعة الفريق */
+export async function createCustomerRequestLines(
+  requestId: number,
+  items: { itemName: string; quantity: number; unit?: string }[]
+): Promise<void> {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    await create("x_build_request_line", {
+      x_name: item.itemName,
+      x_studio_request_id: requestId,
+      x_studio_line_number: i + 1,
+      x_studio_original_description: item.itemName,
+      x_studio_quantity: item.quantity,
+      x_studio_uom: item.unit || false,
+      x_studio_line_source: "manual",
+      x_studio_review_status: "new",
+    });
+  }
+}
+
 export type CustomerLookupResult = {
   contactName: string;
   companyName: string;
   phone: string;
-  projects: string[];
+  projects: CustomerProject[];
 };
 
-/** يجيب بيانات العميل وأسماء مشاريعه السابقة (لأحدث طلب لكل مشروع) لتسريع الطلبات التالية */
+/** يجيب بيانات العميل ومشاريعه النشطة (سجل حقيقي، لا نص مشتق) لتسريع الطلبات التالية */
 export async function findCustomerProjectsByEmail(email: string): Promise<CustomerLookupResult | null> {
-  const normalized = normalizeEmail(email);
-  const rows = await searchRead<{
+  const partner = await findPartnerByEmail(email);
+  if (!partner) return null;
+
+  const recentRequests = await searchRead<{
     x_studio_contact_name: string | false;
     x_studio_company_name: string | false;
     x_studio_phone: string | false;
-    x_studio_project_name: string | false;
   }>(
     "x_build_procurement_request",
-    [["x_studio_email", "=", normalized]],
-    ["x_studio_contact_name", "x_studio_company_name", "x_studio_phone", "x_studio_project_name"],
-    { order: "id desc", limit: 50 }
+    [["x_studio_email", "=", normalizeEmail(email)]],
+    ["x_studio_contact_name", "x_studio_company_name", "x_studio_phone"],
+    { order: "id desc", limit: 1 }
   );
-  if (!rows.length) return null;
+  if (!recentRequests.length) return null;
 
-  const projects: string[] = [];
-  for (const r of rows) {
-    const name = r.x_studio_project_name || "";
-    if (name && !projects.includes(name)) projects.push(name);
-  }
+  const projectRows = await searchRead<{ id: number; x_name: string }>(
+    "x_build_customer_project",
+    [["x_studio_customer_id", "=", partner.id], ["x_studio_active_flag", "=", true]],
+    ["id", "x_name"],
+    { order: "id desc" }
+  );
 
-  const latest = rows[0];
+  const latest = recentRequests[0];
   return {
     contactName: latest.x_studio_contact_name || "",
     companyName: latest.x_studio_company_name || "",
     phone: latest.x_studio_phone || "",
-    projects,
+    projects: projectRows.map((p) => ({ id: p.id, name: p.x_name })),
   };
 }
 
