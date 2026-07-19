@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import Script from "next/script";
 import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, Paperclip, Plus, ShieldCheck, Trash2, X } from "lucide-react";
@@ -14,11 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isValidVendorPhone, normalizeVendorPhone, textByLang } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
-
-const DeliveryMapPicker = dynamic(() => import("@/components/forms/delivery-map-picker").then((m) => m.DeliveryMapPicker), {
-  ssr: false,
-  loading: () => <div className="h-[320px] w-full animate-pulse rounded-xl bg-brand-dark/5" />,
-});
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
 type CustomerProject = { id: number; name: string };
@@ -87,7 +81,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [emailToken, setEmailToken] = useState("");
   const [lookup, setLookup] = useState<CustomerLookup | null>(null);
   const [lookupChecked, setLookupChecked] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [fileError, setFileError] = useState("");
@@ -193,9 +186,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     }
 
     const validItems = items.filter((it) => it.itemName.trim() && Number(it.quantity) > 0);
-    const hasLocation = !!location || !!data.nationalAddressCode || !!data.addressNotes?.trim();
+    const hasLocation = !!data.nationalAddressCode || !!data.addressNotes?.trim();
     if (!hasLocation) {
-      setSubmitError(textByLang(isRtl, "Set the delivery location: map, national address code, or city/district", "حدد موقع التسليم: خريطة، رمز عنوان وطني، أو مدينة/حي"));
+      setSubmitError(textByLang(isRtl, "Set the delivery location: national address code, or city/district", "حدد موقع التسليم: رمز العنوان الوطني، أو المدينة/الحي"));
       return;
     }
     const hasMaterialsInfo = !!data.description?.trim() || validItems.length > 0 || files.length > 0;
@@ -223,8 +216,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           project_name: projectName,
           description: data.description?.trim() || "",
           items: validItems.map((it) => ({ itemName: it.itemName.trim(), quantity: Number(it.quantity), unit: it.unit.trim() || undefined })),
-          delivery_latitude: location?.lat,
-          delivery_longitude: location?.lng,
           national_address_code: data.nationalAddressCode || undefined,
           delivery_address_notes: data.addressNotes?.trim() || undefined,
           requested_delivery_date: data.requestedDeliveryDate || undefined,
@@ -375,7 +366,27 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
               <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
             </VendorField>
 
-            <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "List items below, describe them, or attach a file — whichever is easiest", "عدّد الأصناف أدناه، أو صفها، أو أرفق ملفاً — أي طريقة تناسبك")}>
+            <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-primary/40 bg-brand-primary/5 px-4 py-6 hover:bg-brand-primary/10">
+                <Paperclip className="h-5 w-5 text-brand-primary" />
+                <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
+                <span>{textByLang(isRtl, "Choose Excel / PDF file", "اختر ملف إكسل / PDF")}</span>
+              </label>
+              {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
+              {files.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {files.map((f) => (
+                    <li key={f.name} className="flex items-center justify-between rounded-lg bg-brand-light/50 px-3 py-2 text-sm">
+                      <span className="truncate">{f.name} <span className="text-brand-dark/40">({f.sizeLabel})</span></span>
+                      <button type="button" onClick={() => removeFile(f.name)} className="text-brand-dark/45 hover:text-red-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-brand-dark/40">{textByLang(isRtl, "Or list items", "أو عدّد الأصناف")}</p>
               <div className="space-y-3">
                 {items.map((item, i) => (
                   <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2">
@@ -394,14 +405,13 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
               </div>
               <textarea
                 {...form.register("description")}
-                className="mt-3 min-h-[80px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                placeholder={textByLang(isRtl, "Or describe what you need in a few words", "أو صف احتياجك بكلمات مختصرة")}
+                className="mt-3 min-h-[64px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                placeholder={textByLang(isRtl, "Additional notes (optional)", "ملاحظات إضافية (اختياري)")}
               />
             </VendorField>
 
-            <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Use the map, or enter your national short address, or the city/district", "استخدم الخريطة، أو رمز العنوان الوطني المختصر، أو المدينة/الحي")}>
-              <DeliveryMapPicker value={location} onChange={setLocation} isRtl={isRtl} />
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Enter your national short address, or the city/district", "أدخل رمز العنوان الوطني المختصر، أو المدينة/الحي")}>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
                   {form.formState.errors.nationalAddressCode && (
@@ -414,27 +424,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
 
             <VendorField label={textByLang(isRtl, "Preferred Delivery Date (optional)", "تاريخ التسليم المفضّل (اختياري)")}>
               <Input type="date" {...form.register("requestedDeliveryDate")} className="h-12" />
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Attach Files (optional)", "إرفاق ملفات (اختياري)")} helper={textByLang(isRtl, "BOQ, drawings, or any reference file", "جدول كميات، مخططات، أو أي ملف مرجعي")}>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
-                <Paperclip className="h-5 w-5 text-brand-primary" />
-                <input type="file" multiple className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
-                <span>{textByLang(isRtl, "Choose files", "اختر ملفات")}</span>
-              </label>
-              {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
-              {files.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {files.map((f) => (
-                    <li key={f.name} className="flex items-center justify-between rounded-lg bg-brand-light/50 px-3 py-2 text-sm">
-                      <span className="truncate">{f.name} <span className="text-brand-dark/40">({f.sizeLabel})</span></span>
-                      <button type="button" onClick={() => removeFile(f.name)} className="text-brand-dark/45 hover:text-red-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </VendorField>
 
             {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
