@@ -132,13 +132,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <h1 className="type-hero text-brand-dark leading-[1.15]">
                   {isRtl ? (
                     <>
-                      رحلة توريد{" "}
-                      <span className="text-brand-primary">أسرع، أسهل</span>
+                      رحلة توريد المواد{" "}
+                      <span className="text-brand-primary">أسرع</span>
                     </>
                   ) : (
                     <>
-                      A Faster,{" "}
-                      <span className="text-brand-primary">Easier Supply Journey</span>
+                      Materials Supply,{" "}
+                      <span className="text-brand-primary">Faster</span>
                     </>
                   )}
                 </h1>
