@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
+
+const SUPPORT_EMAIL = "cs@build.sa";
 
 type SiteFooterProps = {
   isRtl?: boolean;
@@ -41,6 +44,14 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
                 ? "توريد مواد البناء أسرع وأسهل"
                 : "Build supplies building materials for construction projects across Riyadh, Jeddah, and Saudi Arabia. Steel, cement, and finishing materials delivered to your project site."}
             </p>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-primary/20 bg-white px-4 py-2 text-sm font-semibold text-brand-dark transition hover:border-brand-primary/40 hover:text-brand-primary"
+              dir="ltr"
+            >
+              <Mail className="h-4 w-4 text-brand-primary" />
+              {SUPPORT_EMAIL}
+            </a>
           </div>
 
           <FooterColumn title={isRtl ? "الموقع" : "Site"} links={links.main} />
