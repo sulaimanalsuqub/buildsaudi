@@ -10,7 +10,7 @@ type QuotePageContentProps = {
 export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
   const t = {
     badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
-    title: isRtl ? "أطلب المنتجات اللي تحتاجها" : "Request the Materials You Need",
+    title: isRtl ? "رحلة الشراء أسرع و أسهل" : "A Faster, Easier Buying Journey",
     body: isRtl
       ? "عبّي بيانات مشروعك وموقع التسليم، وسيتواصل معك فريقنا بعرض الأسعار."
       : "Share your project details and delivery location, and our team will follow up with pricing.",
@@ -25,7 +25,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
               <ClipboardList className="h-4 w-4" />
               {t.badge}
             </span>
-            <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
+            <h1 className="type-section-title mt-5 text-brand-dark">{t.title}</h1>
             <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
           </div>
         </Container>
