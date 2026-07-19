@@ -55,8 +55,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
   const t = {
     title: isRtl
-      ? "مورد مواد بناء وتشطيب للمشاريع الإنشائية"
-      : "Building Materials & Finishes Supplier for Construction Projects",
+      ? "رحلة توريد أسرع، أسهل"
+      : "A Faster, Easier Supply Journey",
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
