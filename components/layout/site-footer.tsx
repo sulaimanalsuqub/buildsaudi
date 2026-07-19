@@ -58,9 +58,8 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
           <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45 md:flex-row md:items-center md:justify-between">
+        <div className="mt-10 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <p>{isRtl ? "توريد مشاريع البناء في المملكة العربية السعودية" : "Construction procurement · Saudi Arabia"}</p>
         </div>
       </Container>
     </footer>
