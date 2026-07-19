@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { SiteFooter } from "@/components/layout/site-footer";
+import { ConditionalFooter } from "@/components/layout/conditional-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +10,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
       </Suspense>
       <div className="pt-[72px]">{children}</div>
-      <SiteFooter />
+      <ConditionalFooter />
     </>
   );
 }
