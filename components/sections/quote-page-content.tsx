@@ -12,8 +12,8 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
     badge: isRtl ? "طلب عرض سعر" : "Request a Quote",
     title: isRtl ? "رحلة الشراء أسرع و أسهل" : "A Faster, Easier Buying Journey",
     body: isRtl
-      ? "عبّي بيانات مشروعك وموقع التسليم، وسيتواصل معك فريقنا بعرض الأسعار."
-      : "Share your project details and delivery location, and our team will follow up with pricing.",
+      ? "أدخل تفاصيل طلبك وموقع التسليم"
+      : "Enter your request details and delivery location",
   };
 
   return (
