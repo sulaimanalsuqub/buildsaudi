@@ -11,13 +11,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isValidVendorPhone, normalizeVendorPhone, textByLang } from "@/lib/vendor-options";
+import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries, textByLang } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
 type CustomerProject = { id: number; name: string };
 type CustomerLookup = { contactName: string; companyName: string; phone: string; projects: CustomerProject[] };
-type ItemRow = { itemName: string; quantity: string; unit: string };
+type ItemRow = { itemName: string; quantity: string; unit: string; brand: string; countryOfOrigin: string };
 
 const MAX_FILES = 5;
 const NEW_PROJECT = "__new__";
@@ -142,7 +142,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     }
   };
 
-  const addItemRow = () => setItems((prev) => [...prev, { itemName: "", quantity: "", unit: "" }]);
+  const addItemRow = () => setItems((prev) => [...prev, { itemName: "", quantity: "", unit: "", brand: "", countryOfOrigin: "" }]);
   const updateItemRow = (index: number, patch: Partial<ItemRow>) => setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
   const removeItemRow = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index));
 
@@ -215,7 +215,13 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           phone: normalizeVendorPhone(data.phone),
           project_name: projectName,
           description: data.description?.trim() || "",
-          items: validItems.map((it) => ({ itemName: it.itemName.trim(), quantity: Number(it.quantity), unit: it.unit.trim() || undefined })),
+          items: validItems.map((it) => ({
+            itemName: it.itemName.trim(),
+            quantity: Number(it.quantity),
+            unit: it.unit.trim() || undefined,
+            brand: it.brand.trim() || undefined,
+            countryOfOrigin: it.countryOfOrigin ? optionLabel(isRtl, supplierCountries, it.countryOfOrigin) : undefined,
+          })),
           national_address_code: data.nationalAddressCode || undefined,
           delivery_address_notes: data.addressNotes?.trim() || undefined,
           requested_delivery_date: data.requestedDeliveryDate || undefined,
@@ -389,13 +395,30 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
               <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-brand-dark/40">{textByLang(isRtl, "Or list items", "أو عدّد الأصناف")}</p>
               <div className="space-y-3">
                 {items.map((item, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2">
-                    <Input value={item.itemName} onChange={(e) => updateItemRow(i, { itemName: e.target.value })} placeholder={textByLang(isRtl, "Item name", "اسم الصنف")} className="h-11" />
-                    <Input value={item.quantity} onChange={(e) => updateItemRow(i, { quantity: e.target.value })} type="number" min="0" placeholder={textByLang(isRtl, "Qty", "الكمية")} className="h-11 w-24" />
-                    <Input value={item.unit} onChange={(e) => updateItemRow(i, { unit: e.target.value })} placeholder={textByLang(isRtl, "Unit", "الوحدة")} className="h-11 w-24" />
-                    <button type="button" onClick={() => removeItemRow(i)} className="text-brand-dark/40 hover:text-red-600">
-                      <X className="h-4 w-4" />
-                    </button>
+                  <div key={i} className="rounded-xl border border-brand-dark/10 p-3">
+                    <div className="flex items-center gap-2">
+                      <Input value={item.itemName} onChange={(e) => updateItemRow(i, { itemName: e.target.value })} placeholder={textByLang(isRtl, "Item name", "اسم الصنف")} className="h-11" />
+                      <button type="button" onClick={() => removeItemRow(i)} className="shrink-0 text-brand-dark/40 hover:text-red-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <Input value={item.quantity} onChange={(e) => updateItemRow(i, { quantity: e.target.value })} type="number" min="0" placeholder={textByLang(isRtl, "Qty", "الكمية")} className="h-11" />
+                      <Input value={item.unit} onChange={(e) => updateItemRow(i, { unit: e.target.value })} placeholder={textByLang(isRtl, "Unit", "الوحدة")} className="h-11" />
+                      <Input value={item.brand} onChange={(e) => updateItemRow(i, { brand: e.target.value })} placeholder={textByLang(isRtl, "Brand (optional)", "العلامة التجارية (اختياري)")} className="h-11" />
+                      <select
+                        value={item.countryOfOrigin}
+                        onChange={(e) => updateItemRow(i, { countryOfOrigin: e.target.value })}
+                        className="h-11 rounded-xl border border-brand-dark/15 bg-white px-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                      >
+                        <option value="">{textByLang(isRtl, "Country of origin", "بلد المنشأ")}</option>
+                        {supplierCountries.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {optionLabel(isRtl, supplierCountries, c.value)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ))}
                 <button type="button" onClick={addItemRow} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-dark">

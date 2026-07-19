@@ -1297,7 +1297,7 @@ export async function createProcurementRequest(
 /** يضيف بنود مواد بمعرفة العميل مباشرة (اسم صنف + كمية) — تبقى بحالة "جديد" بانتظار مراجعة الفريق */
 export async function createCustomerRequestLines(
   requestId: number,
-  items: { itemName: string; quantity: number; unit?: string }[]
+  items: { itemName: string; quantity: number; unit?: string; brand?: string; countryOfOrigin?: string }[]
 ): Promise<void> {
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -1308,6 +1308,8 @@ export async function createCustomerRequestLines(
       x_studio_original_description: item.itemName,
       x_studio_quantity: item.quantity,
       x_studio_uom: item.unit || false,
+      x_studio_brand: item.brand || false,
+      x_studio_country_of_origin: item.countryOfOrigin || false,
       x_studio_line_source: "manual",
       x_studio_review_status: "new",
     });

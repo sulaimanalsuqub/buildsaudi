@@ -29,6 +29,8 @@ const itemSchema = z.object({
   itemName: z.string().trim().min(1).max(200),
   quantity: z.number().positive(),
   unit: z.string().trim().max(30).optional().or(z.literal("")),
+  brand: z.string().trim().max(100).optional().or(z.literal("")),
+  countryOfOrigin: z.string().trim().max(100).optional().or(z.literal("")),
 });
 
 const registerSchema = z
@@ -126,7 +128,13 @@ export async function POST(req: NextRequest) {
     if (data.items.length) {
       await createCustomerRequestLines(
         requestId,
-        data.items.map((i) => ({ itemName: i.itemName, quantity: i.quantity, unit: i.unit || undefined }))
+        data.items.map((i) => ({
+          itemName: i.itemName,
+          quantity: i.quantity,
+          unit: i.unit || undefined,
+          brand: i.brand || undefined,
+          countryOfOrigin: i.countryOfOrigin || undefined,
+        }))
       );
     }
 
