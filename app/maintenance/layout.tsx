@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import "../globals.css";
+
 export const metadata: Metadata = {
   title: "تحت الصيانة | Build Saudi",
   robots: "noindex, nofollow",
@@ -10,5 +12,9 @@ export default function MaintenanceLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <html lang="ar" dir="rtl">
+      <body>{children}</body>
+    </html>
+  );
 }
