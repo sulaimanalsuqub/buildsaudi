@@ -13,14 +13,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isValidVendorPhone, normalizeVendorPhone, parseVendorPhone, textByLang } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
+import { VendorErrorText, VendorField, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 const DeliveryMapPicker = dynamic(() => import("@/components/forms/delivery-map-picker").then((m) => m.DeliveryMapPicker), {
   ssr: false,
   loading: () => <div className="h-[320px] w-full animate-pulse rounded-xl bg-brand-dark/5" />,
 });
 
-type MaterialCategory = { id: number; nameAr: string; nameEn: string };
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
 
 const MAX_FILES = 5;
@@ -31,7 +30,6 @@ const formSchema = z.object({
   phone: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   email: z.string().email("invalidEmail"),
   projectName: z.string().min(2, "required"),
-  categoryIds: z.array(z.number()).min(1, "required"),
   description: z.string().min(5, "required"),
   requestedDeliveryDate: z.string().optional(),
   addressNotes: z.string().optional(),
@@ -45,7 +43,6 @@ const defaultValues: FormValues = {
   phone: "",
   email: "",
   projectName: "",
-  categoryIds: [],
   description: "",
   requestedDeliveryDate: "",
   addressNotes: "",
@@ -76,8 +73,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailToken, setEmailToken] = useState("");
-  const [categories, setCategories] = useState<MaterialCategory[] | null>(null);
-  const [categoriesFailed, setCategoriesFailed] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [fileError, setFileError] = useState("");
@@ -90,33 +85,10 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/reference/material-categories")
-      .then((res) => res.json())
-      .then((body) => {
-        if (cancelled) return;
-        if (body?.ok && Array.isArray(body.categories)) setCategories(body.categories);
-        else setCategoriesFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setCategoriesFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
   const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
   const phoneDigits = parseVendorPhone(values.phone).localNumber;
-
-  const toggleCategory = (id: number) => {
-    const current = values.categoryIds;
-    const next = current.includes(id) ? current.filter((c) => c !== id) : [...current, id];
-    form.setValue("categoryIds", next, { shouldValidate: true });
-  };
 
   const handleFilesPicked = async (fileList: FileList | null) => {
     if (!fileList || !fileList.length) return;
@@ -165,7 +137,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.phone),
           project_name: data.projectName.trim(),
-          category_ids: data.categoryIds,
           description: data.description.trim(),
           delivery_latitude: location.lat,
           delivery_longitude: location.lng,
@@ -284,24 +255,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             <VendorField label={textByLang(isRtl, "Project Name", "اسم المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
               <Input {...form.register("projectName")} className="h-12" />
               <VendorErrorText text={form.formState.errors.projectName?.message} isRtl={isRtl} />
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Product Categories", "فئات المنتجات")}>
-              {categoriesFailed ? (
-                <p className="text-sm text-red-600">{textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة.")}</p>
-              ) : !categories ? (
-                <p className="text-sm text-brand-dark/50">{textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…")}</p>
-              ) : (
-                <VendorOptionGrid>
-                  {categories.map((cat) => (
-                    <VendorOptionCard key={cat.id} checked={values.categoryIds.includes(cat.id)}>
-                      <input type="checkbox" className="h-4 w-4 accent-brand-primary" checked={values.categoryIds.includes(cat.id)} onChange={() => toggleCategory(cat.id)} />
-                      {isRtl ? cat.nameAr : cat.nameEn}
-                    </VendorOptionCard>
-                  ))}
-                </VendorOptionGrid>
-              )}
-              <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")}>

@@ -6,7 +6,6 @@ import {
   createOutboxEvent,
   createProcurementRequest,
   generateProcurementTracking,
-  validateActiveCategoryIds,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
@@ -40,7 +39,6 @@ const registerSchema = z
     delivery_address_notes: z.string().trim().max(500).optional().or(z.literal("")),
     requested_delivery_date: z.string().trim().optional().or(z.literal("")),
     description: z.string().trim().min(5, "أضف وصفاً للمواد أو المنتجات المطلوبة"),
-    category_ids: z.array(z.number().int().positive()).min(1, "اختر فئة واحدة على الأقل"),
     files: z.array(fileSchema).max(MAX_FILES, "يمكن رفع 5 ملفات كحد أقصى").optional().default([]),
     turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
   })
@@ -66,11 +64,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
-  const categoriesValid = await validateActiveCategoryIds(data.category_ids);
-  if (!categoriesValid) {
-    return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
-  }
-
   try {
     const requestId = await createProcurementRequest(
       {
@@ -85,7 +78,7 @@ export async function POST(req: NextRequest) {
         requestedDeliveryDate: data.requested_delivery_date || undefined,
         description: data.description,
       },
-      data.category_ids
+      []
     );
 
     if (data.files.length) {
