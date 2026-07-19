@@ -1220,10 +1220,29 @@ export type ProcurementRequestInput = {
   description: string;
 };
 
+/** يبحث عن عميل بنفس البريد، وإلا ينشئ سجلاً جديداً — يتيح ربط طلبات نفس العميل ببعضها لاحقاً */
+export async function findOrCreateCustomerPartner(data: { contactName: string; companyName?: string; email: string; phone: string }): Promise<number> {
+  const existing = await findPartnerByEmail(data.email);
+  if (existing) return existing.id;
+  return create("res.partner", {
+    name: data.companyName || data.contactName,
+    is_company: !!data.companyName,
+    email: normalizeEmail(data.email),
+    phone: normalizeSaudiPhone(data.phone),
+  });
+}
+
 /** ينشئ طلب توريد جديداً بحالة "جديد" — لا يُنشئ بنوداً (تُضاف يدوياً وقت التحليل) */
-export async function createProcurementRequest(data: ProcurementRequestInput, categoryIds: number[]): Promise<number> {
+export async function createProcurementRequest(
+  data: ProcurementRequestInput,
+  categoryIds: number[],
+  customerId: number
+): Promise<number> {
   return create("x_build_procurement_request", {
     x_name: data.projectName,
+    x_studio_customer_id: customerId,
+    x_studio_contact_name: data.contactName,
+    x_studio_company_name: data.companyName || false,
     x_studio_email: normalizeEmail(data.email),
     x_studio_phone: normalizeSaudiPhone(data.phone),
     x_studio_project_name: data.projectName,
@@ -1231,13 +1250,51 @@ export async function createProcurementRequest(data: ProcurementRequestInput, ca
     x_studio_delivery_latitude: data.deliveryLatitude ?? false,
     x_studio_delivery_longitude: data.deliveryLongitude ?? false,
     x_studio_requested_delivery_date: data.requestedDeliveryDate || false,
-    x_studio_request_description: `${data.contactName}${data.companyName ? " / " + data.companyName : ""}\n${data.description}`,
+    x_studio_request_description: data.description,
     x_studio_source: "website",
     x_studio_internal_status: "new",
     x_studio_customer_status: "received",
     x_studio_request_date: new Date().toISOString().slice(0, 19).replace("T", " "),
     x_studio_material_category_ids: categoryIds.length ? [[6, 0, categoryIds]] : false,
   });
+}
+
+export type CustomerLookupResult = {
+  contactName: string;
+  companyName: string;
+  phone: string;
+  projects: string[];
+};
+
+/** يجيب بيانات العميل وأسماء مشاريعه السابقة (لأحدث طلب لكل مشروع) لتسريع الطلبات التالية */
+export async function findCustomerProjectsByEmail(email: string): Promise<CustomerLookupResult | null> {
+  const normalized = normalizeEmail(email);
+  const rows = await searchRead<{
+    x_studio_contact_name: string | false;
+    x_studio_company_name: string | false;
+    x_studio_phone: string | false;
+    x_studio_project_name: string | false;
+  }>(
+    "x_build_procurement_request",
+    [["x_studio_email", "=", normalized]],
+    ["x_studio_contact_name", "x_studio_company_name", "x_studio_phone", "x_studio_project_name"],
+    { order: "id desc", limit: 50 }
+  );
+  if (!rows.length) return null;
+
+  const projects: string[] = [];
+  for (const r of rows) {
+    const name = r.x_studio_project_name || "";
+    if (name && !projects.includes(name)) projects.push(name);
+  }
+
+  const latest = rows[0];
+  return {
+    contactName: latest.x_studio_contact_name || "",
+    companyName: latest.x_studio_company_name || "",
+    phone: latest.x_studio_phone || "",
+    projects,
+  };
 }
 
 /** يرفق ملفات (BOQ، مخططات...) بطلب التوريد كمرفقات عادية — بلا أي استخراج/تحليل آلي بهذي المرحلة */

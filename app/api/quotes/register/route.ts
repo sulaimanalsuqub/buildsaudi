@@ -5,6 +5,7 @@ import {
   attachProcurementRequestFiles,
   createOutboxEvent,
   createProcurementRequest,
+  findOrCreateCustomerPartner,
   generateProcurementTracking,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const customerId = await findOrCreateCustomerPartner({
+      contactName: data.contact_name,
+      companyName: data.company_name || undefined,
+      email: data.email,
+      phone: data.phone,
+    });
+
     const requestId = await createProcurementRequest(
       {
         contactName: data.contact_name,
@@ -78,7 +86,8 @@ export async function POST(req: NextRequest) {
         requestedDeliveryDate: data.requested_delivery_date || undefined,
         description: data.description,
       },
-      []
+      [],
+      customerId
     );
 
     if (data.files.length) {

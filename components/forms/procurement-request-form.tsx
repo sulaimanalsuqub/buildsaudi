@@ -12,8 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isValidVendorPhone, normalizeVendorPhone, parseVendorPhone, textByLang } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
+import { isValidVendorPhone, normalizeVendorPhone, textByLang } from "@/lib/vendor-options";
+import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 const DeliveryMapPicker = dynamic(() => import("@/components/forms/delivery-map-picker").then((m) => m.DeliveryMapPicker), {
   ssr: false,
@@ -21,15 +21,18 @@ const DeliveryMapPicker = dynamic(() => import("@/components/forms/delivery-map-
 });
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
+type CustomerLookup = { contactName: string; companyName: string; phone: string; projects: string[] };
 
 const MAX_FILES = 5;
+const NEW_PROJECT = "__new__";
 
 const formSchema = z.object({
+  email: z.string().email("invalidEmail"),
   contactName: z.string().min(2, "required"),
   companyName: z.string().optional(),
   phone: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
-  email: z.string().email("invalidEmail"),
-  projectName: z.string().min(2, "required"),
+  projectChoice: z.string().optional(),
+  newProjectName: z.string().optional(),
   description: z.string().min(5, "required"),
   requestedDeliveryDate: z.string().optional(),
   addressNotes: z.string().optional(),
@@ -38,11 +41,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const defaultValues: FormValues = {
+  email: "",
   contactName: "",
   companyName: "",
   phone: "",
-  email: "",
-  projectName: "",
+  projectChoice: "",
+  newProjectName: "",
   description: "",
   requestedDeliveryDate: "",
   addressNotes: "",
@@ -73,6 +77,8 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailToken, setEmailToken] = useState("");
+  const [lookup, setLookup] = useState<CustomerLookup | null>(null);
+  const [lookupChecked, setLookupChecked] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [fileError, setFileError] = useState("");
@@ -88,9 +94,35 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
   const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
-  const phoneDigits = parseVendorPhone(values.phone).localNumber;
 
-  const handleFilesPicked = async (fileList: FileList | null) => {
+  const handleEmailVerified = async (token: string) => {
+    setVerifiedEmail(values.email.trim().toLowerCase());
+    setEmailToken(token);
+    form.clearErrors("email");
+
+    try {
+      const res = await fetch("/api/quotes/lookup-customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email.trim().toLowerCase(), email_verified_token: token }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; found?: boolean } & Partial<CustomerLookup> | null;
+      if (body?.ok && body.found) {
+        const data: CustomerLookup = { contactName: body.contactName || "", companyName: body.companyName || "", phone: body.phone || "", projects: body.projects || [] };
+        setLookup(data);
+        form.setValue("contactName", data.contactName);
+        form.setValue("companyName", data.companyName);
+        form.setValue("phone", data.phone);
+        if (data.projects.length) form.setValue("projectChoice", data.projects[0]);
+      }
+    } catch {
+      // فشل البحث لا يوقف الفورم — تكملة الإدخال يدوياً
+    } finally {
+      setLookupChecked(true);
+    }
+  };
+
+  const toggleFilesPicked = async (fileList: FileList | null) => {
     if (!fileList || !fileList.length) return;
     setFileError("");
     const picked = Array.from(fileList);
@@ -120,6 +152,17 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setSubmitError(textByLang(isRtl, "Please set the delivery location on the map", "يرجى تحديد موقع التسليم على الخريطة"));
       return;
     }
+    const hasExistingProjects = !!lookup && lookup.projects.length > 0;
+    const projectName = hasExistingProjects
+      ? data.projectChoice === NEW_PROJECT
+        ? data.newProjectName?.trim() || ""
+        : data.projectChoice
+      : data.newProjectName?.trim() || "";
+    if (!projectName) {
+      form.setError("newProjectName", { message: "required" });
+      setSubmitError(textByLang(isRtl, "Please name your project", "يرجى كتابة اسم المشروع"));
+      return;
+    }
     if (!turnstileToken) {
       setSubmitError(textByLang(isRtl, "Please complete the security check below", "يرجى إكمال التحقق الأمني أدناه"));
       return;
@@ -136,7 +179,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.phone),
-          project_name: data.projectName.trim(),
+          project_name: projectName,
           description: data.description.trim(),
           delivery_latitude: location.lat,
           delivery_longitude: location.lng,
@@ -198,63 +241,88 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       </div>
 
       <div className="space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <VendorField label={textByLang(isRtl, "Your Name", "اسمك")}>
-            <Input {...form.register("contactName")} className="h-12" />
-            <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
-          </VendorField>
-          <VendorField label={textByLang(isRtl, "Company (optional)", "المنشأة (اختياري)")}>
-            <Input {...form.register("companyName")} className="h-12" />
-          </VendorField>
-        </div>
-
-        <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
-          <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
-          <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
+        <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "We'll verify it first to speed up your request", "نتحقق منه أولاً لتسريع طلبك")}>
+          <Input
+            type="email"
+            {...form.register("email", {
+              onChange: () => {
+                if (emailVerified) {
+                  setVerifiedEmail("");
+                  setEmailToken("");
+                  setLookup(null);
+                  setLookupChecked(false);
+                }
+              },
+            })}
+            className="h-12"
+            dir="ltr"
+            autoFocus
+          />
+          <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
         </VendorField>
 
-        {phoneDigits.length >= 8 && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-            <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")}>
-              <Input
-                type="email"
-                {...form.register("email", {
-                  onChange: () => {
-                    if (emailVerified) {
-                      setVerifiedEmail("");
-                      setEmailToken("");
-                    }
-                  },
-                })}
-                className="h-12"
-                dir="ltr"
-              />
-              <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-            </VendorField>
-            {emailVerified ? (
-              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                <CheckCircle2 className="h-4 w-4" />
-                {textByLang(isRtl, "Email verified ✓", "تم التحقق من البريد ✓")}
-              </div>
-            ) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
-              <EmailVerify
-                email={values.email.trim()}
-                isRtl={isRtl}
-                onVerified={(token) => {
-                  setVerifiedEmail(values.email.trim().toLowerCase());
-                  setEmailToken(token);
-                  form.clearErrors("email");
-                }}
-              />
-            ) : null}
-          </motion.div>
+        {emailVerified ? (
+          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            <CheckCircle2 className="h-4 w-4" />
+            {textByLang(isRtl, "Email verified ✓", "تم التحقق من البريد ✓")}
+          </div>
+        ) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
+          <EmailVerify email={values.email.trim()} isRtl={isRtl} onVerified={handleEmailVerified} />
+        ) : null}
+
+        {emailVerified && !lookupChecked && (
+          <div className="flex items-center gap-2 text-sm text-brand-dark/50">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {textByLang(isRtl, "Checking your account…", "جاري التحقق من حسابكم…")}
+          </div>
         )}
 
-        {emailVerified && (
+        {emailVerified && lookupChecked && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-            <VendorField label={textByLang(isRtl, "Project Name", "اسم المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
-              <Input {...form.register("projectName")} className="h-12" />
-              <VendorErrorText text={form.formState.errors.projectName?.message} isRtl={isRtl} />
+            {lookup && (
+              <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
+                {textByLang(isRtl, `Welcome back, ${lookup.contactName}! We filled in your details below.`, `مرحباً بعودتك، ${lookup.contactName}! عبّينا بياناتكم أدناه.`)}
+              </div>
+            )}
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <VendorField label={textByLang(isRtl, "Your Name", "اسمك")}>
+                <Input {...form.register("contactName")} className="h-12" />
+                <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
+              </VendorField>
+              <VendorField label={textByLang(isRtl, "Company (optional)", "المنشأة (اختياري)")}>
+                <Input {...form.register("companyName")} className="h-12" />
+              </VendorField>
+            </div>
+
+            <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
+              <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
+              <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
+            </VendorField>
+
+            <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
+              {lookup && lookup.projects.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {lookup.projects.map((p) => (
+                      <VendorOptionCard key={p} checked={values.projectChoice === p}>
+                        <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === p} onChange={() => form.setValue("projectChoice", p, { shouldValidate: true })} />
+                        {p}
+                      </VendorOptionCard>
+                    ))}
+                    <VendorOptionCard checked={values.projectChoice === NEW_PROJECT}>
+                      <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === NEW_PROJECT} onChange={() => form.setValue("projectChoice", NEW_PROJECT, { shouldValidate: true })} />
+                      {textByLang(isRtl, "New project", "مشروع جديد")}
+                    </VendorOptionCard>
+                  </div>
+                  {values.projectChoice === NEW_PROJECT && (
+                    <Input {...form.register("newProjectName")} className="h-12" placeholder={textByLang(isRtl, "New project name", "اسم المشروع الجديد")} />
+                  )}
+                </div>
+              ) : (
+                <Input {...form.register("newProjectName")} className="h-12" />
+              )}
+              <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")}>
@@ -281,7 +349,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             <VendorField label={textByLang(isRtl, "Attach Files (optional)", "إرفاق ملفات (اختياري)")} helper={textByLang(isRtl, "BOQ, drawings, or any reference file", "جدول كميات، مخططات، أو أي ملف مرجعي")}>
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-dark/20 px-4 py-6 hover:bg-brand-light/50">
                 <Paperclip className="h-5 w-5 text-brand-primary" />
-                <input type="file" multiple className="hidden" onChange={(e) => handleFilesPicked(e.target.files)} />
+                <input type="file" multiple className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
                 <span>{textByLang(isRtl, "Choose files", "اختر ملفات")}</span>
               </label>
               {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
