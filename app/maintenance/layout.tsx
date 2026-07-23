@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
+import { siteConfig } from "@/lib/site";
 import "../globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: "تحت الصيانة | Build Saudi",
   robots: "noindex, nofollow",
 };

@@ -11,13 +11,24 @@ import {
   findPartnerByEmail,
   findPartnerByPhone,
   normalizeCompanyName,
-  resolveOrCreateCategories,
-  resolveOrCreateServiceAreas,
-  resolveOrCreateVehicleTypes,
+  resolveActiveCarrierCategories,
+  resolveActiveServiceAreas,
+  resolveActiveVehicleTypes,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
-import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
+import { isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
+
+/** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرمي إن كان الرمز غير معروف */
+function translateServiceAreaSlugs(slugs: string[]): string[] | null {
+  const names: string[] = [];
+  for (const slug of slugs) {
+    const region = regions.find((r) => r.value === slug);
+    if (!region) return null;
+    names.push(region.ar);
+  }
+  return names;
+}
 
 const CURRENT_POLICY_VERSION = "2026-07-v1";
 
@@ -63,6 +74,20 @@ export async function POST(req: NextRequest) {
   const carrier = parsed.data;
   const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
 
+  // نطاقات مرجعية ثابتة (مناطق/مركبات/فئات) — تُطابَق فقط ضد سجلات نشطة موجودة، لا تُنشأ من مدخلات عامة غير موثوقة
+  const serviceAreaNamesAr = translateServiceAreaSlugs(carrier.service_areas);
+  if (!serviceAreaNamesAr) {
+    return NextResponse.json({ error: "منطقة خدمة غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+  }
+  const [serviceAreaIds, vehicleTypeIds, materialCategoryIds] = await Promise.all([
+    resolveActiveServiceAreas(serviceAreaNamesAr),
+    resolveActiveVehicleTypes(carrier.vehicle_types),
+    resolveActiveCarrierCategories(carrier.material_categories ?? []),
+  ]);
+  if (!serviceAreaIds || !vehicleTypeIds || !materialCategoryIds) {
+    return NextResponse.json({ error: "قيمة غير معروفة في مناطق الخدمة أو أنواع المركبات أو الفئات — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+  }
+
   try {
     // 1) نفس البريد + نفس اسم المنشأة (بعد التطبيع) + الدولة — نفس التسجيل، لا إنشاء
     const exactMatch = await findCarrierByEmailNameCountry(carrier.email, carrier.establishment_name, carrier.country);
@@ -92,7 +117,7 @@ export async function POST(req: NextRequest) {
           stage: existingProfile.status,
         });
       } else {
-        return await finishRegistration(emailMatch.id, carrier, consentAt);
+        return await finishRegistration(emailMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
       }
     }
 
@@ -105,7 +130,7 @@ export async function POST(req: NextRequest) {
           console.warn("[carriers/register] needs_review: phone matches existing partner with a carrier profile");
           return NextResponse.json({ ok: true, status: "needs_review" });
         }
-        return await finishRegistration(phoneMatch.id, carrier, consentAt);
+        return await finishRegistration(phoneMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
       }
     }
 
@@ -123,7 +148,7 @@ export async function POST(req: NextRequest) {
       phone: carrier.phone,
       website: carrier.website || undefined,
     });
-    return await finishRegistration(partnerId, carrier, consentAt);
+    return await finishRegistration(partnerId, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
   } catch (error) {
     if (error instanceof OdooClientError) {
       console.error(`[carriers/register][${error.correlationId}] ${error.kind}: ${error.message}`);
@@ -137,13 +162,14 @@ export async function POST(req: NextRequest) {
 
 type CarrierInput = z.infer<typeof registerSchema>;
 
-async function finishRegistration(partnerId: number, carrier: CarrierInput, consentAt: string) {
-  const [serviceAreaIds, vehicleTypeIds, materialCategoryIds] = await Promise.all([
-    resolveOrCreateServiceAreas(carrier.service_areas),
-    resolveOrCreateVehicleTypes(carrier.vehicle_types),
-    resolveOrCreateCategories(carrier.material_categories ?? []),
-  ]);
-
+async function finishRegistration(
+  partnerId: number,
+  carrier: CarrierInput,
+  consentAt: string,
+  serviceAreaIds: number[],
+  vehicleTypeIds: number[],
+  materialCategoryIds: number[]
+) {
   const profileId = await createPreliminaryCarrierProfile(
     partnerId,
     {

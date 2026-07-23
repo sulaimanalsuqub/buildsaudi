@@ -909,6 +909,38 @@ export async function findDuplicateInternationalProfile(
   return rows.length > 0;
 }
 
+/** يطابق فقط ضد سجلات نشطة موجودة مسبقاً — لا يُنشئ أي سجل جديد. يُعيد null إن كانت أي قيمة غير معروفة (رفض بدل تلويث Master Data من مدخلات عامة غير موثوقة) */
+async function resolveExistingActiveLookup(model: string, names: string[]): Promise<number[] | null> {
+  const trimmed = names.map((n) => n.trim()).filter(Boolean);
+  if (!trimmed.length) return [];
+  const existing = await searchRead<{ id: number; x_studio_name: string }>(
+    model,
+    [["x_studio_active_flag", "=", true]],
+    ["x_studio_name"],
+    { limit: 500 }
+  );
+  const ids: number[] = [];
+  for (const name of trimmed) {
+    const normalized = name.toLowerCase().replace(/\s+/g, " ");
+    const match = existing.find((r) => r.x_studio_name.trim().toLowerCase().replace(/\s+/g, " ") === normalized);
+    if (!match) return null;
+    ids.push(match.id);
+  }
+  return ids;
+}
+
+export async function resolveActiveServiceAreas(names: string[]): Promise<number[] | null> {
+  return resolveExistingActiveLookup("x_build_service_area", names);
+}
+
+export async function resolveActiveVehicleTypes(names: string[]): Promise<number[] | null> {
+  return resolveExistingActiveLookup("x_build_vehicle_type", names);
+}
+
+export async function resolveActiveCarrierCategories(names: string[]): Promise<number[] | null> {
+  return resolveExistingActiveLookup("x_build_material_category", names);
+}
+
 /** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للعلامات/مناطق الخدمة/المركبات المُدخلة كنص من الموقع */
 async function resolveOrCreateLookup(model: string, names: string[]): Promise<number[]> {
   const ids: number[] = [];
@@ -1044,24 +1076,8 @@ export async function postProcurementRequestNote(requestId: number, body: string
   await executeKw("x_build_procurement_request", "message_post", [[requestId]], { body });
 }
 
-/**
- * @deprecated لرحلة المورد — استُبدلت بـ validateActiveCategoryIds (الفئات Master Data من Odoo، لا تُنشأ من الموقع).
- * لا تزال مستخدَمة في رحلة الناقل مؤقتاً (خارج نطاق هذا الإصلاح).
- */
-export async function resolveOrCreateCategories(names: string[]): Promise<number[]> {
-  return resolveOrCreateLookup("x_build_material_category", names);
-}
-
 export async function resolveOrCreateBrands(names: string[]): Promise<number[]> {
   return resolveOrCreateLookup("x_build_brand", names);
-}
-
-export async function resolveOrCreateServiceAreas(names: string[]): Promise<number[]> {
-  return resolveOrCreateLookup("x_build_service_area", names);
-}
-
-export async function resolveOrCreateVehicleTypes(names: string[]): Promise<number[]> {
-  return resolveOrCreateLookup("x_build_vehicle_type", names);
 }
 
 // ─────────────────────────────────────────────────────────────

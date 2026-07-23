@@ -25,9 +25,9 @@ export const productCategories: VendorOption[] = [
 
 export const regions: VendorOption[] = [
   { value: "riyadh", en: "Riyadh", ar: "الرياض" },
-  { value: "makkah", en: "Makkah", ar: "مكة" },
-  { value: "madinah", en: "Madinah", ar: "المدينة" },
-  { value: "eastern", en: "Eastern Province", ar: "الشرقية" },
+  { value: "makkah", en: "Makkah", ar: "مكة المكرمة" },
+  { value: "madinah", en: "Madinah", ar: "المدينة المنورة" },
+  { value: "eastern", en: "Eastern Province", ar: "المنطقة الشرقية" },
   { value: "qassim", en: "Qassim", ar: "القصيم" },
   { value: "asir", en: "Asir", ar: "عسير" },
   { value: "tabuk", en: "Tabuk", ar: "تبوك" },

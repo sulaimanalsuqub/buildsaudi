@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
+
 import { NotFoundContent } from "@/components/errors/not-found-content";
+import { siteConfig } from "@/lib/site";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+};
 
 /**
  * Catch-all for URLs that match no route at all. Next.js renders this inside
