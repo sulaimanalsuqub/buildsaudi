@@ -303,7 +303,7 @@ export async function createAttachment(params: {
 }): Promise<{ id: number }> {
   const id = await create("ir.attachment", {
     name: params.name,
-    datas: params.base64Data,
+    raw: params.base64Data,
     res_model: params.resModel,
     res_id: params.resId,
     mimetype: params.mimeType,
@@ -968,6 +968,82 @@ export async function validateActiveCategoryIds(ids: number[]): Promise<boolean>
   return rows.length === ids.length;
 }
 
+/** يكتب فئات الطلب المستنتجة من البنود المستخرجة آلياً — أساس اقتراح الموردين */
+export async function updateProcurementRequestCategories(requestId: number, categoryIds: number[]): Promise<void> {
+  if (!categoryIds.length) return;
+  await write("x_build_procurement_request", [requestId], {
+    x_studio_material_category_ids: [[6, 0, categoryIds]],
+  });
+}
+
+export type MatchingSupplier = {
+  id: number;
+  partnerId: number;
+  name: string;
+  matchedCategoryCount: number;
+};
+
+/** يبحث عن الموردين المؤهَّلين للمطابقة (eligible_for_matching) اللي تتقاطع فئاتهم مع فئات الطلب — مرتَّبين حسب عدد الفئات المتطابقة */
+export async function findMatchingSuppliers(categoryIds: number[]): Promise<MatchingSupplier[]> {
+  if (!categoryIds.length) return [];
+  const rows = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_material_category_ids: number[];
+  }>(
+    "x_build_supplier_profile",
+    [
+      ["x_studio_eligible_for_matching", "=", true],
+      ["x_studio_active_flag", "=", true],
+      ["x_studio_material_category_ids", "in", categoryIds],
+    ],
+    ["x_studio_partner_id", "x_studio_material_category_ids"]
+  );
+  return rows
+    .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
+    .map((row) => ({
+      id: row.id,
+      partnerId: row.x_studio_partner_id[0],
+      name: row.x_studio_partner_id[1],
+      matchedCategoryCount: row.x_studio_material_category_ids.filter((id) => categoryIds.includes(id)).length,
+    }))
+    .sort((a, b) => b.matchedCategoryCount - a.matchedCategoryCount);
+}
+
+/** يزامن "مؤهَّل للمطابقة" مع حالة الاعتماد تلقائياً — يفعّله عند "approved"، يعطّله لو الحالة تغيّرت لأي شيء آخر (رفض/تعليق بعد اعتماد سابق). يعيد عدد التغييرات بالاتجاهين */
+export async function syncSupplierMatchingEligibility(): Promise<{ enabled: number; disabled: number }> {
+  const toEnable = await searchRead<{ id: number }>(
+    "x_build_supplier_profile",
+    [
+      ["x_studio_status", "=", "approved"],
+      ["x_studio_eligible_for_matching", "=", false],
+    ],
+    ["id"]
+  );
+  if (toEnable.length) {
+    await write("x_build_supplier_profile", toEnable.map((r) => r.id), { x_studio_eligible_for_matching: true });
+  }
+
+  const toDisable = await searchRead<{ id: number }>(
+    "x_build_supplier_profile",
+    [
+      ["x_studio_status", "!=", "approved"],
+      ["x_studio_eligible_for_matching", "=", true],
+    ],
+    ["id"]
+  );
+  if (toDisable.length) {
+    await write("x_build_supplier_profile", toDisable.map((r) => r.id), { x_studio_eligible_for_matching: false });
+  }
+
+  return { enabled: toEnable.length, disabled: toDisable.length };
+}
+
+/** يضيف ملاحظة داخلية على سجل الطلب (Odoo chatter) — لا يُنشئ حقلاً جديداً، يستخدم آلية الرسائل المدمجة في أودو */
+export async function postProcurementRequestNote(requestId: number, body: string): Promise<void> {
+  await executeKw("x_build_procurement_request", "message_post", [[requestId]], { body });
+}
+
 /**
  * @deprecated لرحلة المورد — استُبدلت بـ validateActiveCategoryIds (الفئات Master Data من Odoo، لا تُنشأ من الموقع).
  * لا تزال مستخدَمة في رحلة الناقل مؤقتاً (خارج نطاق هذا الإصلاح).
@@ -1316,6 +1392,123 @@ export async function createCustomerRequestLines(
   }
 }
 
+export type ProductCategoryOption = { id: number; name: string };
+
+/** فئات المنتجات الرسمية بأودو (product.category) — الآباء فقط بلا فروع، تُستخدم لتصنيف الكتالوج (منفصلة عن x_build_material_category) */
+export async function listProductCategories(): Promise<ProductCategoryOption[]> {
+  const rows = await searchRead<{ id: number; name: string; parent_id: [number, string] | false }>(
+    "product.category",
+    [],
+    ["name", "parent_id"],
+    { limit: 200 }
+  );
+  return rows.filter((r) => !r.parent_id).map((r) => ({ id: r.id, name: r.name }));
+}
+
+/** أسماء المنتجات الحالية بالكتالوج — تُمرَّر لخطوة الاستخلاص حتى يعيد النموذج استخدام نفس الاسم بدل صياغة جديدة لنفس الصنف، لتقليل التكرار عند المصدر */
+export async function listCatalogProductNames(): Promise<string[]> {
+  const rows = await searchRead<{ name: string }>("product.product", [["active", "=", true]], ["name"], { limit: 1000 });
+  return [...new Set(rows.map((r) => r.name.trim()).filter(Boolean))];
+}
+
+const UNIT_TO_UOM_ID: Record<string, number> = {
+  "متر": 9,
+  "م": 9,
+  "متر مربع": 11,
+  "كجم": 16,
+  "كيلو": 16,
+  "كيلوجرام": 16,
+  "لتر": 13,
+};
+const DEFAULT_UOM_ID = 1; // Units
+const PENDING_REVIEW_TAG_NAME = "بانتظار مراجعة (منتج مستخرج آلياً)";
+
+let pendingReviewTagIdCache: number | null = null;
+
+/** يجيب معرّف وسم "بانتظار مراجعة" (ينشئه أول مرة فقط) — يُعلَّم به كل منتج جديد يُنشأ آلياً حتى يراجعه الفريق قبل الاعتماد عليه */
+async function getPendingReviewTagId(): Promise<number> {
+  if (pendingReviewTagIdCache) return pendingReviewTagIdCache;
+  const existing = await searchRead<{ id: number }>("product.tag", [["name", "=", PENDING_REVIEW_TAG_NAME]], ["id"], { limit: 1 });
+  const id = existing[0] ? existing[0].id : await create("product.tag", { name: PENDING_REVIEW_TAG_NAME });
+  pendingReviewTagIdCache = id;
+  return id;
+}
+
+/** يبحث عن منتج مطابق بالاسم (ضمن نفس الفئة إن وُجدت) أو ينشئه — الكتالوج ينمو عضوياً من طلبات العملاء الفعلية.
+ * أي منتج جديد يُنشأ (لا يُطابَق) يُعلَّم بوسم "بانتظار مراجعة" — أسماء مستخرجة آلياً بلا مراجعة بشرية قد تتكرر أو تُخطئ، فيحتاج الفريق يراجعها/يدمجها دورياً قبل الاعتماد الكامل عليها بمطابقة الموردين. */
+async function findOrCreateCatalogProduct(itemName: string, categoryId: number | null, unit?: string | null): Promise<number> {
+  const trimmed = itemName.trim();
+  const domain: unknown[] = [["name", "=", trimmed]];
+  if (categoryId) domain.push(["categ_id", "=", categoryId]);
+
+  const existing = await searchRead<{ id: number }>("product.product", domain, ["id"], { limit: 1 });
+  if (existing[0]) return existing[0].id;
+
+  const uomId = (unit && UNIT_TO_UOM_ID[unit.trim()]) || DEFAULT_UOM_ID;
+  const tagId = await getPendingReviewTagId();
+  return create("product.product", {
+    name: trimmed,
+    type: "consu",
+    categ_id: categoryId || false,
+    uom_id: uomId,
+    purchase_ok: true,
+    sale_ok: true,
+    product_tag_ids: [[6, 0, [tagId]]],
+  });
+}
+
+/** يضيف بنود مواد مستخلصة آلياً من وصف حر — تُعلَّم بحالة "مستخرج آليًا"/"يحتاج مراجعة" لمراجعة الفريق قبل الاعتماد.
+ * productCategoryNameToId: خريطة اسم الفئة → معرّف product.category — إن مرَّرت، يُنشأ/يُطابَق منتج بالكتالوج لكل بند ويُربط بالسطر (x_studio_product_id) */
+export async function createExtractedRequestLines(
+  requestId: number,
+  items: {
+    itemName: string;
+    originalText: string;
+    quantity: number;
+    unit?: string | null;
+    brand?: string | null;
+    countryOfOrigin?: string | null;
+    category?: string | null;
+    subCategory?: string | null;
+    modelNumber?: string | null;
+    specifications?: string | null;
+    confidence: number;
+  }[],
+  productCategoryNameToId?: Map<string, number>
+): Promise<void> {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    let productId: number | null = null;
+    if (productCategoryNameToId) {
+      const categoryId = (item.category && productCategoryNameToId.get(item.category)) || null;
+      try {
+        productId = await findOrCreateCatalogProduct(item.itemName, categoryId, item.unit);
+      } catch (error) {
+        console.error("[odoo] findOrCreateCatalogProduct failed (non-blocking):", error instanceof Error ? error.message : error);
+      }
+    }
+    await create("x_build_request_line", {
+      x_name: item.itemName,
+      x_studio_request_id: requestId,
+      x_studio_line_number: i + 1,
+      x_studio_original_description: item.originalText || item.itemName,
+      x_studio_structured_description: item.itemName,
+      x_studio_quantity: item.quantity,
+      x_studio_uom: item.unit || false,
+      x_studio_brand: item.brand || false,
+      x_studio_country_of_origin: item.countryOfOrigin || false,
+      x_studio_category: item.category || false,
+      x_studio_sub_category: item.subCategory || false,
+      x_studio_model_number: item.modelNumber || false,
+      x_studio_specifications: item.specifications || false,
+      x_studio_confidence_score: item.confidence,
+      x_studio_line_source: "extracted",
+      x_studio_review_status: "needs_review",
+      x_studio_product_id: productId || false,
+    });
+  }
+}
+
 export type CustomerLookupResult = {
   contactName: string;
   companyName: string;
@@ -1401,6 +1594,7 @@ export type ProcurementRequestTrackingView = {
   projectName: string;
   customerStatus: string;
   requestDate: string;
+  declineReason: string | null;
 };
 
 /** عرض العميل عبر التتبع — حقول ظاهرة فقط، لا حالة داخلية ولا بيانات تسعير/موردين */
@@ -1411,10 +1605,11 @@ export async function getProcurementRequestByTrackingToken(token: string): Promi
     x_studio_project_name: string | false;
     x_studio_customer_status: string | false;
     x_studio_request_date: string | false;
+    x_studio_decline_reason: string | false;
   }>(
     "x_build_procurement_request",
     [["x_studio_tracking_token", "=", token]],
-    ["x_studio_tracking_number", "x_studio_project_name", "x_studio_customer_status", "x_studio_request_date"],
+    ["x_studio_tracking_number", "x_studio_project_name", "x_studio_customer_status", "x_studio_request_date", "x_studio_decline_reason"],
     { limit: 1 }
   );
   const row = rows[0];
@@ -1424,7 +1619,48 @@ export async function getProcurementRequestByTrackingToken(token: string): Promi
     projectName: row.x_studio_project_name || "",
     customerStatus: row.x_studio_customer_status || "received",
     requestDate: row.x_studio_request_date || "",
+    declineReason: row.x_studio_decline_reason || null,
   };
+}
+
+export type PendingDeclineNotification = {
+  id: number;
+  contactName: string;
+  email: string;
+  trackingNumber: string;
+  declineReason: string | null;
+};
+
+/** يبحث عن طلبات وضعها الفريق "مرفوض" داخلياً من واجهة أودو مباشرة، ولم يُشعَر العميل بعد (customer_status لم يُحدَّث بعد) */
+export async function getRequestsPendingDeclineNotification(): Promise<PendingDeclineNotification[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_name: string | false;
+    x_studio_email: string | false;
+    x_studio_tracking_number: string | false;
+    x_studio_decline_reason: string | false;
+  }>(
+    "x_build_procurement_request",
+    [
+      ["x_studio_internal_status", "=", "rejected"],
+      ["x_studio_customer_status", "!=", "declined"],
+    ],
+    ["x_name", "x_studio_email", "x_studio_tracking_number", "x_studio_decline_reason"]
+  );
+  return rows
+    .filter((row) => row.x_studio_email)
+    .map((row) => ({
+      id: row.id,
+      contactName: row.x_name || "",
+      email: row.x_studio_email as string,
+      trackingNumber: row.x_studio_tracking_number || "",
+      declineReason: row.x_studio_decline_reason || null,
+    }));
+}
+
+/** يُثبّت الحالة الظاهرة للعميل كـ"معتذر" بعد إنشاء حدث الإشعار — يمنع إعادة الإشعار في الدورة التالية */
+export async function markRequestDeclinedForCustomer(requestId: number): Promise<void> {
+  await write("x_build_procurement_request", [requestId], { x_studio_customer_status: "declined" });
 }
 
 export type ProcurementRequestNotification = {
@@ -1437,6 +1673,7 @@ export type ProcurementRequestNotification = {
   trackingNumber: string;
   deliveryLatitude: number | null;
   deliveryLongitude: number | null;
+  declineReason: string | null;
 };
 
 export async function getProcurementRequestForNotification(requestId: number): Promise<ProcurementRequestNotification | null> {
@@ -1448,6 +1685,7 @@ export async function getProcurementRequestForNotification(requestId: number): P
     x_studio_tracking_number: string | false;
     x_studio_delivery_latitude: number | false;
     x_studio_delivery_longitude: number | false;
+    x_studio_decline_reason: string | false;
     x_name: string | false;
   }>(
     "x_build_procurement_request",
@@ -1460,6 +1698,7 @@ export async function getProcurementRequestForNotification(requestId: number): P
       "x_studio_tracking_number",
       "x_studio_delivery_latitude",
       "x_studio_delivery_longitude",
+      "x_studio_decline_reason",
       "x_name",
     ]
   );
@@ -1470,6 +1709,7 @@ export async function getProcurementRequestForNotification(requestId: number): P
     contactName: row.x_name || "",
     email: row.x_studio_email,
     phone: row.x_studio_phone || "",
+    declineReason: row.x_studio_decline_reason || null,
     projectName: row.x_studio_project_name || "",
     description: row.x_studio_request_description || "",
     trackingNumber: row.x_studio_tracking_number || "",

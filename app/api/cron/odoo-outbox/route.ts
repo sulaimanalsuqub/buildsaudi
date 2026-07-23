@@ -2,11 +2,15 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   OdooClientError,
+  createOutboxEvent,
   getCarrierProfileForNotification,
   getProcurementRequestForNotification,
+  getRequestsPendingDeclineNotification,
   getSupplierProfileForNotification,
+  markRequestDeclinedForCustomer,
   read,
   searchRead,
+  syncSupplierMatchingEligibility,
   write,
   type CarrierNotificationProfile,
   type ProcurementRequestNotification,
@@ -23,6 +27,7 @@ import {
   sendCarrierRejectedEmail,
   sendCarrierSuspendedEmail,
   sendInternalNewProcurementRequestNotification,
+  sendProcurementRequestDeclinedEmail,
   sendProcurementRequestReceivedEmail,
   sendSupplierFinalReviewNotification,
   sendVendorFullyApprovedEmail,
@@ -96,6 +101,15 @@ async function dispatchProcurementEvent(eventType: string, req: ProcurementReque
             : "",
         description: req.description,
         trackingNumber: req.trackingNumber,
+      });
+      return;
+    case "procurement.request_declined":
+      await sendProcurementRequestDeclinedEmail({
+        contactName: req.contactName,
+        email: req.email,
+        trackingNumber: req.trackingNumber,
+        trackingUrl: procurementTrackingUrl(trackingToken),
+        declineReason: req.declineReason,
       });
       return;
     default:
@@ -327,6 +341,29 @@ function toOdooDatetime(date: Date): string {
   return date.toISOString().slice(0, 19).replace("T", " ");
 }
 
+/** يلتقط طلبات وضعها الفريق "مرفوض" يدوياً من واجهة أودو (لا من موقعنا) — ينشئ حدث إشعار للعميل ويثبّت الحالة الظاهرة له */
+async function syncDeclinedRequests(): Promise<number> {
+  const pending = await getRequestsPendingDeclineNotification();
+  let synced = 0;
+  for (const request of pending) {
+    try {
+      await createOutboxEvent({
+        eventType: "procurement.request_declined",
+        resourceModel: "x_build_procurement_request",
+        resourceId: request.id,
+        procurementRequestId: request.id,
+        idempotencyKey: `procurement.request_declined:${request.id}`,
+        payload: { request_id: request.id },
+      });
+      await markRequestDeclinedForCustomer(request.id);
+      synced += 1;
+    } catch (error) {
+      console.error(`[cron/odoo-outbox] failed to sync decline for request ${request.id}:`, error instanceof Error ? error.message : error);
+    }
+  }
+  return synced;
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -337,6 +374,20 @@ export async function GET(req: NextRequest) {
   const runId = randomUUID();
   const now = new Date();
   const nowStr = toOdooDatetime(now);
+
+  let declinedSynced = 0;
+  try {
+    declinedSynced = await syncDeclinedRequests();
+  } catch (error) {
+    console.error("[cron/odoo-outbox] syncDeclinedRequests failed:", error instanceof Error ? error.message : error);
+  }
+
+  let eligibilitySynced = { enabled: 0, disabled: 0 };
+  try {
+    eligibilitySynced = await syncSupplierMatchingEligibility();
+  } catch (error) {
+    console.error("[cron/odoo-outbox] syncSupplierMatchingEligibility failed:", error instanceof Error ? error.message : error);
+  }
 
   let candidates: OutboxRow[];
   try {
@@ -414,5 +465,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, run_id: runId, ...results });
+  return NextResponse.json({
+    ok: true,
+    run_id: runId,
+    declined_synced: declinedSynced,
+    eligibility_enabled: eligibilitySynced.enabled,
+    eligibility_disabled: eligibilitySynced.disabled,
+    ...results,
+  });
 }

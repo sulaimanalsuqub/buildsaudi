@@ -84,6 +84,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [fileError, setFileError] = useState("");
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
@@ -162,6 +163,20 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       const base64Data = await readFileAsBase64(file);
       setFiles((prev) => [...prev, { name: file.name, mimeType: file.type || "application/octet-stream", base64Data, sizeLabel: formatFileSize(file.size) }]);
     }
+  };
+
+  const handleFilesDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingFiles(true);
+  };
+  const handleFilesDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingFiles(false);
+  };
+  const handleFilesDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDraggingFiles(false);
+    toggleFilesPicked(e.dataTransfer.files);
   };
 
   const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
@@ -373,10 +388,17 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             </VendorField>
 
             <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-brand-primary/40 bg-brand-primary/5 px-4 py-6 hover:bg-brand-primary/10">
+              <label
+                onDragOver={handleFilesDragOver}
+                onDragLeave={handleFilesDragLeave}
+                onDrop={handleFilesDrop}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border border-dashed px-4 py-6 transition-colors ${
+                  isDraggingFiles ? "border-brand-primary bg-brand-primary/15" : "border-brand-primary/40 bg-brand-primary/5 hover:bg-brand-primary/10"
+                }`}
+              >
                 <Paperclip className="h-5 w-5 text-brand-primary" />
                 <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
-                <span>{textByLang(isRtl, "Choose Excel / PDF file", "اختر ملف إكسل / PDF")}</span>
+                <span>{textByLang(isRtl, "Choose a file, or drag and drop it here", "اختر ملفاً، أو اسحبه وأفلته هنا")}</span>
               </label>
               {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
               {files.length > 0 && (

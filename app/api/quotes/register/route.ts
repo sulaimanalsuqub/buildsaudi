@@ -4,16 +4,24 @@ import {
   OdooClientError,
   attachProcurementRequestFiles,
   createCustomerRequestLines,
+  createExtractedRequestLines,
   createOutboxEvent,
   createProcurementRequest,
+  findMatchingSuppliers,
   findOrCreateCustomerPartner,
   findOrCreateCustomerProject,
   generateProcurementTracking,
+  listActiveMaterialCategories,
+  listCatalogProductNames,
+  listProductCategories,
+  postProcurementRequestNote,
+  updateProcurementRequestCategories,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
+import { extractRequestItems } from "@/lib/material-extraction";
 
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
@@ -136,6 +144,38 @@ export async function POST(req: NextRequest) {
           countryOfOrigin: i.countryOfOrigin || undefined,
         }))
       );
+    } else if (data.description.trim().length >= 5 || data.files.length) {
+      const [activeCategories, productCategories, catalogProductNames] = await Promise.all([
+        listActiveMaterialCategories().catch(() => []),
+        listProductCategories().catch(() => []),
+        listCatalogProductNames().catch(() => []),
+      ]);
+      const extractedItems = await extractRequestItems(
+        data.description,
+        data.files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
+        activeCategories.map((c) => c.nameAr),
+        catalogProductNames
+      );
+      if (extractedItems.length) {
+        const productCategoryNameToId = new Map(productCategories.map((c) => [c.name, c.id]));
+        await createExtractedRequestLines(requestId, extractedItems, productCategoryNameToId);
+
+        // اقتراح الموردين — أفضل جهد، لا يجب أن يفشل تسجيل الطلب لو تعذّر
+        try {
+          const nameToId = new Map(activeCategories.map((c) => [c.nameAr, c.id]));
+          const categoryIds = [...new Set(extractedItems.map((i) => i.category && nameToId.get(i.category)).filter((id): id is number => typeof id === "number"))];
+          if (categoryIds.length) {
+            await updateProcurementRequestCategories(requestId, categoryIds);
+            const suppliers = await findMatchingSuppliers(categoryIds);
+            if (suppliers.length) {
+              const list = suppliers.map((s) => `- ${s.name} (${s.matchedCategoryCount} فئة مطابقة)`).join("\n");
+              await postProcurementRequestNote(requestId, `الموردون المقترحون بناءً على فئات الطلب المستخرجة:\n${list}`);
+            }
+          }
+        } catch (matchError) {
+          console.error("[quotes/register] supplier matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);
+        }
+      }
     }
 
     if (data.files.length) {

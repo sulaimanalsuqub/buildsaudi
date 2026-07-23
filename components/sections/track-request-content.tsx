@@ -12,6 +12,7 @@ type TrackingData = {
   projectName: string;
   customerStatus: string;
   requestDate: string;
+  declineReason: string | null;
 };
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
@@ -29,6 +30,15 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   delivered: { ar: "تم التسليم", en: "Delivered" },
   needs_attention: { ar: "يوجد تحديث يحتاج انتباهك", en: "Update needs your attention" },
   completed: { ar: "مكتمل", en: "Completed" },
+  declined: { ar: "تعذّر تسعير الطلب", en: "We couldn't price this request" },
+};
+
+const DECLINE_REASON_LABELS: Record<string, { ar: string; en: string }> = {
+  items_unavailable: { ar: "الأصناف المطلوبة غير متوفرة لدى مورّدينا حالياً", en: "The requested items aren't currently available from our suppliers" },
+  high_demand: { ar: "ضغط كبير على الطلبات حالياً يمنعنا من تسعير طلبكم في الوقت المناسب", en: "High order volume is preventing us from pricing your request in time" },
+  outside_coverage: { ar: "موقع التسليم خارج نطاق تغطيتنا الحالي", en: "The delivery location is outside our current coverage area" },
+  unclear_scope: { ar: "الطلب يحتاج تفاصيل إضافية لم نتمكن من استلامها", en: "The request needs additional details we weren't able to obtain" },
+  other: { ar: "لأسباب تشغيلية لدينا", en: "Due to operational reasons on our side" },
 };
 
 export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
@@ -68,6 +78,8 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
   }, [token, isRtl]);
 
   const statusLabel = data ? STATUS_LABELS[data.customerStatus] : null;
+  const isDeclined = data?.customerStatus === "declined";
+  const reasonLabel = data?.declineReason ? DECLINE_REASON_LABELS[data.declineReason] : null;
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
@@ -91,11 +103,14 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
                 <p className="mt-4 text-xs font-semibold text-brand-dark/50">{textByLang(isRtl, "Tracking Number", "رقم التتبع")}</p>
                 <p className="text-lg font-bold tracking-wide text-brand-primary" dir="ltr">{data.trackingNumber}</p>
                 {data.projectName && <p className="mt-4 text-sm text-brand-dark/60">{data.projectName}</p>}
-                <div className="mx-auto mt-6 max-w-sm rounded-xl bg-brand-primary/8 px-5 py-4">
+                <div className={`mx-auto mt-6 max-w-sm rounded-xl px-5 py-4 ${isDeclined ? "bg-red-50" : "bg-brand-primary/8"}`}>
                   <p className="text-sm font-semibold text-brand-dark/50">{textByLang(isRtl, "Current Status", "الحالة الحالية")}</p>
-                  <p className="mt-1 text-lg font-bold text-brand-primary">
+                  <p className={`mt-1 text-lg font-bold ${isDeclined ? "text-red-700" : "text-brand-primary"}`}>
                     {statusLabel ? (isRtl ? statusLabel.ar : statusLabel.en) : data.customerStatus}
                   </p>
+                  {isDeclined && reasonLabel && (
+                    <p className="mt-2 text-sm text-red-600/90">{isRtl ? reasonLabel.ar : reasonLabel.en}</p>
+                  )}
                 </div>
               </>
             ) : null}

@@ -1099,6 +1099,47 @@ export async function sendProcurementRequestReceivedEmail(req: {
   });
 }
 
+const DECLINE_REASON_LABELS: Record<string, string> = {
+  items_unavailable: "الأصناف المطلوبة غير متوفرة لدى مورّدينا حالياً",
+  high_demand: "ضغط كبير على الطلبات حالياً يمنعنا من تسعير طلبكم في الوقت المناسب",
+  outside_coverage: "موقع التسليم خارج نطاق تغطيتنا الحالي",
+  unclear_scope: "الطلب يحتاج تفاصيل إضافية لم نتمكن من استلامها",
+  other: "لأسباب تشغيلية لدينا",
+};
+
+export async function sendProcurementRequestDeclinedEmail(req: {
+  contactName: string;
+  email: string;
+  trackingNumber: string;
+  trackingUrl: string;
+  declineReason: string | null;
+}) {
+  const reasonText = (req.declineReason && DECLINE_REASON_LABELS[req.declineReason]) || DECLINE_REASON_LABELS.other;
+  return sendEmail({
+    from: FROM,
+    to: req.email,
+    subject: `تعذّر تسعير طلبكم — ${req.trackingNumber} — Build Saudi`,
+    html: emailShell({
+      previewText: `نعتذر، تعذّر علينا تسعير طلب التوريد رقم ${req.trackingNumber}`,
+      accentColor: "#B91C1C",
+      badgeIcon: "🙏",
+      badgeLabel: "تعذّر تسعير الطلب",
+      content: `
+        ${greeting(req.contactName)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          نعتذر منكم، لم نتمكن من تسعير طلب التوريد الخاص بكم في الوقت الحالي — ${esc(reasonText)}.
+        </p>
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          نرحّب بتواصلكم معنا لأي استفسار، أو تقديم طلب جديد لاحقاً.
+        </p>
+        ${highlightBox(`رقم التتبع: <strong dir="ltr" style="font-variant-numeric:tabular-nums;">${esc(req.trackingNumber)}</strong>`)}
+        ${ctaButton(req.trackingUrl, "عرض تفاصيل الطلب")}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
 export async function sendInternalNewProcurementRequestNotification(req: {
   id: number;
   contactName: string;
