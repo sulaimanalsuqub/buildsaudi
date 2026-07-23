@@ -9,14 +9,26 @@ import {
   normalizeCR,
   normalizeVAT,
   read,
+  resolveActiveCarrierCategories,
+  resolveActiveServiceAreas,
+  resolveActiveVehicleTypes,
   resolveCountryId,
-  resolveOrCreateCategories,
-  resolveOrCreateServiceAreas,
-  resolveOrCreateVehicleTypes,
   updateOnboardingProfile,
 } from "@/lib/odoo";
 import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { regions } from "@/lib/vendor-options";
+
+/** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرجع null إن كان الرمز غير معروف */
+function translateServiceAreaSlugs(slugs: string[]): string[] | null {
+  const names: string[] = [];
+  for (const slug of slugs) {
+    const region = regions.find((r) => r.value === slug);
+    if (!region) return null;
+    names.push(region.ar);
+  }
+  return names;
+}
 
 const EDITABLE_STATUSES = new Set(["completing_profile", "more_information_required"]);
 
@@ -166,11 +178,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // نطاقات مرجعية ثابتة (مناطق/مركبات/فئات) — تُطابَق فقط ضد سجلات نشطة موجودة، لا تُنشأ من مدخلات عامة غير موثوقة
+    const serviceAreaNamesAr = translateServiceAreaSlugs(data.operations.service_areas);
+    if (!serviceAreaNamesAr) {
+      return NextResponse.json({ error: "منطقة خدمة غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+    }
     const [serviceAreaIds, vehicleTypeIds, materialCategoryIds] = await Promise.all([
-      resolveOrCreateServiceAreas(data.operations.service_areas),
-      resolveOrCreateVehicleTypes(data.operations.vehicle_types),
-      resolveOrCreateCategories(data.operations.material_categories),
+      resolveActiveServiceAreas(serviceAreaNamesAr),
+      resolveActiveVehicleTypes(data.operations.vehicle_types),
+      resolveActiveCarrierCategories(data.operations.material_categories),
     ]);
+    if (!serviceAreaIds || !vehicleTypeIds || !materialCategoryIds) {
+      return NextResponse.json({ error: "قيمة غير معروفة في مناطق الخدمة أو أنواع المركبات أو الفئات — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+    }
 
     const fields: Record<string, unknown> = {
       // نطاق الخدمة

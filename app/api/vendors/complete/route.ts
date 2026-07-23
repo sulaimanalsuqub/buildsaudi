@@ -9,6 +9,7 @@ import {
   normalizeCR,
   normalizeVAT,
   read,
+  resolveActiveServiceAreas,
   resolveCountryId,
   resolveOrCreateBrands,
   validateActiveCategoryIds,
@@ -16,6 +17,18 @@ import {
 } from "@/lib/odoo";
 import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { regions } from "@/lib/vendor-options";
+
+/** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرجع null إن كان الرمز غير معروف */
+function translateServiceAreaSlugs(slugs: string[]): string[] | null {
+  const names: string[] = [];
+  for (const slug of slugs) {
+    const region = regions.find((r) => r.value === slug);
+    if (!region) return null;
+    names.push(region.ar);
+  }
+  return names;
+}
 
 const EDITABLE_STATUSES = new Set(["completing_profile", "more_information_required"]);
 
@@ -221,6 +234,14 @@ export async function POST(req: NextRequest) {
     if (!categoriesValid) {
       return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
     }
+    const serviceAreaNamesAr = translateServiceAreaSlugs(data.business.service_areas ?? []);
+    if (!serviceAreaNamesAr) {
+      return NextResponse.json({ error: "منطقة تغطية غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+    }
+    const serviceAreaIds = await resolveActiveServiceAreas(serviceAreaNamesAr);
+    if (!serviceAreaIds) {
+      return NextResponse.json({ error: "منطقة تغطية غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+    }
     const brandIds = data.business.brands.length ? await resolveOrCreateBrands(data.business.brands) : [];
 
     const fields: Record<string, unknown> = {
@@ -229,6 +250,7 @@ export async function POST(req: NextRequest) {
       x_studio_material_category_ids: [[6, 0, data.business.category_ids]],
       x_studio_other_category_suggestion: data.business.other_category_suggestion || false,
       x_studio_brand_ids: brandIds.length ? [[6, 0, brandIds]] : false,
+      x_studio_service_area_ids: serviceAreaIds.length ? [[6, 0, serviceAreaIds]] : false,
       x_studio_delivery_cities: data.business.delivery_cities || false,
       x_studio_avg_lead_time_days: data.business.avg_lead_time_days ?? false,
       x_studio_min_order_value: data.business.min_order_value ?? false,
