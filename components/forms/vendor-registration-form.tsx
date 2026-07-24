@@ -298,7 +298,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             autoComplete="organization"
             className="h-12 text-base"
             autoFocus
-            placeholder={isRtl ? "الاسم النظامي كما يظهر في السجل التجاري" : "Legal name as shown on registration"}
+            placeholder={isRtl ? "اكتب الاسم المسجل في السجل التجاري" : "Legal name as shown on registration"}
           />
           <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
           {establishmentNameMatchesContact && (
