@@ -551,16 +551,53 @@ export async function findSupplierByNameAndCountry(
 
 export async function createPreliminaryPartner(data: {
   establishmentName: string;
+  contactName: string;
+  jobTitle?: string;
   email: string;
   phone: string;
   website?: string;
 }): Promise<number> {
-  return create("res.partner", {
+  const partnerId = await create("res.partner", {
     name: data.establishmentName,
     is_company: true,
     email: normalizeEmail(data.email),
     phone: normalizeSaudiPhone(data.phone),
     website: data.website || false,
+  });
+  await ensurePartnerContact(partnerId, data);
+  return partnerId;
+}
+
+export async function ensurePartnerContact(
+  partnerId: number,
+  data: {
+    contactName: string;
+    jobTitle?: string;
+    email: string;
+    phone: string;
+  }
+): Promise<number | null> {
+  const contactName = data.contactName.trim();
+  if (!contactName) return null;
+
+  const existing = await searchRead<{ id: number }>(
+    "res.partner",
+    [
+      ["parent_id", "=", partnerId],
+      ["name", "=ilike", contactName],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  if (existing[0]) return existing[0].id;
+
+  return create("res.partner", {
+    parent_id: partnerId,
+    type: "contact",
+    name: contactName,
+    function: data.jobTitle || false,
+    email: normalizeEmail(data.email),
+    phone: normalizeSaudiPhone(data.phone),
   });
 }
 

@@ -10,6 +10,7 @@ import {
   findSupplierByEmailNameCountry,
   findSupplierByNameAndCountry,
   findSupplierProfileByPartner,
+  ensurePartnerContact,
   normalizeCompanyName,
   resolveOrCreateBrands,
   validateActiveCategoryIds,
@@ -143,6 +144,8 @@ export async function POST(req: NextRequest) {
     // 5) لا تطابق إطلاقاً — تسجيل جديد كامل
     const partnerId = await createPreliminaryPartner({
       establishmentName: vendor.establishment_name,
+      contactName: vendor.contact_name,
+      jobTitle: vendor.job_title || undefined,
       email: vendor.email,
       phone: vendor.phone,
       website: vendor.website || undefined,
@@ -162,6 +165,12 @@ export async function POST(req: NextRequest) {
 type VendorInput = z.infer<typeof registerSchema>;
 
 async function registerOnExistingPartner(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
+  await ensurePartnerContact(partnerId, {
+    contactName: vendor.contact_name,
+    jobTitle: vendor.job_title || undefined,
+    email: vendor.email,
+    phone: vendor.phone,
+  });
   return finishRegistration(partnerId, vendor, countryDisplay, consentAt);
 }
 

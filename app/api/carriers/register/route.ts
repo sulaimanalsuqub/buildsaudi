@@ -5,6 +5,7 @@ import {
   createOutboxEvent,
   createPreliminaryCarrierProfile,
   createPreliminaryPartner,
+  ensurePartnerContact,
   findCarrierByEmailNameCountry,
   findCarrierByNameAndCountry,
   findCarrierProfileByPartner,
@@ -144,6 +145,8 @@ export async function POST(req: NextRequest) {
     // 5) لا تطابق إطلاقاً — تسجيل جديد كامل
     const partnerId = await createPreliminaryPartner({
       establishmentName: carrier.establishment_name,
+      contactName: carrier.contact_name,
+      jobTitle: carrier.job_title || undefined,
       email: carrier.email,
       phone: carrier.phone,
       website: carrier.website || undefined,
@@ -170,6 +173,13 @@ async function finishRegistration(
   vehicleTypeIds: number[],
   materialCategoryIds: number[]
 ) {
+  await ensurePartnerContact(partnerId, {
+    contactName: carrier.contact_name,
+    jobTitle: carrier.job_title || undefined,
+    email: carrier.email,
+    phone: carrier.phone,
+  });
+
   const profileId = await createPreliminaryCarrierProfile(
     partnerId,
     {
