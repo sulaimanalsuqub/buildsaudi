@@ -6,6 +6,7 @@ import {
   createPreliminaryCarrierProfile,
   createPreliminaryPartner,
   ensurePartnerContact,
+  syncPartnerAsEstablishment,
   findCarrierByEmailNameCountry,
   findCarrierByNameAndCountry,
   findCarrierProfileByPartner,
@@ -118,6 +119,8 @@ export async function POST(req: NextRequest) {
           stage: existingProfile.status,
         });
       } else {
+        // partner مُعاد استخدامه بلا ملف ناقل سابق — اسمه القديم قد يخص جهة اتصال أخرى، فنستبدله باسم المنشأة الجديد
+        await syncPartnerAsEstablishment(emailMatch.id, carrier.establishment_name);
         return await finishRegistration(emailMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
       }
     }
@@ -131,6 +134,7 @@ export async function POST(req: NextRequest) {
           console.warn("[carriers/register] needs_review: phone matches existing partner with a carrier profile");
           return NextResponse.json({ ok: true, status: "needs_review" });
         }
+        await syncPartnerAsEstablishment(phoneMatch.id, carrier.establishment_name);
         return await finishRegistration(phoneMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
       }
     }

@@ -11,6 +11,7 @@ import {
   findSupplierByNameAndCountry,
   findSupplierProfileByPartner,
   ensurePartnerContact,
+  syncPartnerAsEstablishment,
   normalizeCompanyName,
   resolveOrCreateBrands,
   validateActiveCategoryIds,
@@ -175,6 +176,8 @@ export async function POST(req: NextRequest) {
 type VendorInput = z.infer<typeof registerSchema>;
 
 async function registerOnExistingPartner(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
+  // partner مُعاد استخدامه بلا ملف مورد سابق — اسمه القديم قد يخص جهة اتصال أخرى، فنستبدله باسم المنشأة الجديد
+  await syncPartnerAsEstablishment(partnerId, vendor.establishment_name);
   await ensurePartnerContact(partnerId, {
     contactName: vendor.contact_name,
     jobTitle: vendor.job_title || undefined,

@@ -576,6 +576,14 @@ export async function createPreliminaryPartner(data: {
   return partnerId;
 }
 
+/** يُستخدم عند إعادة استخدام partner موجود (تطابق بريد/جوال بلا ملف مورد/ناقل سابق) — يحدّث اسم المنشأة وis_company بدل إبقاء بيانات جهة الاتصال القديمة التي طابقناها */
+export async function syncPartnerAsEstablishment(partnerId: number, establishmentName: string): Promise<void> {
+  await write("res.partner", [partnerId], {
+    name: establishmentName,
+    is_company: true,
+  });
+}
+
 export async function ensurePartnerContact(
   partnerId: number,
   data: {
