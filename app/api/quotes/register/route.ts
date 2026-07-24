@@ -5,6 +5,7 @@ import {
   attachProcurementRequestFiles,
   createCustomerRequestLines,
   createExtractedRequestLines,
+  createBuildAiTask,
   createOutboxEvent,
   createProcurementRequest,
   findMatchingCarriers,
@@ -217,14 +218,42 @@ export async function POST(req: NextRequest) {
       ]);
 
       const noteParts: string[] = [];
+      const aiTasks: Promise<number | null>[] = [];
       if (suppliers.length) {
-        noteParts.push(`الموردون المقترحون بناءً على الفئات/العلامات التجارية:\n${suppliers.slice(0, 10).map(supplierMatchLine).join("\n")}`);
+        const supplierResult = `الموردون المقترحون بناءً على الفئات/العلامات التجارية:\n${suppliers.slice(0, 10).map(supplierMatchLine).join("\n")}`;
+        noteParts.push(supplierResult);
+        aiTasks.push(
+          createBuildAiTask({
+            agentName: "Supplier Matching Agent",
+            requestId,
+            taskType: "supplier_matching_recommendation",
+            result: supplierResult,
+            confidenceScore: suppliers[0]?.score ? Math.min(0.95, suppliers[0].score / 100) : 0.5,
+            needsApproval: true,
+            status: "needs_approval",
+          })
+        );
       }
       if (carriers.length) {
-        noteParts.push(`وكلاء الشحن المقترحون عند الحاجة لشحن مستقل:\n${carriers.slice(0, 10).map(carrierMatchLine).join("\n")}`);
+        const carrierResult = `وكلاء الشحن المقترحون عند الحاجة لشحن مستقل:\n${carriers.slice(0, 10).map(carrierMatchLine).join("\n")}`;
+        noteParts.push(carrierResult);
+        aiTasks.push(
+          createBuildAiTask({
+            agentName: "Freight Planning Agent",
+            requestId,
+            taskType: "freight_planning_recommendation",
+            result: carrierResult,
+            confidenceScore: carriers[0]?.score ? Math.min(0.95, carriers[0].score / 100) : 0.5,
+            needsApproval: true,
+            status: "needs_approval",
+          })
+        );
       }
       if (noteParts.length) {
         await postProcurementRequestNote(requestId, noteParts.join("\n\n"));
+      }
+      if (aiTasks.length) {
+        await Promise.all(aiTasks);
       }
     } catch (matchError) {
       console.error("[quotes/register] recommendation matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);

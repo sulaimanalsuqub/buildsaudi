@@ -1175,6 +1175,44 @@ export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds
     .sort((a, b) => b.score - a.score);
 }
 
+export async function createBuildAiTask(params: {
+  agentName: string;
+  requestId: number;
+  taskType: string;
+  result: string;
+  confidenceScore?: number;
+  needsApproval?: boolean;
+  priority?: "normal" | "urgent" | "critical";
+  status?: "pending" | "running" | "completed" | "failed" | "needs_approval";
+}): Promise<number | null> {
+  const agents = await searchRead<{ id: number }>(
+    "x_build_ai_agent",
+    [
+      ["x_name", "=", params.agentName],
+      ["x_studio_active_flag", "=", true],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  const agent = agents[0];
+  if (!agent) return null;
+
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  return create("x_build_ai_task", {
+    x_name: `${params.agentName}: Request #${params.requestId}`,
+    x_studio_agent_id: agent.id,
+    x_studio_request_id: params.requestId,
+    x_studio_task_type: params.taskType,
+    x_studio_priority: params.priority || "normal",
+    x_studio_status: params.status || (params.needsApproval ? "needs_approval" : "completed"),
+    x_studio_needs_approval: params.needsApproval ?? false,
+    x_studio_confidence_score: params.confidenceScore ?? false,
+    x_studio_result: params.result,
+    x_studio_started_at: now,
+    x_studio_ended_at: now,
+  });
+}
+
 /** يزامن "مؤهَّل للمطابقة" مع حالة الاعتماد تلقائياً — يفعّله عند "approved"، يعطّله لو الحالة تغيّرت لأي شيء آخر (رفض/تعليق بعد اعتماد سابق). يعيد عدد التغييرات بالاتجاهين */
 export async function syncSupplierMatchingEligibility(): Promise<{ enabled: number; disabled: number }> {
   const toEnable = await searchRead<{ id: number }>(
