@@ -1175,6 +1175,52 @@ export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds
     .sort((a, b) => b.score - a.score);
 }
 
+function escapeOdooHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function ensureApprovalCategoryId(name: string, fallbackApproverCategoryName: string): Promise<number | null> {
+  const rows = await searchRead<{ id: number; approver_ids: number[] }>("approval.category", [["name", "=", name]], ["approver_ids"], { limit: 1 });
+  let categoryId = rows[0]?.id ?? null;
+
+  if (!categoryId) {
+    categoryId = await create("approval.category", {
+      name,
+      has_amount: "no",
+      has_partner: "no",
+      has_reference: "no",
+      has_date: "no",
+    });
+  }
+
+  const existingApprovers = await searchRead<{ id: number }>("approval.category.approver", [["category_id", "=", categoryId]], ["id"], { limit: 1 });
+  if (existingApprovers.length) return categoryId;
+
+  const fallback = await searchRead<{ id: number }>("approval.category", [["name", "=", fallbackApproverCategoryName]], ["id"], { limit: 1 });
+  const fallbackId = fallback[0]?.id;
+  if (!fallbackId) return categoryId;
+
+  const fallbackApprovers = await searchRead<{ user_id: [number, string] | false; required: boolean }>(
+    "approval.category.approver",
+    [["category_id", "=", fallbackId]],
+    ["user_id", "required"]
+  );
+  for (const approver of fallbackApprovers) {
+    if (!approver.user_id) continue;
+    await create("approval.category.approver", {
+      category_id: categoryId,
+      user_id: approver.user_id[0],
+      required: approver.required,
+    });
+  }
+
+  return categoryId;
+}
+
 export async function createBuildAiTask(params: {
   agentName: string;
   requestId: number;
@@ -1184,8 +1230,8 @@ export async function createBuildAiTask(params: {
   needsApproval?: boolean;
   priority?: "normal" | "urgent" | "critical";
   status?: "pending" | "running" | "completed" | "failed" | "needs_approval";
-}): Promise<number | null> {
-  const agents = await searchRead<{ id: number }>(
+}): Promise<{ taskId: number; agentId: number } | null> {
+  const agents = await searchRead<{ id: number; x_name: string }>(
     "x_build_ai_agent",
     [
       ["x_name", "=", params.agentName],
@@ -1198,7 +1244,7 @@ export async function createBuildAiTask(params: {
   if (!agent) return null;
 
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");
-  return create("x_build_ai_task", {
+  const taskId = await create("x_build_ai_task", {
     x_name: `${params.agentName}: Request #${params.requestId}`,
     x_studio_agent_id: agent.id,
     x_studio_request_id: params.requestId,
@@ -1211,6 +1257,240 @@ export async function createBuildAiTask(params: {
     x_studio_started_at: now,
     x_studio_ended_at: now,
   });
+  return { taskId, agentId: agent.id };
+}
+
+export async function createAiRecommendationWorkflow(params: {
+  agentName: string;
+  requestId: number;
+  decisionType: "supplier_rfq" | "freight_rfq";
+  taskType: string;
+  recommendation: string;
+  recipientPartnerIds: number[];
+  confidenceScore?: number;
+}): Promise<{ taskId: number; approvalId: number; approvalRequestId: number | null; communicationIds: number[] } | null> {
+  const task = await createBuildAiTask({
+    agentName: params.agentName,
+    requestId: params.requestId,
+    taskType: params.taskType,
+    result: params.recommendation,
+    confidenceScore: params.confidenceScore,
+    needsApproval: true,
+    status: "needs_approval",
+  });
+  if (!task) return null;
+
+  const categoryId =
+    params.decisionType === "supplier_rfq"
+      ? await ensureApprovalCategoryId("اعتماد إرسال RFQ للموردين", "اختيار المورد الفائز")
+      : await ensureApprovalCategoryId("اعتماد إرسال RFQ للشحن", "اختيار الناقل");
+  let approvalRequestId: number | null = null;
+  if (categoryId) {
+    approvalRequestId = await create("approval.request", {
+      name: `${params.decisionType === "supplier_rfq" ? "Supplier RFQ" : "Freight RFQ"} approval - Request #${params.requestId}`,
+      category_id: categoryId,
+      reference: `Build Request #${params.requestId}`,
+      x_studio_build_request_id: params.requestId,
+      reason: `<p>${escapeOdooHtml(params.recommendation).replace(/\n/g, "<br/>")}</p>`,
+    });
+    try {
+      await callMethod("approval.request", "action_confirm", [[approvalRequestId]]);
+    } catch (error) {
+      console.error("[odoo] approval.request action_confirm failed (left as draft):", error instanceof Error ? error.message : error);
+    }
+  }
+
+  const approvalId = await create("x_build_ai_approval", {
+    x_name: `${params.decisionType === "supplier_rfq" ? "Supplier RFQ" : "Freight RFQ"} approval - Request #${params.requestId}`,
+    x_studio_agent_id: task.agentId,
+    x_studio_task_id: task.taskId,
+    x_studio_request_id: params.requestId,
+    x_studio_decision_type: params.decisionType,
+    x_studio_recommendation: params.recommendation,
+    x_studio_approval_request_id: approvalRequestId || false,
+    x_studio_status: "pending",
+  });
+
+  const communicationIds: number[] = [];
+  for (const partnerId of params.recipientPartnerIds.slice(0, 10)) {
+    communicationIds.push(
+      await create("x_build_ai_communication", {
+        x_name: `${params.decisionType === "supplier_rfq" ? "Supplier RFQ" : "Freight RFQ"} draft - Request #${params.requestId}`,
+        x_studio_request_id: params.requestId,
+        x_studio_partner_id: partnerId,
+        x_studio_agent_id: task.agentId,
+        x_studio_channel: "email",
+        x_studio_status: "draft",
+        x_studio_reference: `approval:${approvalId}`,
+        x_studio_from_address: params.decisionType === "supplier_rfq" ? "supplier@build.sa" : "logistics@build.sa",
+      })
+    );
+  }
+
+  await write("x_build_procurement_request", [params.requestId], {
+    x_studio_internal_status: "awaiting_internal_approval",
+  });
+
+  return { taskId: task.taskId, approvalId, approvalRequestId, communicationIds };
+}
+
+export type PendingAiApprovalDecision = {
+  id: number;
+  requestId: number;
+  taskId: number;
+  agentId: number;
+  decisionType: "supplier_rfq" | "freight_rfq";
+  approvalRequestId: number;
+  approvalStatus: "approved" | "refused";
+};
+
+export async function getPendingAiApprovalDecisions(): Promise<PendingAiApprovalDecision[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_decision_type: string | false;
+    x_studio_request_id: [number, string] | false;
+    x_studio_task_id: [number, string] | false;
+    x_studio_agent_id: [number, string] | false;
+    x_studio_approval_request_id: [number, string] | false;
+  }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_status", "=", "pending"],
+      ["x_studio_approval_request_id", "!=", false],
+    ],
+    ["x_studio_decision_type", "x_studio_request_id", "x_studio_task_id", "x_studio_agent_id", "x_studio_approval_request_id"],
+    { limit: 50, order: "id asc" }
+  );
+
+  const approvalIds = rows.map((row) => row.x_studio_approval_request_id && row.x_studio_approval_request_id[0]).filter((id): id is number => typeof id === "number");
+  if (!approvalIds.length) return [];
+  const approvalRows = await read<{ id: number; request_status: string | false }>("approval.request", approvalIds, ["request_status"]);
+  const statusById = new Map(approvalRows.map((row) => [row.id, row.request_status]));
+
+  return rows
+    .map((row) => {
+      const approvalRequestId = row.x_studio_approval_request_id && row.x_studio_approval_request_id[0];
+      const status = typeof approvalRequestId === "number" ? statusById.get(approvalRequestId) : null;
+      if (status !== "approved" && status !== "refused") return null;
+      if (row.x_studio_decision_type !== "supplier_rfq" && row.x_studio_decision_type !== "freight_rfq") return null;
+      if (!row.x_studio_request_id || !row.x_studio_task_id || !row.x_studio_agent_id || typeof approvalRequestId !== "number") return null;
+      return {
+        id: row.id,
+        requestId: row.x_studio_request_id[0],
+        taskId: row.x_studio_task_id[0],
+        agentId: row.x_studio_agent_id[0],
+        decisionType: row.x_studio_decision_type,
+        approvalRequestId,
+        approvalStatus: status,
+      };
+    })
+    .filter((row): row is PendingAiApprovalDecision => !!row);
+}
+
+export type AiCommunicationDraft = {
+  id: number;
+  partnerId: number;
+};
+
+export async function getDraftAiCommunications(requestId: number, agentId: number): Promise<AiCommunicationDraft[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+  }>(
+    "x_build_ai_communication",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_agent_id", "=", agentId],
+      ["x_studio_status", "=", "draft"],
+    ],
+    ["x_studio_partner_id"],
+    { limit: 50, order: "id asc" }
+  );
+  return rows
+    .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
+    .map((row) => ({ id: row.id, partnerId: row.x_studio_partner_id[0] }));
+}
+
+export async function markAiCommunicationSent(communicationId: number, messageId?: string): Promise<void> {
+  await write("x_build_ai_communication", [communicationId], {
+    x_studio_status: "sent",
+    x_studio_sent_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    x_studio_message_id: messageId || false,
+  });
+}
+
+export async function markAiApprovalApproved(decision: PendingAiApprovalDecision): Promise<void> {
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "approved" });
+  await write("x_build_ai_task", [decision.taskId], {
+    x_studio_status: "completed",
+    x_studio_needs_approval: false,
+  });
+  await write("x_build_procurement_request", [decision.requestId], {
+    x_studio_internal_status: decision.decisionType === "supplier_rfq" ? "requesting_supplier_quotes" : "requesting_freight_quotes",
+    x_studio_customer_status: "pricing",
+  });
+}
+
+export async function markAiApprovalRejected(decision: PendingAiApprovalDecision): Promise<void> {
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "rejected" });
+  await write("x_build_ai_task", [decision.taskId], {
+    x_studio_status: "failed",
+    x_studio_needs_approval: false,
+    x_studio_error: "Approval request was refused",
+  });
+}
+
+export type PartnerRfqRecipient = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+export async function getPartnerRfqRecipient(partnerId: number): Promise<PartnerRfqRecipient | null> {
+  const rows = await read<{ name: string | false; email: string | false }>("res.partner", [partnerId], ["name", "email"]);
+  const row = rows[0];
+  if (!row?.email) return null;
+  return { id: partnerId, name: row.name || "", email: row.email };
+}
+
+export type ProcurementRfqLine = {
+  itemName: string;
+  quantity: number;
+  unit: string;
+  brand: string;
+  countryOfOrigin: string;
+};
+
+export type ProcurementRfqDetails = ProcurementRequestNotification & {
+  lines: ProcurementRfqLine[];
+};
+
+export async function getProcurementRfqDetails(requestId: number): Promise<ProcurementRfqDetails | null> {
+  const request = await getProcurementRequestForNotification(requestId);
+  if (!request) return null;
+  const lines = await searchRead<{
+    x_studio_structured_description: string | false;
+    x_studio_original_description: string | false;
+    x_studio_quantity: number | false;
+    x_studio_uom: string | false;
+    x_studio_brand: string | false;
+    x_studio_country_of_origin: string | false;
+  }>(
+    "x_build_request_line",
+    [["x_studio_request_id", "=", requestId]],
+    ["x_studio_structured_description", "x_studio_original_description", "x_studio_quantity", "x_studio_uom", "x_studio_brand", "x_studio_country_of_origin"],
+    { limit: 100, order: "x_studio_line_number asc, id asc" }
+  );
+  return {
+    ...request,
+    lines: lines.map((line) => ({
+      itemName: line.x_studio_structured_description || line.x_studio_original_description || "",
+      quantity: line.x_studio_quantity || 0,
+      unit: line.x_studio_uom || "",
+      brand: line.x_studio_brand || "",
+      countryOfOrigin: line.x_studio_country_of_origin || "",
+    })),
+  };
 }
 
 /** يزامن "مؤهَّل للمطابقة" مع حالة الاعتماد تلقائياً — يفعّله عند "approved"، يعطّله لو الحالة تغيّرت لأي شيء آخر (رفض/تعليق بعد اعتماد سابق). يعيد عدد التغييرات بالاتجاهين */

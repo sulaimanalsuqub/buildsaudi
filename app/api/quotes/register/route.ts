@@ -5,7 +5,7 @@ import {
   attachProcurementRequestFiles,
   createCustomerRequestLines,
   createExtractedRequestLines,
-  createBuildAiTask,
+  createAiRecommendationWorkflow,
   createOutboxEvent,
   createProcurementRequest,
   findMatchingCarriers,
@@ -218,42 +218,42 @@ export async function POST(req: NextRequest) {
       ]);
 
       const noteParts: string[] = [];
-      const aiTasks: Promise<number | null>[] = [];
+      const aiWorkflows: Promise<unknown>[] = [];
       if (suppliers.length) {
         const supplierResult = `الموردون المقترحون بناءً على الفئات/العلامات التجارية:\n${suppliers.slice(0, 10).map(supplierMatchLine).join("\n")}`;
         noteParts.push(supplierResult);
-        aiTasks.push(
-          createBuildAiTask({
+        aiWorkflows.push(
+          createAiRecommendationWorkflow({
             agentName: "Supplier Matching Agent",
             requestId,
+            decisionType: "supplier_rfq",
             taskType: "supplier_matching_recommendation",
-            result: supplierResult,
+            recommendation: supplierResult,
+            recipientPartnerIds: suppliers.slice(0, 10).map((supplier) => supplier.partnerId),
             confidenceScore: suppliers[0]?.score ? Math.min(0.95, suppliers[0].score / 100) : 0.5,
-            needsApproval: true,
-            status: "needs_approval",
           })
         );
       }
       if (carriers.length) {
         const carrierResult = `وكلاء الشحن المقترحون عند الحاجة لشحن مستقل:\n${carriers.slice(0, 10).map(carrierMatchLine).join("\n")}`;
         noteParts.push(carrierResult);
-        aiTasks.push(
-          createBuildAiTask({
+        aiWorkflows.push(
+          createAiRecommendationWorkflow({
             agentName: "Freight Planning Agent",
             requestId,
+            decisionType: "freight_rfq",
             taskType: "freight_planning_recommendation",
-            result: carrierResult,
+            recommendation: carrierResult,
+            recipientPartnerIds: carriers.slice(0, 10).map((carrier) => carrier.partnerId),
             confidenceScore: carriers[0]?.score ? Math.min(0.95, carriers[0].score / 100) : 0.5,
-            needsApproval: true,
-            status: "needs_approval",
           })
         );
       }
       if (noteParts.length) {
         await postProcurementRequestNote(requestId, noteParts.join("\n\n"));
       }
-      if (aiTasks.length) {
-        await Promise.all(aiTasks);
+      if (aiWorkflows.length) {
+        await Promise.all(aiWorkflows);
       }
     } catch (matchError) {
       console.error("[quotes/register] recommendation matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);

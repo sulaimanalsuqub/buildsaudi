@@ -3,10 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   OdooClientError,
   createOutboxEvent,
+  getDraftAiCommunications,
+  getPartnerRfqRecipient,
+  getPendingAiApprovalDecisions,
   getCarrierProfileForNotification,
+  getProcurementRfqDetails,
   getProcurementRequestForNotification,
   getRequestsPendingDeclineNotification,
   getSupplierProfileForNotification,
+  markAiApprovalApproved,
+  markAiApprovalRejected,
+  markAiCommunicationSent,
   markRequestDeclinedForCustomer,
   read,
   searchRead,
@@ -25,10 +32,12 @@ import {
   sendCarrierReactivatedEmail,
   sendCarrierRegistrationConfirmation,
   sendCarrierRejectedEmail,
+  sendCarrierRfqRequestEmail,
   sendCarrierSuspendedEmail,
   sendInternalNewProcurementRequestNotification,
   sendProcurementRequestDeclinedEmail,
   sendProcurementRequestReceivedEmail,
+  sendSupplierRfqRequestEmail,
   sendSupplierFinalReviewNotification,
   sendVendorFullyApprovedEmail,
   sendVendorJourneyStartedEmail,
@@ -341,6 +350,14 @@ function toOdooDatetime(date: Date): string {
   return date.toISOString().slice(0, 19).replace("T", " ");
 }
 
+function resendMessageId(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") return undefined;
+  const data = "data" in result ? (result as { data?: unknown }).data : undefined;
+  if (!data || typeof data !== "object") return undefined;
+  const id = "id" in data ? (data as { id?: unknown }).id : undefined;
+  return typeof id === "string" ? id : undefined;
+}
+
 /** يلتقط طلبات وضعها الفريق "مرفوض" يدوياً من واجهة أودو (لا من موقعنا) — ينشئ حدث إشعار للعميل ويثبّت الحالة الظاهرة له */
 async function syncDeclinedRequests(): Promise<number> {
   const pending = await getRequestsPendingDeclineNotification();
@@ -362,6 +379,61 @@ async function syncDeclinedRequests(): Promise<number> {
     }
   }
   return synced;
+}
+
+async function syncApprovedAiRfqs(): Promise<{ approved: number; rejected: number; emailsSent: number; missingRecipients: number }> {
+  const decisions = await getPendingAiApprovalDecisions();
+  const results = { approved: 0, rejected: 0, emailsSent: 0, missingRecipients: 0 };
+
+  for (const decision of decisions) {
+    if (decision.approvalStatus === "refused") {
+      await markAiApprovalRejected(decision);
+      results.rejected += 1;
+      continue;
+    }
+
+    const request = await getProcurementRfqDetails(decision.requestId);
+    if (!request) {
+      results.missingRecipients += 1;
+      continue;
+    }
+
+    const communications = await getDraftAiCommunications(decision.requestId, decision.agentId);
+    for (const communication of communications) {
+      const recipient = await getPartnerRfqRecipient(communication.partnerId);
+      if (!recipient) {
+        results.missingRecipients += 1;
+        continue;
+      }
+
+      const sendResult =
+        decision.decisionType === "supplier_rfq"
+          ? await sendSupplierRfqRequestEmail({
+              supplierName: recipient.name,
+              email: recipient.email,
+              projectName: request.projectName,
+              trackingNumber: request.trackingNumber,
+              description: request.description,
+              lines: request.lines,
+            })
+          : await sendCarrierRfqRequestEmail({
+              carrierName: recipient.name,
+              email: recipient.email,
+              projectName: request.projectName,
+              trackingNumber: request.trackingNumber,
+              description: request.description,
+              lines: request.lines,
+            });
+
+      await markAiCommunicationSent(communication.id, resendMessageId(sendResult));
+      results.emailsSent += 1;
+    }
+
+    await markAiApprovalApproved(decision);
+    results.approved += 1;
+  }
+
+  return results;
 }
 
 export async function GET(req: NextRequest) {
@@ -387,6 +459,13 @@ export async function GET(req: NextRequest) {
     eligibilitySynced = await syncSupplierMatchingEligibility();
   } catch (error) {
     console.error("[cron/odoo-outbox] syncSupplierMatchingEligibility failed:", error instanceof Error ? error.message : error);
+  }
+
+  let aiRfqsSynced = { approved: 0, rejected: 0, emailsSent: 0, missingRecipients: 0 };
+  try {
+    aiRfqsSynced = await syncApprovedAiRfqs();
+  } catch (error) {
+    console.error("[cron/odoo-outbox] syncApprovedAiRfqs failed:", error instanceof Error ? error.message : error);
   }
 
   let candidates: OutboxRow[];
@@ -471,6 +550,10 @@ export async function GET(req: NextRequest) {
     declined_synced: declinedSynced,
     eligibility_enabled: eligibilitySynced.enabled,
     eligibility_disabled: eligibilitySynced.disabled,
+    ai_rfq_approvals_synced: aiRfqsSynced.approved,
+    ai_rfq_approvals_rejected: aiRfqsSynced.rejected,
+    ai_rfq_emails_sent: aiRfqsSynced.emailsSent,
+    ai_rfq_missing_recipients: aiRfqsSynced.missingRecipients,
     ...results,
   });
 }

@@ -1099,6 +1099,111 @@ export async function sendProcurementRequestReceivedEmail(req: {
   });
 }
 
+type RfqLine = {
+  itemName: string;
+  quantity: number;
+  unit: string;
+  brand: string;
+  countryOfOrigin: string;
+};
+
+function rfqLinesTable(lines: RfqLine[]): string {
+  if (!lines.length) {
+    return `<p style="margin:16px 0 0;font-size:14px;color:#374151;line-height:1.8;">تفاصيل الأصناف مرفقة أو موضحة في وصف الطلب.</p>`;
+  }
+  const rows = lines
+    .map(
+      (line, index) => `
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid #e5e7eb;">${index + 1}</td>
+          <td style="padding:10px;border-bottom:1px solid #e5e7eb;">${esc(line.itemName)}</td>
+          <td style="padding:10px;border-bottom:1px solid #e5e7eb;" dir="ltr">${esc(String(line.quantity))} ${esc(line.unit)}</td>
+          <td style="padding:10px;border-bottom:1px solid #e5e7eb;" dir="ltr">${esc(line.brand)}</td>
+          <td style="padding:10px;border-bottom:1px solid #e5e7eb;">${esc(line.countryOfOrigin)}</td>
+        </tr>`
+    )
+    .join("");
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin-top:16px;font-size:13px;color:#374151;">
+      <thead>
+        <tr style="background:#f3f4f6;color:#111827;">
+          <th align="right" style="padding:10px;">#</th>
+          <th align="right" style="padding:10px;">الصنف</th>
+          <th align="right" style="padding:10px;">الكمية</th>
+          <th align="right" style="padding:10px;">Brand</th>
+          <th align="right" style="padding:10px;">بلد المنشأ</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+export async function sendSupplierRfqRequestEmail(req: {
+  supplierName: string;
+  email: string;
+  projectName: string;
+  trackingNumber: string;
+  description: string;
+  lines: RfqLine[];
+}) {
+  return sendEmail({
+    from: FROM,
+    to: req.email,
+    subject: `RFQ Request — ${req.trackingNumber} — Build Saudi`,
+    html: emailShell({
+      previewText: `طلب عرض سعر من Build Saudi للطلب ${req.trackingNumber}`,
+      accentColor: "#1D3F1F",
+      badgeLabel: "RFQ",
+      content: `
+        ${greeting(req.supplierName || "شريك Build")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          نرجو تزويدنا بعرض سعر للمواد التالية مع مدة التجهيز، صلاحية العرض، شروط الدفع، وهل السعر يشمل التوصيل والضريبة.
+        </p>
+        ${infoTable(
+          infoRow("رقم الطلب", esc(req.trackingNumber), "ltr") +
+            infoRow("المشروع", esc(req.projectName || "-"))
+        )}
+        ${req.description ? `<p style="margin:20px 0 0;font-size:14px;color:#374151;line-height:1.8;white-space:pre-wrap;">${esc(req.description)}</p>` : ""}
+        ${rfqLinesTable(req.lines)}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">يرجى الرد على هذا البريد بعرض السعر أو أي استفسارات فنية.</p>
+      `,
+    }),
+  });
+}
+
+export async function sendCarrierRfqRequestEmail(req: {
+  carrierName: string;
+  email: string;
+  projectName: string;
+  trackingNumber: string;
+  description: string;
+  lines: RfqLine[];
+}) {
+  return sendEmail({
+    from: FROM,
+    to: req.email,
+    subject: `Freight RFQ — ${req.trackingNumber} — Build Saudi`,
+    html: emailShell({
+      previewText: `طلب عرض سعر شحن من Build Saudi للطلب ${req.trackingNumber}`,
+      accentColor: "#1D3F1F",
+      badgeLabel: "Freight RFQ",
+      content: `
+        ${greeting(req.carrierName || "شريك Build")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          نرجو تزويدنا بعرض سعر شحن للطلب التالي، شاملاً مدة النقل، المتطلبات التشغيلية، وأي خدمات تحميل أو تنزيل متاحة.
+        </p>
+        ${infoTable(
+          infoRow("رقم الطلب", esc(req.trackingNumber), "ltr") +
+            infoRow("المشروع", esc(req.projectName || "-"))
+        )}
+        ${req.description ? `<p style="margin:20px 0 0;font-size:14px;color:#374151;line-height:1.8;white-space:pre-wrap;">${esc(req.description)}</p>` : ""}
+        ${rfqLinesTable(req.lines)}
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">يرجى الرد على هذا البريد بعرض الشحن أو أي ملاحظات على المسار.</p>
+      `,
+    }),
+  });
+}
+
 const DECLINE_REASON_LABELS: Record<string, string> = {
   items_unavailable: "الأصناف المطلوبة غير متوفرة لدى مورّدينا حالياً",
   high_demand: "ضغط كبير على الطلبات حالياً يمنعنا من تسعير طلبكم في الوقت المناسب",
