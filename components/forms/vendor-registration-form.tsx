@@ -21,7 +21,7 @@ import {
   supplierCountries,
   textByLang,
 } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
+import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput, VendorTagInput } from "@/components/forms/vendor-form-shared";
 
 type VendorRegistrationFormProps = {
   isRtl?: boolean;
@@ -39,7 +39,7 @@ const formSchema = z.object({
   email: z.string().email("invalidEmail"),
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
-  brands: z.string().optional(),
+  brands: z.array(z.string()).optional(),
   shortDescription: z.string().min(5, "required"),
   website: z.string().optional(),
   catalogLink: z.string().optional(),
@@ -58,7 +58,7 @@ const defaultValues: FormValues = {
   email: "",
   categoryIds: [],
   otherCategorySuggestion: "",
-  brands: "",
+  brands: [],
   shortDescription: "",
   website: "",
   catalogLink: "",
@@ -95,7 +95,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       "لدينا طلب مسجّل مسبقاً لهذه المنشأة. لا حاجة لإعادة الإرسال — فريقنا يراجعه حالياً."
     ),
     labels: {
-      establishmentName: textByLang(isRtl, "Establishment Name", "اسم المنشأة"),
+      establishmentName: textByLang(isRtl, "Establishment / Company Name", "اسم المنشأة أو الشركة"),
       contactName: textByLang(isRtl, "Responsible Person", "المسؤول"),
       jobTitle: textByLang(isRtl, "Job Title (optional)", "المسمى الوظيفي (اختياري)"),
       contactNumber: textByLang(isRtl, "Mobile Number", "رقم الجوال"),
@@ -109,8 +109,17 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       catalogLink: textByLang(isRtl, "Catalog Link (optional)", "رابط الكتالوج (اختياري)"),
     },
     helpers: {
-      establishmentName: textByLang(isRtl, "Use the legal name shown on your commercial registration.", "اكتب الاسم النظامي كما يظهر في السجل التجاري."),
-      brands: textByLang(isRtl, "Separate multiple brands with a comma.", "افصل بين العلامات التجارية بفاصلة."),
+      establishmentName: textByLang(
+        isRtl,
+        "Use the legal name on your commercial registration — not your personal name.",
+        "اكتب الاسم النظامي كما يظهر في السجل التجاري — وليس اسمك الشخصي."
+      ),
+      establishmentNameMatchesContact: textByLang(
+        isRtl,
+        "This looks like a personal name. If you have a company/establishment name, use it here instead.",
+        "هذا يبدو اسماً شخصياً. إذا كان لديكم اسم شركة أو منشأة، استخدموه هنا بدلاً من اسمكم الشخصي."
+      ),
+      brands: textByLang(isRtl, "Type a brand and press Enter.", "اكتب اسم العلامة واضغط Enter."),
       categoriesLoading: textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…"),
       categoriesError: textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة."),
     },
@@ -192,12 +201,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           phone: normalizeVendorPhone(data.contactNumber),
           category_ids: data.categoryIds,
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
-          brands: data.brands
-            ? data.brands
-                .split(",")
-                .map((b) => b.trim())
-                .filter(Boolean)
-            : [],
+          brands: data.brands ?? [],
           short_description: data.shortDescription.trim(),
           website: data.website?.trim() || undefined,
           catalog_link: data.catalogLink?.trim() || undefined,
@@ -241,6 +245,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const showEmail = showPhone && phoneDigits.length >= 8;
   const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
   const showDetails = showEmail && emailVerified;
+  // تنبيه لطيف (لا يمنع الإرسال) — تكرار شائع: كتابة الاسم الشخصي في حقل اسم المنشأة
+  const establishmentNameMatchesContact =
+    showContactName &&
+    values.contactName.trim().length >= 2 &&
+    values.establishmentName.trim().toLowerCase() === values.contactName.trim().toLowerCase();
 
   const toggleCategory = (id: number) => {
     const current = values.categoryIds;
@@ -279,8 +288,19 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </VendorField>
 
         <VendorField label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
-          <Input {...form.register("establishmentName")} autoComplete="organization" className="h-12 text-base" autoFocus />
+          <Input
+            {...form.register("establishmentName")}
+            autoComplete="organization"
+            className="h-12 text-base"
+            autoFocus
+            placeholder={isRtl ? "مثال: شركة الفا للمقاولات" : "e.g. Alpha Contracting Co."}
+          />
           <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
+          {establishmentNameMatchesContact && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              {t.helpers.establishmentNameMatchesContact}
+            </p>
+          )}
         </VendorField>
 
         <AnimatePresence>
@@ -397,7 +417,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               </VendorField>
 
               <VendorField label={t.labels.brands} helper={t.helpers.brands}>
-                <Input {...form.register("brands")} className="h-12 text-base" />
+                <VendorTagInput
+                  values={values.brands ?? []}
+                  onChange={(next) => form.setValue("brands", next, { shouldValidate: true })}
+                  placeholder={isRtl ? "مثال: غروهي" : "e.g. Grohe"}
+                />
               </VendorField>
 
               <VendorField label={t.labels.shortDescription}>
