@@ -117,7 +117,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       establishmentName: textByLang(
         isRtl,
         "Use the legal name on your commercial registration — not your personal name.",
-        "اكتب الاسم النظامي كما يظهر في السجل التجاري — وليس اسمك الشخصي."
+        "اكتب اسم النشاط التجاري من فضلك"
       ),
       establishmentNameMatchesContact: textByLang(
         isRtl,
