@@ -472,6 +472,14 @@ export type PreliminaryRegistrationInput = {
   /** اسم الدولة المعروض (وليس رمزها الداخلي) — يُخزَّن كما هو في هذا الحقل النصي التوصيفي */
   country: string;
   supplierType: "local" | "international";
+  businessType:
+    | "manufacturer"
+    | "authorized_distributor"
+    | "distributor"
+    | "importer"
+    | "exporter"
+    | "trader"
+    | "service_provider";
   contactName: string;
   jobTitle?: string;
   email: string;
@@ -610,6 +618,7 @@ export async function createPreliminarySupplierProfile(
   return create("x_build_supplier_profile", {
     x_studio_partner_id: partnerId,
     x_studio_supplier_type: data.supplierType,
+    x_studio_business_type: data.businessType,
     x_studio_country_name: data.country,
     x_studio_status: "under_preliminary_review",
     x_studio_profile_completed: false,

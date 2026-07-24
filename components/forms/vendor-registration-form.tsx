@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  businessTypes,
   isSaudiSupplierCountry,
   isValidVendorPhone,
   normalizeVendorPhone,
@@ -37,6 +38,7 @@ const formSchema = z.object({
   jobTitle: z.string().optional(),
   contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   email: z.string().email("invalidEmail"),
+  businessType: z.string().min(1, "required"),
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
   brands: z.array(z.string()).optional(),
@@ -56,6 +58,7 @@ const defaultValues: FormValues = {
   jobTitle: "",
   contactNumber: "",
   email: "",
+  businessType: "",
   categoryIds: [],
   otherCategorySuggestion: "",
   brands: [],
@@ -101,6 +104,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       contactNumber: textByLang(isRtl, "Mobile Number", "رقم الجوال"),
       email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
       country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
+      businessType: textByLang(isRtl, "Business Type", "نوع النشاط التجاري"),
       categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
       other: textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)"),
       brands: textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية الممثَّلة (اختياري)"),
@@ -194,6 +198,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           // نرسل الاسم المعروض لا الرمز الداخلي (مثال: "السعودية" وليس "sa")
           country: optionLabel(true, supplierCountries, data.country),
           supplier_type: isSaudi ? "local" : "international",
+          business_type: data.businessType,
           contact_name: data.contactName.trim(),
           job_title: data.jobTitle?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
@@ -293,7 +298,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             autoComplete="organization"
             className="h-12 text-base"
             autoFocus
-            placeholder={isRtl ? "مثال: شركة الفا للمقاولات" : "e.g. Alpha Contracting Co."}
+            placeholder={isRtl ? "الاسم النظامي كما يظهر في السجل التجاري" : "Legal name as shown on registration"}
           />
           <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
           {establishmentNameMatchesContact && (
@@ -375,6 +380,22 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         <AnimatePresence>
           {showDetails && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+              <VendorField label={t.labels.businessType}>
+                <select
+                  value={values.businessType}
+                  onChange={(e) => form.setValue("businessType", e.target.value, { shouldValidate: true })}
+                  className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                >
+                  <option value="">{isRtl ? "اختر نوع النشاط" : "Select business type"}</option>
+                  {businessTypes.map((b) => (
+                    <option key={b.value} value={b.value}>
+                      {optionLabel(isRtl, businessTypes, b.value)}
+                    </option>
+                  ))}
+                </select>
+                <VendorErrorText text={form.formState.errors.businessType?.message} isRtl={isRtl} />
+              </VendorField>
+
               <VendorField label={t.labels.categories}>
                 {categoriesFailed ? (
                   <p className="text-sm text-red-600">{t.helpers.categoriesError}</p>

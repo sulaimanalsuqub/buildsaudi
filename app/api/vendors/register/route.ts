@@ -21,6 +21,15 @@ import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountrie
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const CURRENT_POLICY_VERSION = "2026-07-v1";
+const BUSINESS_TYPES = [
+  "manufacturer",
+  "authorized_distributor",
+  "distributor",
+  "importer",
+  "exporter",
+  "trader",
+  "service_provider",
+] as const;
 
 /** يحوّل رمز الدولة الداخلي (مثال: "sa") إلى اسمه المعروض — إن كانت القيمة اسماً بالفعل تُعاد كما هي */
 function resolveCountryDisplayName(country: string): string {
@@ -32,6 +41,7 @@ const registerSchema = z
     establishment_name: z.string().trim().min(2, "اسم المنشأة مطلوب"),
     country: z.string().trim().min(2, "الدولة مطلوبة"),
     supplier_type: z.enum(["local", "international"]),
+    business_type: z.enum(BUSINESS_TYPES),
     contact_name: z.string().trim().min(2, "اسم المسؤول مطلوب"),
     job_title: z.string().trim().optional().or(z.literal("")),
     email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
@@ -183,6 +193,7 @@ async function finishRegistration(partnerId: number, vendor: VendorInput, countr
       establishmentName: vendor.establishment_name,
       country: countryDisplay,
       supplierType: vendor.supplier_type,
+      businessType: vendor.business_type,
       contactName: vendor.contact_name,
       jobTitle: vendor.job_title || undefined,
       email: vendor.email,
