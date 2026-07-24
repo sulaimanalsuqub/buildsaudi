@@ -17,7 +17,7 @@ import {
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
-import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
+import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const CURRENT_POLICY_VERSION = "2026-07-v1";
@@ -54,7 +54,7 @@ const registerSchema = z
     // معرّفات فئات حقيقية من Odoo (Master Data) — لا أسماء نصية حرة
     category_ids: z.array(z.number().int().positive()).min(1, "اختر فئة واحدة على الأقل"),
     other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
-    brands: z.array(z.string().trim().min(1)).optional().default([]),
+    brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
     short_description: z.string().trim().min(5, "أضف وصفاً مختصراً للمواد أو المنتجات"),
     website: z.string().trim().optional().or(z.literal("")),
     catalog_link: z.string().trim().optional().or(z.literal("")),

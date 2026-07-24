@@ -14,6 +14,7 @@ import {
   businessTypes,
   brandRelationshipTypes,
   documentTypeLabels,
+  isEnglishBrandName,
   isFlexibleIban,
   optionLabel,
   paymentTerms,
@@ -48,7 +49,7 @@ const schema = z.object({
   businessType: z.string().min(1, "required"),
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
-  brands: z.array(z.string()).optional(),
+  brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
   serviceAreas: z.array(z.string()).optional(),
   deliveryCities: z.string().optional(),
   paymentTerms: z.array(z.string()).min(1, "required"),
@@ -429,12 +430,13 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
               <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
             </VendorField>
 
-            <VendorField label={textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية (اختياري)")}>
+            <VendorField label={textByLang(isRtl, "Represented Brands in English (optional)", "العلامات التجارية بالإنجليزي (اختياري)")}>
               <VendorTagInput
                 values={values.brands ?? []}
                 onChange={(next) => form.setValue("brands", next, { shouldValidate: true })}
-                placeholder={textByLang(isRtl, "Type a brand and press Enter", "اكتب اسم العلامة واضغط Enter")}
+                placeholder="Grohe"
               />
+              <VendorErrorText text={form.formState.errors.brands?.message} isRtl={isRtl} />
             </VendorField>
 
             {isLocal && (

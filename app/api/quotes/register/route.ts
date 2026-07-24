@@ -23,7 +23,7 @@ import {
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
+import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
 import { extractRequestItems } from "@/lib/material-extraction";
 
 const MAX_FILES = 5;
@@ -66,7 +66,7 @@ const itemSchema = z.object({
   itemName: z.string().trim().min(1).max(200),
   quantity: z.number().positive(),
   unit: z.string().trim().max(30).optional().or(z.literal("")),
-  brand: z.string().trim().max(100).optional().or(z.literal("")),
+  brand: z.string().trim().max(100).refine(isEnglishBrandName, "اكتب اسم العلامة التجارية بالإنجليزي فقط").optional().or(z.literal("")),
   countryOfOrigin: z.string().trim().max(100).optional().or(z.literal("")),
 });
 

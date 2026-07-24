@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   businessTypes,
+  isEnglishBrandName,
   isSaudiSupplierCountry,
   isValidVendorPhone,
   normalizeVendorPhone,
@@ -41,7 +42,7 @@ const formSchema = z.object({
   businessType: z.string().min(1, "required"),
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
-  brands: z.array(z.string()).optional(),
+  brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
   shortDescription: z.string().min(5, "required"),
   website: z.string().optional(),
   catalogLink: z.string().optional(),
@@ -107,7 +108,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       businessType: textByLang(isRtl, "Business Type", "نوع النشاط التجاري"),
       categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
       other: textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)"),
-      brands: textByLang(isRtl, "Represented Brands (optional)", "العلامات التجارية الممثَّلة (اختياري)"),
+      brands: textByLang(isRtl, "Represented Brands in English (optional)", "العلامات التجارية بالإنجليزي (اختياري)"),
       shortDescription: textByLang(isRtl, "Brief description of your products", "وصف مختصر لمنتجاتكم"),
       website: textByLang(isRtl, "Website (optional)", "الموقع الإلكتروني (اختياري)"),
       catalogLink: textByLang(isRtl, "Catalog Link (optional)", "رابط الكتالوج (اختياري)"),
@@ -123,7 +124,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         "This looks like a personal name. If you have a company/establishment name, use it here instead.",
         "هذا يبدو اسماً شخصياً. إذا كان لديكم اسم شركة أو منشأة، استخدموه هنا بدلاً من اسمكم الشخصي."
       ),
-      brands: textByLang(isRtl, "Type a brand and press Enter.", "اكتب اسم العلامة واضغط Enter."),
+      brands: textByLang(isRtl, "Type the brand in English and press Enter.", "اكتب اسم العلامة بالإنجليزي واضغط Enter."),
       categoriesLoading: textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…"),
       categoriesError: textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة."),
     },
@@ -441,8 +442,9 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 <VendorTagInput
                   values={values.brands ?? []}
                   onChange={(next) => form.setValue("brands", next, { shouldValidate: true })}
-                  placeholder={isRtl ? "مثال: غروهي" : "e.g. Grohe"}
+                  placeholder="Grohe"
                 />
+                <VendorErrorText text={form.formState.errors.brands?.message} isRtl={isRtl} />
               </VendorField>
 
               <VendorField label={t.labels.shortDescription}>

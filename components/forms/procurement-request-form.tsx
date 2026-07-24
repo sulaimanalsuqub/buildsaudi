@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries, textByLang } from "@/lib/vendor-options";
+import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries, textByLang } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
@@ -201,6 +201,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     }
 
     const validItems = items.filter((it) => it.itemName.trim() && Number(it.quantity) > 0);
+    const invalidBrand = validItems.find((it) => it.brand.trim() && !isEnglishBrandName(it.brand));
+    if (invalidBrand) {
+      setSubmitError(textByLang(isRtl, "Enter brand names in English only", "اكتب أسماء العلامات التجارية بالإنجليزي فقط"));
+      return;
+    }
     const hasLocation = !!data.nationalAddressCode || !!data.addressNotes?.trim();
     if (!hasLocation) {
       setSubmitError(textByLang(isRtl, "Set the delivery location: national address code, or city/district", "حدد موقع التسليم: رمز العنوان الوطني، أو المدينة/الحي"));
@@ -427,7 +432,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <Input value={item.quantity} onChange={(e) => updateItemRow(i, { quantity: e.target.value })} type="number" min="0" placeholder={textByLang(isRtl, "Qty", "الكمية")} className="h-11" />
                       <Input value={item.unit} onChange={(e) => updateItemRow(i, { unit: e.target.value })} placeholder={textByLang(isRtl, "Unit", "الوحدة")} className="h-11" />
-                      <Input value={item.brand} onChange={(e) => updateItemRow(i, { brand: e.target.value })} placeholder={textByLang(isRtl, "Brand (optional)", "العلامة التجارية (اختياري)")} className="h-11" />
+                      <Input value={item.brand} onChange={(e) => updateItemRow(i, { brand: e.target.value })} placeholder={textByLang(isRtl, "Brand in English", "العلامة بالإنجليزي")} className="h-11" dir="ltr" />
                       <select
                         value={item.countryOfOrigin}
                         onChange={(e) => updateItemRow(i, { countryOfOrigin: e.target.value })}

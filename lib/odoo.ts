@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { normalizeVendorPhone } from "@/lib/vendor-options";
+import { isEnglishBrandName, normalizeVendorPhone } from "@/lib/vendor-options";
 
 /**
  * عميل Odoo مستقل (JSON-RPC) — النظام الوحيد المعتمد لرحلة تسجيل الموردين.
@@ -1533,7 +1533,7 @@ export async function createCustomerRequestLines(
       x_studio_original_description: item.itemName,
       x_studio_quantity: item.quantity,
       x_studio_uom: item.unit || false,
-      x_studio_brand: item.brand || false,
+      x_studio_brand: item.brand && isEnglishBrandName(item.brand) ? item.brand : false,
       x_studio_country_of_origin: item.countryOfOrigin || false,
       x_studio_line_source: "manual",
       x_studio_review_status: "new",
@@ -1644,7 +1644,7 @@ export async function createExtractedRequestLines(
       x_studio_structured_description: item.itemName,
       x_studio_quantity: item.quantity,
       x_studio_uom: item.unit || false,
-      x_studio_brand: item.brand || false,
+      x_studio_brand: item.brand && isEnglishBrandName(item.brand) ? item.brand : false,
       x_studio_country_of_origin: item.countryOfOrigin || false,
       x_studio_category: item.category || false,
       x_studio_sub_category: item.subCategory || false,

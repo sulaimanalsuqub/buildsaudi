@@ -17,7 +17,7 @@ import {
 } from "@/lib/odoo";
 import { resolveOnboardingProfile } from "@/lib/vendor-onboarding-guard";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-import { regions } from "@/lib/vendor-options";
+import { isEnglishBrandName, regions } from "@/lib/vendor-options";
 
 /** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرجع null إن كان الرمز غير معروف */
 function translateServiceAreaSlugs(slugs: string[]): string[] | null {
@@ -98,7 +98,7 @@ const businessFieldsSchema = z.object({
   // معرّفات فئات حقيقية من Odoo (Master Data) — لا أسماء نصية حرة
   category_ids: z.array(z.number().int().positive()).min(1),
   other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
-  brands: z.array(z.string().trim().min(1)).optional().default([]),
+  brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
   service_areas: z.array(z.string().trim().min(1)).optional().default([]),
   delivery_cities: z.string().trim().optional().or(z.literal("")),
   avg_lead_time_days: z.number().nonnegative().optional(),

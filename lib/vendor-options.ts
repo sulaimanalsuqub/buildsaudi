@@ -158,6 +158,13 @@ export const shippingArrangements: VendorOption[] = [
   { value: "supplier_agent", en: "Supplier's own freight agent", ar: "وكيل شحن خاص بالمورد" },
 ];
 
+export const englishBrandNameRegex = /^[A-Za-z0-9][A-Za-z0-9 .&'()+\-/]*$/;
+
+export function isEnglishBrandName(value: string): boolean {
+  const trimmed = value.trim();
+  return !trimmed || englishBrandNameRegex.test(trimmed);
+}
+
 // رقم تسجيل شركة دولي (أحرف/أرقام/شرطات) — أوسع من السجل السعودي
 export const intlRegistrationRegex = /^[A-Za-z0-9\-/]{3,30}$/;
 // SWIFT/BIC: 8 أو 11 خانة
@@ -234,6 +241,7 @@ export const vendorErrorMessages: Record<string, { en: string; ar: string }> = {
   invalidEmail: { en: "Invalid email address", ar: "البريد الإلكتروني غير صحيح" },
   invalidCR: { en: "CR number must be 10-15 digits", ar: "رقم السجل يجب أن يكون 10-15 رقم" },
   invalidIban: { en: "Invalid Saudi IBAN (SA + 22 digits)", ar: "رقم الآيبان غير صحيح (SA + 22 رقم)" },
+  invalidEnglishBrand: { en: "Enter brand names in English only", ar: "اكتب أسماء العلامات التجارية بالإنجليزي فقط" },
 };
 
 export function textByLang(isRtl: boolean, en: string, ar: string) {
