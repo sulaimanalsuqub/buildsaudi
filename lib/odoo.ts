@@ -2234,3 +2234,111 @@ export async function createOutboxEvent(params: {
   });
   return { id, created: true };
 }
+
+// ─────────────────────────────────────────────────────────────
+// 2B: استقبال عروض أسعار الموردين/الناقلين (رد على RFQ)
+// ─────────────────────────────────────────────────────────────
+
+export async function findRequestIdByTrackingNumber(trackingNumber: string): Promise<number | null> {
+  const rows = await searchRead<{ id: number }>(
+    "x_build_procurement_request",
+    [["x_studio_tracking_number", "=", trackingNumber]],
+    ["id"],
+    { limit: 1 }
+  );
+  return rows[0]?.id ?? null;
+}
+
+/** يبحث عن اتصال RFQ الذي أُرسل فعلياً (sent) لهذا الطلب وهذا المورد/الناقل — يُستخدم لربط الرد الوارد بمرجع RFQ الصحيح */
+export async function findSentCommunicationForPartner(requestId: number, partnerId: number): Promise<number | null> {
+  const rows = await searchRead<{ id: number }>(
+    "x_build_ai_communication",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_partner_id", "=", partnerId],
+      ["x_studio_status", "=", "sent"],
+    ],
+    ["id"],
+    { limit: 1, order: "id desc" }
+  );
+  return rows[0]?.id ?? null;
+}
+
+/** يبحث عن partnerId عبر بريده الإلكتروني — للتحقق أن مُرسل الرد هو فعلاً المورد/الناقل المطلوب */
+export async function findPartnerIdByEmailAndRequest(email: string, requestId: number): Promise<number | null> {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+  const comms = await searchRead<{ id: number; x_studio_partner_id: [number, string] | false }>(
+    "x_build_ai_communication",
+    [["x_studio_request_id", "=", requestId]],
+    ["x_studio_partner_id"]
+  );
+  const partnerIds = comms.map((c) => c.x_studio_partner_id && c.x_studio_partner_id[0]).filter((id): id is number => typeof id === "number");
+  if (!partnerIds.length) return null;
+  const partners = await searchRead<{ id: number; email: string | false }>(
+    "res.partner",
+    [["id", "in", partnerIds], ["email", "=ilike", normalized]],
+    ["id"],
+    { limit: 1 }
+  );
+  return partners[0]?.id ?? null;
+}
+
+export async function createSupplierQuote(params: {
+  requestId: number;
+  partnerId: number;
+  communicationId: number | null;
+  quoteType: "supplier" | "freight";
+  rawReplyText: string;
+  extraction: {
+    totalPrice?: number | null;
+    currency?: string | null;
+    leadTimeDays?: number | null;
+    validityDays?: number | null;
+    paymentTerms?: string | null;
+    includesDelivery?: boolean | null;
+    includesTax?: boolean | null;
+    confidence: number;
+    lines: { itemName: string; unitPrice?: number | null; quantity?: number | null; available?: boolean | null; notes?: string | null }[];
+  };
+}): Promise<number> {
+  const status = params.extraction.confidence >= 0.5 ? "analyzed" : "needs_review";
+  const quoteId = await create("x_build_supplier_quote", {
+    x_name: `Quote — Request #${params.requestId} — Partner #${params.partnerId}`,
+    x_studio_request_id: params.requestId,
+    x_studio_partner_id: params.partnerId,
+    x_studio_communication_id: params.communicationId ?? false,
+    x_studio_quote_type: params.quoteType,
+    x_studio_status: status,
+    x_studio_total_price: params.extraction.totalPrice ?? false,
+    x_studio_currency: params.extraction.currency || "SAR",
+    x_studio_lead_time_days: params.extraction.leadTimeDays ?? false,
+    x_studio_validity_days: params.extraction.validityDays ?? false,
+    x_studio_payment_terms: params.extraction.paymentTerms || false,
+    x_studio_includes_delivery: params.extraction.includesDelivery ?? false,
+    x_studio_includes_tax: params.extraction.includesTax ?? false,
+    x_studio_raw_reply_text: params.rawReplyText,
+    x_studio_confidence_score: params.extraction.confidence,
+    x_studio_received_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+  });
+
+  for (const line of params.extraction.lines) {
+    await create("x_build_supplier_quote_line", {
+      x_name: line.itemName,
+      x_studio_quote_id: quoteId,
+      x_studio_item_name: line.itemName,
+      x_studio_unit_price: line.unitPrice ?? false,
+      x_studio_quantity: line.quantity ?? false,
+      x_studio_available: line.available ?? true,
+      x_studio_notes: line.notes || false,
+    });
+  }
+
+  if (params.communicationId) {
+    await write("x_build_ai_communication", [params.communicationId], {
+      x_studio_replied_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    });
+  }
+
+  return quoteId;
+}
