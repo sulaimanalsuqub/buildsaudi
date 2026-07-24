@@ -1149,6 +1149,7 @@ export async function sendSupplierRfqRequestEmail(req: {
   return sendEmail({
     from: FROM,
     to: req.email,
+    replyTo: "supplier@build.sa",
     subject: `RFQ Request — ${req.trackingNumber} — Build Saudi`,
     html: emailShell({
       previewText: `طلب عرض سعر من Build Saudi للطلب ${req.trackingNumber}`,
@@ -1182,6 +1183,7 @@ export async function sendCarrierRfqRequestEmail(req: {
   return sendEmail({
     from: FROM,
     to: req.email,
+    replyTo: "operations@build.sa",
     subject: `Freight RFQ — ${req.trackingNumber} — Build Saudi`,
     html: emailShell({
       previewText: `طلب عرض سعر شحن من Build Saudi للطلب ${req.trackingNumber}`,
