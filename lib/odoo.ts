@@ -1059,33 +1059,120 @@ export type MatchingSupplier = {
   partnerId: number;
   name: string;
   matchedCategoryCount: number;
+  matchedBrandCount: number;
+  score: number;
 };
 
-/** يبحث عن الموردين المؤهَّلين للمطابقة (eligible_for_matching) اللي تتقاطع فئاتهم مع فئات الطلب — مرتَّبين حسب عدد الفئات المتطابقة */
-export async function findMatchingSuppliers(categoryIds: number[]): Promise<MatchingSupplier[]> {
-  if (!categoryIds.length) return [];
+function normalizeLookupName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  return [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+}
+
+/** يطابق أسماء العلامات ضد Master Data الموجودة فقط — لا ينشئ علامة جديدة من طلب عميل */
+export async function resolveExistingBrandIds(names: string[]): Promise<number[]> {
+  const wanted = uniqueNonEmpty(names);
+  if (!wanted.length) return [];
+  const existing = await searchRead<{ id: number; x_studio_name: string }>("x_build_brand", [], ["x_studio_name"], { limit: 1000 });
+  const ids: number[] = [];
+  for (const name of wanted) {
+    const normalized = normalizeLookupName(name);
+    const match = existing.find((r) => normalizeLookupName(r.x_studio_name) === normalized);
+    if (match) ids.push(match.id);
+  }
+  return [...new Set(ids)];
+}
+
+/** يبحث عن الموردين المؤهَّلين للمطابقة حسب الفئات والعلامات — العلامة ترفع الأولوية ولا تكون شرطاً وحيداً إلا إذا لم توجد فئات */
+export async function findMatchingSuppliers(categoryIds: number[], brandIds: number[] = []): Promise<MatchingSupplier[]> {
+  if (!categoryIds.length && !brandIds.length) return [];
+  const matchDomain =
+    categoryIds.length && brandIds.length
+      ? ["|", ["x_studio_material_category_ids", "in", categoryIds], ["x_studio_brand_ids", "in", brandIds]]
+      : categoryIds.length
+        ? [["x_studio_material_category_ids", "in", categoryIds]]
+        : [["x_studio_brand_ids", "in", brandIds]];
   const rows = await searchRead<{
     id: number;
     x_studio_partner_id: [number, string] | false;
     x_studio_material_category_ids: number[];
+    x_studio_brand_ids: number[];
   }>(
     "x_build_supplier_profile",
     [
       ["x_studio_eligible_for_matching", "=", true],
       ["x_studio_active_flag", "=", true],
-      ["x_studio_material_category_ids", "in", categoryIds],
+      ...matchDomain,
     ],
-    ["x_studio_partner_id", "x_studio_material_category_ids"]
+    ["x_studio_partner_id", "x_studio_material_category_ids", "x_studio_brand_ids"]
   );
   return rows
     .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
-    .map((row) => ({
-      id: row.id,
-      partnerId: row.x_studio_partner_id[0],
-      name: row.x_studio_partner_id[1],
-      matchedCategoryCount: row.x_studio_material_category_ids.filter((id) => categoryIds.includes(id)).length,
-    }))
-    .sort((a, b) => b.matchedCategoryCount - a.matchedCategoryCount);
+    .map((row) => {
+      const matchedCategoryCount = row.x_studio_material_category_ids.filter((id) => categoryIds.includes(id)).length;
+      const matchedBrandCount = row.x_studio_brand_ids.filter((id) => brandIds.includes(id)).length;
+      return {
+        id: row.id,
+        partnerId: row.x_studio_partner_id[0],
+        name: row.x_studio_partner_id[1],
+        matchedCategoryCount,
+        matchedBrandCount,
+        score: matchedCategoryCount * 10 + matchedBrandCount * 25,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+export type MatchingCarrier = {
+  id: number;
+  partnerId: number;
+  name: string;
+  matchedCategoryCount: number;
+  matchedServiceAreaCount: number;
+  score: number;
+};
+
+/** يقترح الناقلين المعتمدين حسب فئة المواد ومنطقة الخدمة إن أمكن استنتاجها */
+export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds: number[] = []): Promise<MatchingCarrier[]> {
+  const optionalMatch =
+    categoryIds.length && serviceAreaIds.length
+      ? ["|", ["x_studio_material_category_ids", "in", categoryIds], ["x_studio_service_area_ids", "in", serviceAreaIds]]
+      : categoryIds.length
+        ? [["x_studio_material_category_ids", "in", categoryIds]]
+        : serviceAreaIds.length
+          ? [["x_studio_service_area_ids", "in", serviceAreaIds]]
+          : [];
+  const rows = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_material_category_ids: number[];
+    x_studio_service_area_ids: number[];
+  }>(
+    "x_build_carrier_profile",
+    [
+      ["x_studio_status", "=", "approved"],
+      ["x_studio_active_flag", "=", true],
+      ...optionalMatch,
+    ],
+    ["x_studio_partner_id", "x_studio_material_category_ids", "x_studio_service_area_ids"]
+  );
+  return rows
+    .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
+    .map((row) => {
+      const matchedCategoryCount = row.x_studio_material_category_ids.filter((id) => categoryIds.includes(id)).length;
+      const matchedServiceAreaCount = row.x_studio_service_area_ids.filter((id) => serviceAreaIds.includes(id)).length;
+      return {
+        id: row.id,
+        partnerId: row.x_studio_partner_id[0],
+        name: row.x_studio_partner_id[1],
+        matchedCategoryCount,
+        matchedServiceAreaCount,
+        score: matchedServiceAreaCount * 20 + matchedCategoryCount * 10,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
 }
 
 /** يزامن "مؤهَّل للمطابقة" مع حالة الاعتماد تلقائياً — يفعّله عند "approved"، يعطّله لو الحالة تغيّرت لأي شيء آخر (رفض/تعليق بعد اعتماد سابق). يعيد عدد التغييرات بالاتجاهين */

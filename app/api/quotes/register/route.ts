@@ -7,6 +7,7 @@ import {
   createExtractedRequestLines,
   createOutboxEvent,
   createProcurementRequest,
+  findMatchingCarriers,
   findMatchingSuppliers,
   findOrCreateCustomerPartner,
   findOrCreateCustomerProject,
@@ -15,17 +16,45 @@ import {
   listCatalogProductNames,
   listProductCategories,
   postProcurementRequestNote,
+  resolveActiveServiceAreas,
+  resolveExistingBrandIds,
   updateProcurementRequestCategories,
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
+import { isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
 import { extractRequestItems } from "@/lib/material-extraction";
 
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
 const MAX_ITEMS = 50;
+
+function inferServiceAreaNames(text: string): string[] {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return [];
+  return regions
+    .filter((region) =>
+      [region.ar, region.en, region.value]
+        .map((value) => value.toLowerCase())
+        .some((value) => normalized.includes(value))
+    )
+    .map((region) => region.ar);
+}
+
+function supplierMatchLine(supplier: { name: string; matchedCategoryCount: number; matchedBrandCount: number }): string {
+  const parts = [];
+  if (supplier.matchedBrandCount) parts.push(`${supplier.matchedBrandCount} علامة`);
+  if (supplier.matchedCategoryCount) parts.push(`${supplier.matchedCategoryCount} فئة`);
+  return `- ${supplier.name}${parts.length ? ` (${parts.join(" + ")})` : ""}`;
+}
+
+function carrierMatchLine(carrier: { name: string; matchedServiceAreaCount: number; matchedCategoryCount: number }): string {
+  const parts = [];
+  if (carrier.matchedServiceAreaCount) parts.push(`${carrier.matchedServiceAreaCount} منطقة خدمة`);
+  if (carrier.matchedCategoryCount) parts.push(`${carrier.matchedCategoryCount} فئة مواد`);
+  return `- ${carrier.name}${parts.length ? ` (${parts.join(" + ")})` : ""}`;
+}
 
 const fileSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -133,7 +162,11 @@ export async function POST(req: NextRequest) {
       projectId
     );
 
+    let matchedCategoryIds: number[] = [];
+    let requestedBrandNames: string[] = [];
+
     if (data.items.length) {
+      requestedBrandNames = data.items.map((i) => i.brand || "").filter(Boolean);
       await createCustomerRequestLines(
         requestId,
         data.items.map((i) => ({
@@ -160,22 +193,41 @@ export async function POST(req: NextRequest) {
         const productCategoryNameToId = new Map(productCategories.map((c) => [c.name, c.id]));
         await createExtractedRequestLines(requestId, extractedItems, productCategoryNameToId);
 
-        // اقتراح الموردين — أفضل جهد، لا يجب أن يفشل تسجيل الطلب لو تعذّر
-        try {
-          const nameToId = new Map(activeCategories.map((c) => [c.nameAr, c.id]));
-          const categoryIds = [...new Set(extractedItems.map((i) => i.category && nameToId.get(i.category)).filter((id): id is number => typeof id === "number"))];
-          if (categoryIds.length) {
-            await updateProcurementRequestCategories(requestId, categoryIds);
-            const suppliers = await findMatchingSuppliers(categoryIds);
-            if (suppliers.length) {
-              const list = suppliers.map((s) => `- ${s.name} (${s.matchedCategoryCount} فئة مطابقة)`).join("\n");
-              await postProcurementRequestNote(requestId, `الموردون المقترحون بناءً على فئات الطلب المستخرجة:\n${list}`);
-            }
-          }
-        } catch (matchError) {
-          console.error("[quotes/register] supplier matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);
-        }
+        const nameToId = new Map(activeCategories.map((c) => [c.nameAr, c.id]));
+        matchedCategoryIds = [
+          ...new Set(extractedItems.map((i) => i.category && nameToId.get(i.category)).filter((id): id is number => typeof id === "number")),
+        ];
+        requestedBrandNames = extractedItems.map((i) => i.brand || "").filter(Boolean);
       }
+    }
+
+    // توصيات داخلية فقط — لا إرسال RFQ تلقائي. الفئات توسّع نطاق البحث، والعلامة التجارية ترفع أولوية المورد.
+    try {
+      const categoryIds = [...new Set(matchedCategoryIds)];
+      const brandIds = await resolveExistingBrandIds(requestedBrandNames);
+      if (categoryIds.length) {
+        await updateProcurementRequestCategories(requestId, categoryIds);
+      }
+
+      const serviceAreaNames = inferServiceAreaNames(`${data.delivery_address_notes || ""} ${data.project_name}`);
+      const serviceAreaIds = serviceAreaNames.length ? await resolveActiveServiceAreas(serviceAreaNames) : [];
+      const [suppliers, carriers] = await Promise.all([
+        findMatchingSuppliers(categoryIds, brandIds),
+        categoryIds.length || serviceAreaIds?.length ? findMatchingCarriers(categoryIds, serviceAreaIds || []) : Promise.resolve([]),
+      ]);
+
+      const noteParts: string[] = [];
+      if (suppliers.length) {
+        noteParts.push(`الموردون المقترحون بناءً على الفئات/العلامات التجارية:\n${suppliers.slice(0, 10).map(supplierMatchLine).join("\n")}`);
+      }
+      if (carriers.length) {
+        noteParts.push(`وكلاء الشحن المقترحون عند الحاجة لشحن مستقل:\n${carriers.slice(0, 10).map(carrierMatchLine).join("\n")}`);
+      }
+      if (noteParts.length) {
+        await postProcurementRequestNote(requestId, noteParts.join("\n\n"));
+      }
+    } catch (matchError) {
+      console.error("[quotes/register] recommendation matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);
     }
 
     if (data.files.length) {
