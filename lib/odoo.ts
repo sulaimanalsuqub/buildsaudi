@@ -1235,7 +1235,7 @@ export async function createBuildAiTask(params: {
     "x_build_ai_agent",
     [
       ["x_name", "=", params.agentName],
-      ["x_studio_active_flag", "=", true],
+      ["x_studio_status", "=", "active"],
     ],
     ["id"],
     { limit: 1 }
