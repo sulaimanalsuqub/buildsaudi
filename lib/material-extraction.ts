@@ -172,8 +172,8 @@ export async function extractRequestItems(
         Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
-        max_tokens: 8000,
+        model: "deepseek-v4-flash",
+        max_tokens: 16000,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: buildSystemPrompt(allowedCategories, existingCatalogNames.slice(0, MAX_CATALOG_NAMES_IN_PROMPT)) },

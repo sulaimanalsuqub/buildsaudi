@@ -57,8 +57,8 @@ export async function extractQuoteFromReply(rawText: string): Promise<ExtractedQ
         Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
-        max_tokens: 4000,
+        model: "deepseek-v4-flash",
+        max_tokens: 8000,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
