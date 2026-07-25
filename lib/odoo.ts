@@ -2582,3 +2582,286 @@ export async function markWinnerSelectionRejected(decision: PendingWinnerSelecti
     x_studio_error: "Winner selection approval was refused",
   });
 }
+
+// ─────────────────────────────────────────────────────────────
+// 2D: عرض السعر للعميل (بعد اعتماد الفائزين)
+// ─────────────────────────────────────────────────────────────
+
+const CUSTOMER_OFFER_DECISION_TYPE = "customer_offer";
+const CUSTOMER_OFFER_CATEGORY_NAME = "إرسال عرض العميل";
+const CUSTOMER_OFFER_AGENT_NAME = "Follow-up Agent";
+const DEFAULT_CUSTOMER_MARKUP_PCT = 15;
+
+type WinnerQuote = {
+  id: number;
+  partnerName: string;
+  totalPrice: number | null;
+  currency: string;
+  leadTimeDays: number | null;
+  validityDays: number | null;
+  includesDelivery: boolean;
+  includesTax: boolean;
+};
+
+async function getWinnerQuote(requestId: number, quoteType: "supplier" | "freight"): Promise<WinnerQuote | null> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_total_price: number | false;
+    x_studio_currency: string | false;
+    x_studio_lead_time_days: number | false;
+    x_studio_validity_days: number | false;
+    x_studio_includes_delivery: boolean;
+    x_studio_includes_tax: boolean;
+  }>(
+    "x_build_supplier_quote",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_quote_type", "=", quoteType],
+      ["x_studio_is_winner", "=", true],
+    ],
+    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_includes_delivery", "x_studio_includes_tax"],
+    { limit: 1, order: "id desc" }
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    partnerName: row.x_studio_partner_id ? row.x_studio_partner_id[1] : "-",
+    totalPrice: row.x_studio_total_price === false ? null : row.x_studio_total_price,
+    currency: row.x_studio_currency || "SAR",
+    leadTimeDays: row.x_studio_lead_time_days === false ? null : row.x_studio_lead_time_days,
+    validityDays: row.x_studio_validity_days === false ? null : row.x_studio_validity_days,
+    includesDelivery: row.x_studio_includes_delivery,
+    includesTax: row.x_studio_includes_tax,
+  };
+}
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * يفحص جاهزية عرض العميل بعد كل اعتماد فائز: يحتاج مورداً فائزاً بسعر مستخرَج، وناقلاً فائزاً
+ * إن كانت جولة مقارنة شحن قد فُتحت أصلاً لهذا الطلب (وإلا يُسعَّر بلا مكوّن شحن).
+ * يحسب التسعير (تكلفة + هامش) ويكتبه بحقول التسعير الجاهزة على الطلب، ثم ينشئ AI Task +
+ * approval.request حقيقي بفئة "إرسال عرض العميل" — الإرسال الفعلي للعميل يتم فقط بعد الاعتماد البشري (بالكرون).
+ * لا يكرر الإنشاء لو سبق أن أُنشئ قرار عرض عميل لنفس الطلب.
+ */
+export async function checkAndTriggerCustomerOffer(requestId: number): Promise<void> {
+  const existingDecision = await searchRead<{ id: number }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_decision_type", "=", CUSTOMER_OFFER_DECISION_TYPE],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  if (existingDecision.length) return;
+
+  const supplierWinner = await getWinnerQuote(requestId, "supplier");
+  if (!supplierWinner || supplierWinner.totalPrice === null) return;
+
+  // مكوّن الشحن مطلوب فقط إن كانت جولة مقارنة شحن قد فُتحت لهذا الطلب — إن كانت مفتوحة ولم يُعتمَد فائزها بعد، ننتظر (يُعاد الفحص عند اعتماده)
+  const freightRound = await searchRead<{ id: number }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_decision_type", "=", WINNER_DECISION_TYPE.freight],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  let freightWinner: WinnerQuote | null = null;
+  if (freightRound.length) {
+    freightWinner = await getWinnerQuote(requestId, "freight");
+    if (!freightWinner || freightWinner.totalPrice === null) return;
+  }
+
+  const totalCost = round2(supplierWinner.totalPrice + (freightWinner?.totalPrice ?? 0));
+  const markupPct = Number(process.env.CUSTOMER_QUOTE_MARKUP_PCT) || DEFAULT_CUSTOMER_MARKUP_PCT;
+  const salePrice = round2(totalCost * (1 + markupPct / 100));
+  const margin = round2(salePrice - totalCost);
+  const grossMarginPct = salePrice > 0 ? round2((margin / salePrice) * 100) : 0;
+
+  // تُكتب حقول الإدخال فقط (تكلفة مواد/نقل + سعر بيع) — أتمتة أودو الجاهزة "Auto Cost/Margin"
+  // تعيد اشتقاق total_cost/margin/markup_pct/gross_margin_pct منها تلقائياً عند الكتابة
+  await write("x_build_procurement_request", [requestId], {
+    x_studio_materials_cost: supplierWinner.totalPrice,
+    x_studio_freight_cost: freightWinner?.totalPrice ?? 0,
+    x_studio_sale_price: salePrice,
+    x_studio_quote_scenario: "auto-v1",
+    x_studio_internal_status: "preparing_customer_offer",
+    x_studio_customer_status: "quote_preparing",
+  });
+
+  const flags = (quote: WinnerQuote) =>
+    `${quote.includesDelivery ? "شامل التوصيل" : "غير شامل التوصيل"} | ${quote.includesTax ? "شامل الضريبة" : "غير شامل الضريبة"}`;
+  const summary = [
+    `عرض سعر العميل للطلب #${requestId} (محسوب آلياً من العروض الفائزة المعتمدة):`,
+    `تكلفة التوريد: ${supplierWinner.totalPrice} ${supplierWinner.currency} — ${supplierWinner.partnerName} (${flags(supplierWinner)})`,
+    freightWinner
+      ? `تكلفة الشحن: ${freightWinner.totalPrice} ${freightWinner.currency} — ${freightWinner.partnerName} (${flags(freightWinner)})`
+      : `تكلفة الشحن: لا توجد جولة عروض شحن لهذا الطلب — التسعير بلا مكوّن شحن`,
+    `إجمالي التكلفة: ${totalCost} SAR`,
+    `الهامش: ${markupPct}% على التكلفة = ${margin} SAR (${grossMarginPct}% من سعر البيع)`,
+    `سعر البيع النهائي للعميل: ${salePrice} SAR (سيُعرض للعميل غير شامل ضريبة القيمة المضافة)`,
+    supplierWinner.leadTimeDays !== null ? `مدة التجهيز المتوقعة: ${supplierWinner.leadTimeDays} يوم` : null,
+    ``,
+    `عند الاعتماد سيُرسَل عرض السعر تلقائياً لبريد العميل (السعر النهائي فقط، بدون أي تفاصيل تكلفة أو هامش).`,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+
+  const task = await createBuildAiTask({
+    agentName: CUSTOMER_OFFER_AGENT_NAME,
+    requestId,
+    taskType: "customer_offer_drafting",
+    result: summary,
+    needsApproval: true,
+    status: "needs_approval",
+  });
+  if (!task) return;
+
+  const categoryId = await ensureApprovalCategoryId(CUSTOMER_OFFER_CATEGORY_NAME, WINNER_CATEGORY_NAME.supplier);
+  let approvalRequestId: number | null = null;
+  if (categoryId) {
+    approvalRequestId = await create("approval.request", {
+      name: `${CUSTOMER_OFFER_CATEGORY_NAME} - Request #${requestId}`,
+      category_id: categoryId,
+      reference: `Build Request #${requestId}`,
+      x_studio_build_request_id: requestId,
+      reason: `<p>${escapeOdooHtml(summary).replace(/\n/g, "<br/>")}</p>`,
+    });
+    try {
+      await callMethod("approval.request", "action_confirm", [[approvalRequestId]]);
+    } catch (error) {
+      console.error("[odoo] customer-offer approval.request action_confirm failed (left as draft):", error instanceof Error ? error.message : error);
+    }
+  }
+
+  await create("x_build_ai_approval", {
+    x_name: `${CUSTOMER_OFFER_CATEGORY_NAME} - Request #${requestId}`,
+    x_studio_agent_id: task.agentId,
+    x_studio_task_id: task.taskId,
+    x_studio_request_id: requestId,
+    x_studio_decision_type: CUSTOMER_OFFER_DECISION_TYPE,
+    x_studio_recommendation: summary,
+    x_studio_approval_request_id: approvalRequestId || false,
+    x_studio_status: "pending",
+  });
+}
+
+export type PendingCustomerOfferDecision = {
+  id: number;
+  requestId: number;
+  taskId: number;
+  approvalRequestId: number;
+  approvalStatus: "approved" | "refused";
+};
+
+export async function getPendingCustomerOfferDecisions(): Promise<PendingCustomerOfferDecision[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_request_id: [number, string] | false;
+    x_studio_task_id: [number, string] | false;
+    x_studio_approval_request_id: [number, string] | false;
+  }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_status", "=", "pending"],
+      ["x_studio_decision_type", "=", CUSTOMER_OFFER_DECISION_TYPE],
+      ["x_studio_approval_request_id", "!=", false],
+    ],
+    ["x_studio_request_id", "x_studio_task_id", "x_studio_approval_request_id"],
+    { limit: 50, order: "id asc" }
+  );
+
+  const approvalIds = rows.map((row) => row.x_studio_approval_request_id && row.x_studio_approval_request_id[0]).filter((id): id is number => typeof id === "number");
+  if (!approvalIds.length) return [];
+  const approvalRows = await read<{ id: number; request_status: string | false }>("approval.request", approvalIds, ["request_status"]);
+  const statusById = new Map(approvalRows.map((row) => [row.id, row.request_status]));
+
+  return rows
+    .map((row) => {
+      const approvalRequestId = row.x_studio_approval_request_id && row.x_studio_approval_request_id[0];
+      const status = typeof approvalRequestId === "number" ? statusById.get(approvalRequestId) : null;
+      if (status !== "approved" && status !== "refused") return null;
+      if (!row.x_studio_request_id || !row.x_studio_task_id || typeof approvalRequestId !== "number") return null;
+      return {
+        id: row.id,
+        requestId: row.x_studio_request_id[0],
+        taskId: row.x_studio_task_id[0],
+        approvalRequestId,
+        approvalStatus: status,
+      } as PendingCustomerOfferDecision;
+    })
+    .filter((row): row is PendingCustomerOfferDecision => !!row);
+}
+
+export type CustomerOfferEmailData = {
+  contactName: string;
+  email: string;
+  trackingNumber: string;
+  trackingToken: string;
+  projectName: string;
+  salePrice: number;
+  leadTimeDays: number | null;
+  validityDays: number;
+};
+
+/** بيانات إيميل عرض السعر للعميل — سعر البيع فقط، بلا أي تكلفة/هامش. صلاحية العرض لا تتجاوز صلاحية عرض المورد الفائز */
+export async function getCustomerOfferEmailData(requestId: number): Promise<CustomerOfferEmailData | null> {
+  const rows = await read<{
+    x_name: string | false;
+    x_studio_email: string | false;
+    x_studio_tracking_number: string | false;
+    x_studio_tracking_token: string | false;
+    x_studio_project_name: string | false;
+    x_studio_sale_price: number | false;
+  }>(
+    "x_build_procurement_request",
+    [requestId],
+    ["x_name", "x_studio_email", "x_studio_tracking_number", "x_studio_tracking_token", "x_studio_project_name", "x_studio_sale_price"]
+  );
+  const row = rows[0];
+  if (!row?.x_studio_email || !row.x_studio_sale_price) return null;
+
+  const supplierWinner = await getWinnerQuote(requestId, "supplier");
+  const validityDays = Math.min(7, supplierWinner?.validityDays || 7);
+
+  return {
+    contactName: row.x_name || "",
+    email: row.x_studio_email,
+    trackingNumber: row.x_studio_tracking_number || "",
+    trackingToken: row.x_studio_tracking_token || "",
+    projectName: row.x_studio_project_name || "",
+    salePrice: row.x_studio_sale_price,
+    leadTimeDays: supplierWinner?.leadTimeDays ?? null,
+    validityDays,
+  };
+}
+
+export async function markCustomerOfferApproved(decision: PendingCustomerOfferDecision): Promise<void> {
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "approved" });
+  await write("x_build_ai_task", [decision.taskId], { x_studio_status: "completed", x_studio_needs_approval: false });
+  await write("x_build_procurement_request", [decision.requestId], {
+    x_studio_internal_status: "customer_offer_sent",
+    x_studio_customer_status: "quote_ready",
+  });
+  await postProcurementRequestNote(decision.requestId, "أُرسل عرض السعر للعميل عبر البريد بعد الاعتماد — بانتظار رد العميل.");
+}
+
+/** عند رفض إرسال العرض: يُعاد الطلب لحالة المقارنة ليعدّل الفريق التسعير يدوياً من أودو ثم يعيد الدورة */
+export async function markCustomerOfferRejected(decision: PendingCustomerOfferDecision): Promise<void> {
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "rejected" });
+  await write("x_build_ai_task", [decision.taskId], {
+    x_studio_status: "failed",
+    x_studio_needs_approval: false,
+    x_studio_error: "Customer offer approval was refused",
+  });
+  await write("x_build_procurement_request", [decision.requestId], {
+    x_studio_internal_status: "comparing",
+    x_studio_customer_status: "pricing",
+  });
+  await postProcurementRequestNote(decision.requestId, "رُفض إرسال عرض السعر المحسوب آلياً — أُعيد الطلب لحالة المقارنة للمراجعة اليدوية.");
+}

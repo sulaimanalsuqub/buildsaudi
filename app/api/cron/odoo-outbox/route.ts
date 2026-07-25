@@ -2,10 +2,13 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   OdooClientError,
+  checkAndTriggerCustomerOffer,
   createOutboxEvent,
+  getCustomerOfferEmailData,
   getDraftAiCommunications,
   getPartnerRfqRecipient,
   getPendingAiApprovalDecisions,
+  getPendingCustomerOfferDecisions,
   getPendingWinnerSelectionDecisions,
   getCarrierProfileForNotification,
   getProcurementRfqDetails,
@@ -15,6 +18,8 @@ import {
   markAiApprovalApproved,
   markAiApprovalRejected,
   markAiCommunicationSent,
+  markCustomerOfferApproved,
+  markCustomerOfferRejected,
   markRequestDeclinedForCustomer,
   markWinnerSelectionApproved,
   markWinnerSelectionRejected,
@@ -37,6 +42,7 @@ import {
   sendCarrierRejectedEmail,
   sendCarrierRfqRequestEmail,
   sendCarrierSuspendedEmail,
+  sendCustomerQuoteEmail,
   sendInternalNewProcurementRequestNotification,
   sendProcurementRequestDeclinedEmail,
   sendProcurementRequestReceivedEmail,
@@ -451,6 +457,50 @@ async function syncWinnerSelections(): Promise<{ approved: number; rejected: num
     }
     await markWinnerSelectionApproved(decision);
     results.approved += 1;
+
+    // بعد اعتماد فائز، افحص جاهزية عرض العميل (مورد فائز + ناقل فائز إن وُجدت جولة شحن) — best effort
+    try {
+      await checkAndTriggerCustomerOffer(decision.requestId);
+    } catch (error) {
+      console.error("[cron/odoo-outbox] checkAndTriggerCustomerOffer failed (non-blocking):", error instanceof Error ? error.message : error);
+    }
+  }
+
+  return results;
+}
+
+/** يلتقط قرارات "إرسال عرض العميل" المعتمَدة/المرفوضة من أودو — عند الاعتماد يرسل عرض السعر فعلياً لبريد العميل */
+async function syncCustomerOffers(): Promise<{ approved: number; rejected: number; emailsSent: number; missingRecipients: number }> {
+  const decisions = await getPendingCustomerOfferDecisions();
+  const results = { approved: 0, rejected: 0, emailsSent: 0, missingRecipients: 0 };
+
+  for (const decision of decisions) {
+    if (decision.approvalStatus === "refused") {
+      await markCustomerOfferRejected(decision);
+      results.rejected += 1;
+      continue;
+    }
+
+    const offer = await getCustomerOfferEmailData(decision.requestId);
+    if (!offer) {
+      results.missingRecipients += 1;
+      continue;
+    }
+
+    await sendCustomerQuoteEmail({
+      contactName: offer.contactName,
+      email: offer.email,
+      trackingNumber: offer.trackingNumber,
+      trackingUrl: procurementTrackingUrl(offer.trackingToken),
+      projectName: offer.projectName,
+      salePrice: offer.salePrice,
+      leadTimeDays: offer.leadTimeDays,
+      validityDays: offer.validityDays,
+    });
+    results.emailsSent += 1;
+
+    await markCustomerOfferApproved(decision);
+    results.approved += 1;
   }
 
   return results;
@@ -493,6 +543,13 @@ export async function GET(req: NextRequest) {
     winnerSelectionsSynced = await syncWinnerSelections();
   } catch (error) {
     console.error("[cron/odoo-outbox] syncWinnerSelections failed:", error instanceof Error ? error.message : error);
+  }
+
+  let customerOffersSynced = { approved: 0, rejected: 0, emailsSent: 0, missingRecipients: 0 };
+  try {
+    customerOffersSynced = await syncCustomerOffers();
+  } catch (error) {
+    console.error("[cron/odoo-outbox] syncCustomerOffers failed:", error instanceof Error ? error.message : error);
   }
 
   let candidates: OutboxRow[];
@@ -583,6 +640,10 @@ export async function GET(req: NextRequest) {
     ai_rfq_missing_recipients: aiRfqsSynced.missingRecipients,
     winner_selections_approved: winnerSelectionsSynced.approved,
     winner_selections_rejected: winnerSelectionsSynced.rejected,
+    customer_offers_approved: customerOffersSynced.approved,
+    customer_offers_rejected: customerOffersSynced.rejected,
+    customer_offer_emails_sent: customerOffersSynced.emailsSent,
+    customer_offer_missing_recipients: customerOffersSynced.missingRecipients,
     ...results,
   });
 }

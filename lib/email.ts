@@ -1247,6 +1247,53 @@ export async function sendProcurementRequestDeclinedEmail(req: {
   });
 }
 
+export async function sendCustomerQuoteEmail(req: {
+  contactName: string;
+  email: string;
+  trackingNumber: string;
+  trackingUrl: string;
+  projectName: string;
+  salePrice: number;
+  leadTimeDays: number | null;
+  validityDays: number;
+}) {
+  const priceFormatted = req.salePrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return sendEmail({
+    from: FROM,
+    to: req.email,
+    replyTo: "operations@build.sa",
+    subject: `عرض السعر جاهز — ${req.trackingNumber} — Build Saudi`,
+    html: emailShell({
+      previewText: `عرض سعر طلب التوريد رقم ${req.trackingNumber} جاهز`,
+      accentColor: "#09B14B",
+      badgeIcon: "📋",
+      badgeLabel: "عرض السعر",
+      content: `
+        ${greeting(req.contactName)}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          يسعدنا إبلاغكم بأن عرض السعر لطلب التوريد الخاص بكم أصبح جاهزاً.
+        </p>
+        <div style="background:#f0f9f3;border:2px solid #09B14B33;border-radius:16px;padding:28px;text-align:center;margin:0 0 24px;">
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;letter-spacing:.5px;">الإجمالي شاملاً التوريد والشحن حتى موقعكم</p>
+          <p style="margin:0;font-size:36px;font-weight:800;color:#1D3F1F;font-variant-numeric:tabular-nums;" dir="ltr">${esc(priceFormatted)} <span style="font-size:18px;font-weight:600;">SAR</span></p>
+          <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">غير شامل ضريبة القيمة المضافة (15%)</p>
+        </div>
+        ${infoTable(
+          infoRow("رقم التتبع", esc(req.trackingNumber), "ltr") +
+            (req.projectName ? infoRow("المشروع", esc(req.projectName)) : "") +
+            (req.leadTimeDays !== null ? infoRow("مدة التوريد التقريبية", `${esc(String(req.leadTimeDays))} يوم من تأكيد الطلب`) : "") +
+            infoRow("صلاحية العرض", `${esc(String(req.validityDays))} أيام من تاريخ هذا البريد`)
+        )}
+        ${ctaButton(req.trackingUrl, "متابعة الطلب")}
+        <p style="margin:24px 0 0;font-size:14px;color:#374151;line-height:1.8;">
+          للموافقة على العرض والمضي في الطلب، أو لأي استفسار أو تعديل، يكفي الرد على هذا البريد وسيتواصل معكم فريقنا مباشرة.
+        </p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+      `,
+    }),
+  });
+}
+
 export async function sendInternalNewProcurementRequestNotification(req: {
   id: number;
   contactName: string;
