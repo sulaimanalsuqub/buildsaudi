@@ -1148,8 +1148,12 @@ export type MatchingCarrier = {
   score: number;
 };
 
-/** يقترح الناقلين المعتمدين حسب فئة المواد ومنطقة الخدمة إن أمكن استنتاجها */
-export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds: number[] = []): Promise<MatchingCarrier[]> {
+/** يقترح الناقلين المعتمدين حسب فئة المواد ومنطقة الخدمة إن أمكن استنتاجها — requiredLogisticsServiceIds شرط إلزامي إضافي (وليس OR) لاستبعاد ناقل لا يقدّم الخدمة اللازمة فعلياً (مثال: شحن دولي/تخليص جمركي لبند مستورد) */
+export async function findMatchingCarriers(
+  categoryIds: number[],
+  serviceAreaIds: number[] = [],
+  requiredLogisticsServiceIds: number[] = []
+): Promise<MatchingCarrier[]> {
   const optionalMatch =
     categoryIds.length && serviceAreaIds.length
       ? ["|", ["x_studio_material_category_ids", "in", categoryIds], ["x_studio_service_area_ids", "in", serviceAreaIds]]
@@ -1158,6 +1162,7 @@ export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds
         : serviceAreaIds.length
           ? [["x_studio_service_area_ids", "in", serviceAreaIds]]
           : [];
+  const requiredMatch = requiredLogisticsServiceIds.length ? [["x_studio_logistics_service_ids", "in", requiredLogisticsServiceIds]] : [];
   const rows = await searchRead<{
     id: number;
     x_studio_partner_id: [number, string] | false;
@@ -1168,6 +1173,7 @@ export async function findMatchingCarriers(categoryIds: number[], serviceAreaIds
     [
       ["x_studio_status", "=", "approved"],
       ["x_studio_active_flag", "=", true],
+      ...requiredMatch,
       ...optionalMatch,
     ],
     ["x_studio_partner_id", "x_studio_material_category_ids", "x_studio_service_area_ids"]

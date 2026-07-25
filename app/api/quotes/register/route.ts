@@ -17,6 +17,7 @@ import {
   listCatalogProductNames,
   listProductCategories,
   postProcurementRequestNote,
+  resolveActiveLogisticsServices,
   resolveActiveServiceAreas,
   resolveExistingBrandIds,
   updateProcurementRequestCategories,
@@ -30,6 +31,15 @@ import { extractRequestItems } from "@/lib/material-extraction";
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
 const MAX_ITEMS = 50;
+
+const SAUDI_ORIGIN_NAMES = ["السعودية", "المملكة العربية السعودية", "saudi arabia", "saudi", "ksa", "sa"];
+
+/** يحدّد إن كان بند مصدره خارج السعودية (نص حر غير موحّد) — فارغ/غير محدد يُعامَل محلياً افتراضياً لتفادي تشديد المطابقة بلا داعٍ */
+function isInternationalOrigin(countryOfOrigin: string | undefined): boolean {
+  const normalized = (countryOfOrigin || "").trim().toLowerCase();
+  if (!normalized) return false;
+  return !SAUDI_ORIGIN_NAMES.includes(normalized);
+}
 
 function inferServiceAreaNames(text: string): string[] {
   const normalized = text.trim().toLowerCase();
@@ -165,9 +175,11 @@ export async function POST(req: NextRequest) {
 
     let matchedCategoryIds: number[] = [];
     let requestedBrandNames: string[] = [];
+    let requiresInternationalFreight = false;
 
     if (data.items.length) {
       requestedBrandNames = data.items.map((i) => i.brand || "").filter(Boolean);
+      requiresInternationalFreight = data.items.some((i) => isInternationalOrigin(i.countryOfOrigin));
       await createCustomerRequestLines(
         requestId,
         data.items.map((i) => ({
@@ -199,6 +211,7 @@ export async function POST(req: NextRequest) {
           ...new Set(extractedItems.map((i) => i.category && nameToId.get(i.category)).filter((id): id is number => typeof id === "number")),
         ];
         requestedBrandNames = extractedItems.map((i) => i.brand || "").filter(Boolean);
+        requiresInternationalFreight = extractedItems.some((i) => isInternationalOrigin(i.countryOfOrigin || undefined));
       }
     }
 
@@ -212,9 +225,15 @@ export async function POST(req: NextRequest) {
 
       const serviceAreaNames = inferServiceAreaNames(`${data.delivery_address_notes || ""} ${data.project_name}`);
       const serviceAreaIds = serviceAreaNames.length ? await resolveActiveServiceAreas(serviceAreaNames) : [];
+      // بند مصدره خارج السعودية يستوجب ناقلاً يقدّم شحناً دولياً وتخليصاً جمركياً فعلياً — شرط إلزامي لا اقتراحي
+      const requiredLogisticsServiceIds = requiresInternationalFreight
+        ? (await resolveActiveLogisticsServices(["شحن من الخارج", "تخليص جمركي"])) || []
+        : [];
       const [suppliers, carriers] = await Promise.all([
         findMatchingSuppliers(categoryIds, brandIds),
-        categoryIds.length || serviceAreaIds?.length ? findMatchingCarriers(categoryIds, serviceAreaIds || []) : Promise.resolve([]),
+        categoryIds.length || serviceAreaIds?.length || requiredLogisticsServiceIds.length
+          ? findMatchingCarriers(categoryIds, serviceAreaIds || [], requiredLogisticsServiceIds)
+          : Promise.resolve([]),
       ]);
 
       const noteParts: string[] = [];
