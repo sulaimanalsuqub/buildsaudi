@@ -6,6 +6,7 @@ import {
   getDraftAiCommunications,
   getPartnerRfqRecipient,
   getPendingAiApprovalDecisions,
+  getPendingWinnerSelectionDecisions,
   getCarrierProfileForNotification,
   getProcurementRfqDetails,
   getProcurementRequestForNotification,
@@ -15,6 +16,8 @@ import {
   markAiApprovalRejected,
   markAiCommunicationSent,
   markRequestDeclinedForCustomer,
+  markWinnerSelectionApproved,
+  markWinnerSelectionRejected,
   read,
   searchRead,
   syncSupplierMatchingEligibility,
@@ -436,6 +439,23 @@ async function syncApprovedAiRfqs(): Promise<{ approved: number; rejected: numbe
   return results;
 }
 
+async function syncWinnerSelections(): Promise<{ approved: number; rejected: number }> {
+  const decisions = await getPendingWinnerSelectionDecisions();
+  const results = { approved: 0, rejected: 0 };
+
+  for (const decision of decisions) {
+    if (decision.approvalStatus === "refused") {
+      await markWinnerSelectionRejected(decision);
+      results.rejected += 1;
+      continue;
+    }
+    await markWinnerSelectionApproved(decision);
+    results.approved += 1;
+  }
+
+  return results;
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -466,6 +486,13 @@ export async function GET(req: NextRequest) {
     aiRfqsSynced = await syncApprovedAiRfqs();
   } catch (error) {
     console.error("[cron/odoo-outbox] syncApprovedAiRfqs failed:", error instanceof Error ? error.message : error);
+  }
+
+  let winnerSelectionsSynced = { approved: 0, rejected: 0 };
+  try {
+    winnerSelectionsSynced = await syncWinnerSelections();
+  } catch (error) {
+    console.error("[cron/odoo-outbox] syncWinnerSelections failed:", error instanceof Error ? error.message : error);
   }
 
   let candidates: OutboxRow[];
@@ -554,6 +581,8 @@ export async function GET(req: NextRequest) {
     ai_rfq_approvals_rejected: aiRfqsSynced.rejected,
     ai_rfq_emails_sent: aiRfqsSynced.emailsSent,
     ai_rfq_missing_recipients: aiRfqsSynced.missingRecipients,
+    winner_selections_approved: winnerSelectionsSynced.approved,
+    winner_selections_rejected: winnerSelectionsSynced.rejected,
     ...results,
   });
 }

@@ -2348,3 +2348,231 @@ export async function createSupplierQuote(params: {
 
   return quoteId;
 }
+
+// ─────────────────────────────────────────────────────────────
+// 2C: مقارنة عروض الأسعار واختيار الفائز
+// ─────────────────────────────────────────────────────────────
+
+type QuoteForComparison = {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  totalPrice: number | null;
+  currency: string;
+  leadTimeDays: number | null;
+  validityDays: number | null;
+  paymentTerms: string | null;
+};
+
+async function getAnalyzedQuotesForComparison(requestId: number, quoteType: "supplier" | "freight"): Promise<QuoteForComparison[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_partner_id: [number, string] | false;
+    x_studio_total_price: number | false;
+    x_studio_currency: string | false;
+    x_studio_lead_time_days: number | false;
+    x_studio_validity_days: number | false;
+    x_studio_payment_terms: string | false;
+  }>(
+    "x_build_supplier_quote",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_quote_type", "=", quoteType],
+      ["x_studio_status", "=", "analyzed"],
+    ],
+    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_payment_terms"]
+  );
+  return rows
+    .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
+    .map((row) => ({
+      id: row.id,
+      partnerId: row.x_studio_partner_id[0],
+      partnerName: row.x_studio_partner_id[1],
+      totalPrice: row.x_studio_total_price === false ? null : row.x_studio_total_price,
+      currency: row.x_studio_currency || "SAR",
+      leadTimeDays: row.x_studio_lead_time_days === false ? null : row.x_studio_lead_time_days,
+      validityDays: row.x_studio_validity_days === false ? null : row.x_studio_validity_days,
+      paymentTerms: row.x_studio_payment_terms || null,
+    }));
+}
+
+/** ترتيب العروض: السعر الأقل أولاً (العروض بلا سعر مستخرَج تُدفَع لآخر الترتيب)، ثم مدة التجهيز الأقل كفاصل عند تعادل السعر */
+function rankQuotes(quotes: QuoteForComparison[]): QuoteForComparison[] {
+  return [...quotes].sort((a, b) => {
+    if (a.totalPrice === null && b.totalPrice === null) return 0;
+    if (a.totalPrice === null) return 1;
+    if (b.totalPrice === null) return -1;
+    if (a.totalPrice !== b.totalPrice) return a.totalPrice - b.totalPrice;
+    return (a.leadTimeDays ?? Infinity) - (b.leadTimeDays ?? Infinity);
+  });
+}
+
+function formatQuoteComparisonLine(quote: QuoteForComparison, rank: number): string {
+  const parts = [
+    quote.totalPrice !== null ? `${quote.totalPrice} ${quote.currency}` : "سعر غير محدد",
+    quote.leadTimeDays !== null ? `تجهيز ${quote.leadTimeDays} يوم` : null,
+    quote.validityDays !== null ? `صلاحية ${quote.validityDays} يوم` : null,
+    quote.paymentTerms || null,
+  ].filter(Boolean);
+  return `${rank}. ${quote.partnerName} — ${parts.join(" | ")}`;
+}
+
+const WINNER_DECISION_TYPE: Record<"supplier" | "freight", string> = {
+  supplier: "supplier_winner",
+  freight: "freight_winner",
+};
+const WINNER_CATEGORY_NAME: Record<"supplier" | "freight", string> = {
+  supplier: "اختيار المورد الفائز",
+  freight: "اختيار الناقل",
+};
+const WINNER_AGENT_NAME: Record<"supplier" | "freight", string> = {
+  supplier: "Supplier Quote Analysis Agent",
+  freight: "Freight Quote Analysis Agent",
+};
+
+/** يفحص إن كان فيه عرضان محلَّلان (analyzed) أو أكثر لنفس الطلب/النوع، ولا يوجد قرار اختيار فائز سابق له بعد — ينشئ مقارنة + AI Task + Approval + approval.request حقيقي (بوابة بشرية) لاعتماد الفائز. لا يكرر الإنشاء لو سبق أن أُنشئ قرار لنفس الطلب/النوع */
+export async function checkAndTriggerWinnerSelection(requestId: number, quoteType: "supplier" | "freight"): Promise<void> {
+  const quotes = await getAnalyzedQuotesForComparison(requestId, quoteType);
+  if (quotes.length < 2) return;
+
+  const existingDecision = await searchRead<{ id: number }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_request_id", "=", requestId],
+      ["x_studio_decision_type", "=", WINNER_DECISION_TYPE[quoteType]],
+    ],
+    ["id"],
+    { limit: 1 }
+  );
+  if (existingDecision.length) return;
+
+  const ranked = rankQuotes(quotes);
+  const comparisonText = `مقارنة عروض ${quoteType === "supplier" ? "الموردين" : "الشحن"} للطلب #${requestId} (الأفضل أولاً):\n${ranked
+    .map((q, i) => formatQuoteComparisonLine(q, i + 1))
+    .join("\n")}`;
+
+  const task = await createBuildAiTask({
+    agentName: WINNER_AGENT_NAME[quoteType],
+    requestId,
+    taskType: quoteType === "supplier" ? "supplier_quote_comparison" : "freight_quote_comparison",
+    result: comparisonText,
+    needsApproval: true,
+    status: "needs_approval",
+  });
+  if (!task) return;
+
+  const categoryName = WINNER_CATEGORY_NAME[quoteType];
+  const categoryId = await ensureApprovalCategoryId(categoryName, categoryName);
+  let approvalRequestId: number | null = null;
+  if (categoryId) {
+    approvalRequestId = await create("approval.request", {
+      name: `${categoryName} - Request #${requestId}`,
+      category_id: categoryId,
+      reference: `Build Request #${requestId}`,
+      x_studio_build_request_id: requestId,
+      reason: `<p>${escapeOdooHtml(comparisonText).replace(/\n/g, "<br/>")}</p>`,
+    });
+    try {
+      await callMethod("approval.request", "action_confirm", [[approvalRequestId]]);
+    } catch (error) {
+      console.error("[odoo] winner-selection approval.request action_confirm failed (left as draft):", error instanceof Error ? error.message : error);
+    }
+  }
+
+  await create("x_build_ai_approval", {
+    x_name: `${categoryName} - Request #${requestId}`,
+    x_studio_agent_id: task.agentId,
+    x_studio_task_id: task.taskId,
+    x_studio_request_id: requestId,
+    x_studio_decision_type: WINNER_DECISION_TYPE[quoteType],
+    x_studio_recommendation: comparisonText,
+    x_studio_approval_request_id: approvalRequestId || false,
+    x_studio_status: "pending",
+  });
+
+  await write("x_build_procurement_request", [requestId], { x_studio_internal_status: "comparing" });
+}
+
+export type PendingWinnerSelectionDecision = {
+  id: number;
+  requestId: number;
+  taskId: number;
+  quoteType: "supplier" | "freight";
+  approvalRequestId: number;
+  approvalStatus: "approved" | "refused";
+};
+
+export async function getPendingWinnerSelectionDecisions(): Promise<PendingWinnerSelectionDecision[]> {
+  const rows = await searchRead<{
+    id: number;
+    x_studio_decision_type: string | false;
+    x_studio_request_id: [number, string] | false;
+    x_studio_task_id: [number, string] | false;
+    x_studio_approval_request_id: [number, string] | false;
+  }>(
+    "x_build_ai_approval",
+    [
+      ["x_studio_status", "=", "pending"],
+      ["x_studio_decision_type", "in", ["supplier_winner", "freight_winner"]],
+      ["x_studio_approval_request_id", "!=", false],
+    ],
+    ["x_studio_decision_type", "x_studio_request_id", "x_studio_task_id", "x_studio_approval_request_id"],
+    { limit: 50, order: "id asc" }
+  );
+
+  const approvalIds = rows.map((row) => row.x_studio_approval_request_id && row.x_studio_approval_request_id[0]).filter((id): id is number => typeof id === "number");
+  if (!approvalIds.length) return [];
+  const approvalRows = await read<{ id: number; request_status: string | false }>("approval.request", approvalIds, ["request_status"]);
+  const statusById = new Map(approvalRows.map((row) => [row.id, row.request_status]));
+
+  return rows
+    .map((row) => {
+      const approvalRequestId = row.x_studio_approval_request_id && row.x_studio_approval_request_id[0];
+      const status = typeof approvalRequestId === "number" ? statusById.get(approvalRequestId) : null;
+      if (status !== "approved" && status !== "refused") return null;
+      if (!row.x_studio_request_id || !row.x_studio_task_id || typeof approvalRequestId !== "number") return null;
+      const quoteType = row.x_studio_decision_type === "supplier_winner" ? "supplier" : "freight";
+      return {
+        id: row.id,
+        requestId: row.x_studio_request_id[0],
+        taskId: row.x_studio_task_id[0],
+        quoteType,
+        approvalRequestId,
+        approvalStatus: status,
+      } as PendingWinnerSelectionDecision;
+    })
+    .filter((row): row is PendingWinnerSelectionDecision => !!row);
+}
+
+export async function markWinnerSelectionApproved(decision: PendingWinnerSelectionDecision): Promise<{ winnerQuoteId: number | null; winnerPartnerName: string | null }> {
+  const quotes = await getAnalyzedQuotesForComparison(decision.requestId, decision.quoteType);
+  const ranked = rankQuotes(quotes);
+  const winner = ranked[0] ?? null;
+
+  if (winner) {
+    await write("x_build_supplier_quote", [winner.id], { x_studio_is_winner: true });
+    const others = ranked.slice(1).map((q) => q.id);
+    if (others.length) await write("x_build_supplier_quote", others, { x_studio_is_winner: false });
+  }
+
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "approved" });
+  await write("x_build_ai_task", [decision.taskId], { x_studio_status: "completed", x_studio_needs_approval: false });
+
+  if (winner) {
+    const note = `تم اعتماد ${decision.quoteType === "supplier" ? "المورد" : "الناقل"} الفائز: ${winner.partnerName}${
+      winner.totalPrice !== null ? ` (${winner.totalPrice} ${winner.currency})` : ""
+    }`;
+    await postProcurementRequestNote(decision.requestId, note);
+  }
+
+  return { winnerQuoteId: winner?.id ?? null, winnerPartnerName: winner?.partnerName ?? null };
+}
+
+export async function markWinnerSelectionRejected(decision: PendingWinnerSelectionDecision): Promise<void> {
+  await write("x_build_ai_approval", [decision.id], { x_studio_status: "rejected" });
+  await write("x_build_ai_task", [decision.taskId], {
+    x_studio_status: "failed",
+    x_studio_needs_approval: false,
+    x_studio_error: "Winner selection approval was refused",
+  });
+}
