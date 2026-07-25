@@ -753,7 +753,8 @@ export async function createPreliminaryCarrierProfile(
   data: PreliminaryCarrierRegistrationInput,
   serviceAreaIds: number[],
   vehicleTypeIds: number[],
-  materialCategoryIds: number[]
+  materialCategoryIds: number[],
+  logisticsServiceIds: number[] = []
 ): Promise<number> {
   return create("x_build_carrier_profile", {
     x_studio_partner_id: partnerId,
@@ -775,6 +776,7 @@ export async function createPreliminaryCarrierProfile(
     x_studio_service_area_ids: serviceAreaIds.length ? [[6, 0, serviceAreaIds]] : false,
     x_studio_vehicle_type_ids: vehicleTypeIds.length ? [[6, 0, vehicleTypeIds]] : false,
     x_studio_material_category_ids: materialCategoryIds.length ? [[6, 0, materialCategoryIds]] : false,
+    x_studio_logistics_service_ids: logisticsServiceIds.length ? [[6, 0, logisticsServiceIds]] : false,
   });
 }
 
@@ -993,6 +995,10 @@ export async function resolveActiveVehicleTypes(names: string[]): Promise<number
 
 export async function resolveActiveCarrierCategories(names: string[]): Promise<number[] | null> {
   return resolveExistingActiveLookup("x_build_material_category", names);
+}
+
+export async function resolveActiveLogisticsServices(names: string[]): Promise<number[] | null> {
+  return resolveExistingActiveLookup("x_build_logistics_service", names);
 }
 
 /** يبحث عن قيمة موجودة في قائمة مرجعية (بعد تطبيع بسيط) أو ينشئها — يُستخدم للعلامات/مناطق الخدمة/المركبات المُدخلة كنص من الموقع */

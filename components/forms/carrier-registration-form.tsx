@@ -24,6 +24,7 @@ import {
 import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 const vehicleTypeOptions = ["دينا صغيرة", "شاحنة متوسطة", "تريلا/مقطورة", "سطحة", "شاحنة مبردة", "رافعة"];
+const logisticsServiceOptions = ["توصيل", "تخزين", "تخليص جمركي", "شحن من الخارج", "تركيب"];
 
 type CarrierRegistrationFormProps = {
   isRtl?: boolean;
@@ -38,6 +39,7 @@ const formSchema = z.object({
   email: z.string().email("invalidEmail"),
   serviceAreas: z.array(z.string()).min(1, "required"),
   vehicleTypes: z.array(z.string()).min(1, "required"),
+  logisticsServices: z.array(z.string()).min(1, "required"),
   shortDescription: z.string().min(5, "required"),
   website: z.string().optional(),
   privacyAccepted: z.literal(true, { message: "required" }),
@@ -55,6 +57,7 @@ const defaultValues: FormValues = {
   email: "",
   serviceAreas: [],
   vehicleTypes: [],
+  logisticsServices: [],
   shortDescription: "",
   website: "",
   privacyAccepted: false as unknown as true,
@@ -98,6 +101,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
       country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
       serviceAreas: textByLang(isRtl, "Service Areas", "مناطق الخدمة"),
       vehicleTypes: textByLang(isRtl, "Vehicle Types", "أنواع المركبات"),
+      logisticsServices: textByLang(isRtl, "Logistics Services", "الخدمات اللوجستية"),
       shortDescription: textByLang(isRtl, "Brief description of your fleet & services", "وصف مختصر لأسطولكم وخدماتكم"),
       website: textByLang(isRtl, "Website (optional)", "الموقع الإلكتروني (اختياري)"),
     },
@@ -142,6 +146,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
           service_areas: data.serviceAreas,
           vehicle_types: data.vehicleTypes,
           material_categories: [],
+          logistics_services: data.logisticsServices,
           short_description: data.shortDescription.trim(),
           website: data.website?.trim() || undefined,
           preferred_language: isRtl ? "ar" : "en",
@@ -191,6 +196,10 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
   const toggleVehicle = (value: string) => {
     const current = values.vehicleTypes;
     form.setValue("vehicleTypes", current.includes(value) ? current.filter((c) => c !== value) : [...current, value], { shouldValidate: true });
+  };
+  const toggleLogisticsService = (value: string) => {
+    const current = values.logisticsServices;
+    form.setValue("logisticsServices", current.includes(value) ? current.filter((c) => c !== value) : [...current, value], { shouldValidate: true });
   };
 
   return (
@@ -322,6 +331,23 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
                   ))}
                 </VendorOptionGrid>
                 <VendorErrorText text={form.formState.errors.vehicleTypes?.message} isRtl={isRtl} />
+              </VendorField>
+
+              <VendorField label={t.labels.logisticsServices}>
+                <VendorOptionGrid>
+                  {logisticsServiceOptions.map((s) => (
+                    <VendorOptionCard key={s} checked={values.logisticsServices.includes(s)}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-brand-primary"
+                        checked={values.logisticsServices.includes(s)}
+                        onChange={() => toggleLogisticsService(s)}
+                      />
+                      {s}
+                    </VendorOptionCard>
+                  ))}
+                </VendorOptionGrid>
+                <VendorErrorText text={form.formState.errors.logisticsServices?.message} isRtl={isRtl} />
               </VendorField>
 
               <VendorField label={t.labels.shortDescription}>

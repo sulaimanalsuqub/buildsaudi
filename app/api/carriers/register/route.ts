@@ -14,6 +14,7 @@ import {
   findPartnerByPhone,
   normalizeCompanyName,
   resolveActiveCarrierCategories,
+  resolveActiveLogisticsServices,
   resolveActiveServiceAreas,
   resolveActiveVehicleTypes,
 } from "@/lib/odoo";
@@ -51,6 +52,7 @@ const registerSchema = z
     service_areas: z.array(z.string().trim().min(1)).min(1, "اختر منطقة خدمة واحدة على الأقل"),
     vehicle_types: z.array(z.string().trim().min(1)).min(1, "اختر نوع مركبة واحد على الأقل"),
     material_categories: z.array(z.string().trim().min(1)).optional().default([]),
+    logistics_services: z.array(z.string().trim().min(1)).optional().default([]),
     short_description: z.string().trim().min(5, "أضف وصفاً مختصراً لخدمات النقل"),
     website: z.string().trim().optional().or(z.literal("")),
     preferred_language: z.enum(["ar", "en"]),
@@ -81,13 +83,14 @@ export async function POST(req: NextRequest) {
   if (!serviceAreaNamesAr) {
     return NextResponse.json({ error: "منطقة خدمة غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
   }
-  const [serviceAreaIds, vehicleTypeIds, materialCategoryIds] = await Promise.all([
+  const [serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds] = await Promise.all([
     resolveActiveServiceAreas(serviceAreaNamesAr),
     resolveActiveVehicleTypes(carrier.vehicle_types),
     resolveActiveCarrierCategories(carrier.material_categories ?? []),
+    resolveActiveLogisticsServices(carrier.logistics_services ?? []),
   ]);
-  if (!serviceAreaIds || !vehicleTypeIds || !materialCategoryIds) {
-    return NextResponse.json({ error: "قيمة غير معروفة في مناطق الخدمة أو أنواع المركبات أو الفئات — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+  if (!serviceAreaIds || !vehicleTypeIds || !materialCategoryIds || !logisticsServiceIds) {
+    return NextResponse.json({ error: "قيمة غير معروفة في مناطق الخدمة أو أنواع المركبات أو الفئات أو الخدمات اللوجستية — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
   }
 
   try {
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
       } else {
         // partner مُعاد استخدامه بلا ملف ناقل سابق — اسمه القديم قد يخص جهة اتصال أخرى، فنستبدله باسم المنشأة الجديد
         await syncPartnerAsEstablishment(emailMatch.id, carrier.establishment_name);
-        return await finishRegistration(emailMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
+        return await finishRegistration(emailMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
       }
     }
 
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true, status: "needs_review" });
         }
         await syncPartnerAsEstablishment(phoneMatch.id, carrier.establishment_name);
-        return await finishRegistration(phoneMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
+        return await finishRegistration(phoneMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
       }
     }
 
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
       phone: carrier.phone,
       website: carrier.website || undefined,
     });
-    return await finishRegistration(partnerId, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds);
+    return await finishRegistration(partnerId, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
   } catch (error) {
     if (error instanceof OdooClientError) {
       console.error(`[carriers/register][${error.correlationId}] ${error.kind}: ${error.message}`);
@@ -175,7 +178,8 @@ async function finishRegistration(
   consentAt: string,
   serviceAreaIds: number[],
   vehicleTypeIds: number[],
-  materialCategoryIds: number[]
+  materialCategoryIds: number[],
+  logisticsServiceIds: number[]
 ) {
   await ensurePartnerContact(partnerId, {
     contactName: carrier.contact_name,
@@ -205,7 +209,8 @@ async function finishRegistration(
     },
     serviceAreaIds,
     vehicleTypeIds,
-    materialCategoryIds
+    materialCategoryIds,
+    logisticsServiceIds
   );
 
   const idempotencyKey = `carrier.pre_registered:partner-${partnerId}`;
