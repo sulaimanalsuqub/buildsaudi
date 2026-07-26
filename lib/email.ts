@@ -16,13 +16,19 @@ const LOGO_URL   = `${BASE_URL}/brand/logo-en.svg`;
 const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.svg`;
 
 // إرسال الإيميل مع إعادة المحاولة تلقائياً (3 محاولات، backoff تصاعدي)
+// تنبيه: Resend SDK لا يرمي استثناءً عند فشل API — يرجع { error } عادي، فلازم فحصه صراحةً
+// وإلا يُحسب الفشل (حصة منتهية، دومين موقوف، بريد مرفوض...) نجاحاً بصمت
 type EmailParams = Parameters<ReturnType<typeof getResend>["emails"]["send"]>[0];
 async function sendEmail(params: EmailParams) {
   const MAX_ATTEMPTS = 3;
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      return await getResend().emails.send(params);
+      const result = await getResend().emails.send(params);
+      if (result.error) {
+        throw new Error(`Resend API error (${result.error.name}): ${result.error.message}`);
+      }
+      return result;
     } catch (err) {
       lastError = err;
       if (attempt < MAX_ATTEMPTS) {
