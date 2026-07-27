@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { processQuoteReply } from "@/lib/quote-intake";
 
-// نقطة استقبال داخلية فقط (لا واجهة عامة) — تُستدعى يدوياً من فريق العمليات، أو من قارئ البريد الوارد التلقائي (lib/mailbox-imap.ts)،
-// لتسجيل رد مورد/ناقل على RFQ كعرض سعر منظَّم في Odoo.
+// نقطة استقبال داخلية فقط (لا واجهة عامة) — تُستدعى يدوياً من فريق العمليات
+// لتسجيل رد مورد/ناقل على RFQ كعرض سعر منظَّم في Odoo. القناة التلقائية: /api/rfq/inbound-email (Resend Inbound webhook).
 const bodySchema = z.object({
   trackingNumber: z.string().trim().min(1),
   email: z.string().trim().toLowerCase().email(),

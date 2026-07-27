@@ -44,6 +44,7 @@ import {
   sendCarrierSuspendedEmail,
   sendCustomerQuoteEmail,
   sendInternalNewProcurementRequestNotification,
+  sendOpsAlertEmail,
   sendProcurementRequestDeclinedEmail,
   sendProcurementRequestReceivedEmail,
   sendSupplierRfqRequestEmail,
@@ -616,6 +617,18 @@ export async function GET(req: NextRequest) {
         });
         results.dead_letter += 1;
         console.error(`[cron/odoo-outbox] event ${row.id} (${row.x_studio_event_type}) moved to dead_letter: ${message}`);
+        // dead_letter يحدث مرة واحدة لكل حدث (لا تكرار تنبيهات) — لو كان الفشل بسبب Resend نفسه فالتنبيه سيفشل أيضاً، يبقى الأثر في x_studio_last_error بأودو
+        await sendOpsAlertEmail({
+          subject: `حدث بريد استنفد محاولاته (dead-letter) — ${row.x_studio_event_type}`,
+          details: [
+            { label: "معرف الحدث", value: String(row.id) },
+            { label: "نوع الحدث", value: row.x_studio_event_type },
+            { label: "المحاولات", value: String(attempts) },
+            { label: "آخر خطأ", value: message.slice(0, 300) },
+          ],
+        }).catch((alertError) =>
+          console.error(`[cron/odoo-outbox] dead_letter ops alert failed:`, alertError instanceof Error ? alertError.message : alertError)
+        );
       } else {
         await write("x_build_integration_outbox", [row.id], {
           x_studio_status: "pending",

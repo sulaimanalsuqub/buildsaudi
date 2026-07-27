@@ -1339,6 +1339,29 @@ export async function sendInternalNewProcurementRequestNotification(req: {
 }
 
 // ─────────────────────────────────────────────
+//  تنبيه تشغيلي داخلي — أعطال تحتاج انتباه الفريق
+// ─────────────────────────────────────────────
+/** يُرسل للأدمن عند فشل صامت الأثر (dead-letter بالـoutbox، رد RFQ تعذر تسجيله...) — لا يعيد المحاولة بعنف كي لا يفاقم مشكلة حصة البريد نفسها */
+export async function sendOpsAlertEmail(params: { subject: string; details: Array<{ label: string; value: string }>; rawText?: string }) {
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `⚠️ تنبيه تشغيلي — ${params.subject}`,
+    html: emailShell({
+      previewText: `تنبيه تشغيلي: ${params.subject}`,
+      accentColor: "#b45309",
+      badgeIcon: "⚠️",
+      badgeLabel: "تنبيه تشغيلي",
+      content: `
+        ${greeting("فريق Build", params.subject)}
+        ${infoTable(params.details.map((d) => infoRow(d.label, esc(d.value), "ltr")).join(""))}
+        ${params.rawText ? `<p style="margin:20px 0 0;font-size:13px;color:#374151;line-height:1.8;white-space:pre-wrap;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px;">${esc(params.rawText.slice(0, 3000))}</p>` : ""}
+      `,
+    }),
+  });
+}
+
+// ─────────────────────────────────────────────
 //  OTP — التحقق من البريد الإلكتروني
 // ─────────────────────────────────────────────
 export async function sendEmailVerificationOTP(params: { email: string; code: string }) {
