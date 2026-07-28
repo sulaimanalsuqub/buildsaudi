@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { Resend } from "resend";
 
 function getResend() {
@@ -19,12 +20,26 @@ const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.svg`;
 // تنبيه: Resend SDK لا يرمي استثناءً عند فشل API — يرجع { error } عادي، فلازم فحصه صراحةً
 // وإلا يُحسب الفشل (حصة منتهية، دومين موقوف، بريد مرفوض...) نجاحاً بصمت
 type EmailParams = Parameters<ReturnType<typeof getResend>["emails"]["send"]>[0];
+
+/**
+ * مفتاح idempotency مشتقّ من محتوى الرسالة (المستقبِل + الموضوع + الجسم).
+ * يجعل Resend يرفض أي إرسال مكرّر بنفس المحتوى خلال نافذته (~24 ساعة) — يحيّد ازدواجية إعادة المحاولة/الكرون
+ * (dual-write: إرسال ثم فشل كتابة الحالة في Odoo → إعادة إرسال) على مستوى المزوّد دون أي حالة إضافية عندنا.
+ */
+function contentIdempotencyKey(params: EmailParams): string {
+  const p = params as { to?: unknown; subject?: unknown; html?: unknown; text?: unknown };
+  const to = Array.isArray(p.to) ? p.to.join(",") : String(p.to ?? "");
+  const basis = `${to}\n${String(p.subject ?? "")}\n${String(p.html ?? p.text ?? "")}`;
+  return `build-${createHash("sha256").update(basis).digest("hex").slice(0, 40)}`;
+}
+
 async function sendEmail(params: EmailParams) {
   const MAX_ATTEMPTS = 3;
+  const idempotencyKey = contentIdempotencyKey(params);
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const result = await getResend().emails.send(params);
+      const result = await getResend().emails.send(params, { idempotencyKey });
       if (result.error) {
         throw new Error(`Resend API error (${result.error.name}): ${result.error.message}`);
       }
