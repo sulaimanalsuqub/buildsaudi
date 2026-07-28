@@ -72,6 +72,8 @@ function formatFileSize(bytes: number): string {
 }
 
 export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
+  // Stable for retries/double-clicks during this request attempt; server persists the result durably.
+  const [submissionId] = useState(() => crypto.randomUUID());
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingToken, setTrackingToken] = useState("");
@@ -246,6 +248,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           delivery_address_notes: data.addressNotes?.trim() || undefined,
           requested_delivery_date: data.requestedDeliveryDate || undefined,
           files: files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
+          submission_id: submissionId,
           turnstile_token: turnstileToken,
         }),
       });
@@ -402,7 +405,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
                 }`}
               >
                 <Paperclip className="h-5 w-5 text-brand-primary" />
-                <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
+                <input type="file" multiple accept=".csv,.pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
                 <span>{textByLang(isRtl, "Choose a file, or drag and drop it here", "اختر ملفاً، أو اسحبه وأفلته هنا")}</span>
               </label>
               {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}

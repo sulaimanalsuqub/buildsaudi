@@ -1,6 +1,5 @@
 import { PDFParse } from "pdf-parse";
 import { z } from "zod";
-import * as XLSX from "xlsx";
 
 const ExtractedItemSchema = z.object({
   itemName: z.string(),
@@ -56,7 +55,6 @@ function buildSystemPrompt(allowedCategories: string[], existingCatalogNames: st
 الحقول المنتهية بـ"?" اختيارية — احذفها إن لم تنطبق بدل إرجاع قيمة فارغة. إن لم يوجد أي صنف، أرجع {"items": []}.`;
 }
 
-const SPREADSHEET_EXTENSION_PATTERN = /\.(xlsx|xls|csv)$/i;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
 // شبكة أمان: DeepSeek لا يلتزم دائماً بتعليمة "اختر حصراً من هذه القائمة" (نموذج أضعف من Claude بالالتزام).
@@ -97,17 +95,12 @@ function normalizeCategory(rawCategory: string | null | undefined, allowedCatego
   return mapped && allowedCategories.includes(mapped) ? mapped : rawCategory;
 }
 
-/** يحوّل ورقة إكسل/CSV إلى نص CSV مقروء للنموذج — يتجاهل الأوراق الفارغة */
-function spreadsheetToText(base64Data: string, fileName: string): string | null {
+/** CSV فقط: XLS/XLSX معطّلة مؤقتاً لأن parser السابق لديه advisories عالية على مدخلات يرفعها المستخدم. */
+function csvToText(base64Data: string, fileName: string): string | null {
   try {
-    const workbook = XLSX.read(base64Data, { type: "base64" });
-    const parts: string[] = [];
-    for (const sheetName of workbook.SheetNames) {
-      const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]).trim();
-      if (csv) parts.push(`# ${sheetName}\n${csv}`);
-    }
-    if (!parts.length) return null;
-    return `ملف: ${fileName}\n${parts.join("\n\n")}`.slice(0, 60_000);
+    const text = Buffer.from(base64Data, "base64").toString("utf8").replace(/^\uFEFF/, "").trim();
+    if (!text || text.includes("\0")) return null;
+    return `ملف CSV: ${fileName}\n${text}`.slice(0, 60_000);
   } catch {
     return null;
   }
@@ -138,8 +131,8 @@ async function buildSourceText(description: string, files: SourceFile[]): Promis
     if (file.mimeType === "application/pdf") {
       const text = await pdfToText(file.base64Data, file.name);
       if (text) parts.push(text);
-    } else if (file.mimeType.includes("spreadsheet") || file.mimeType === "text/csv" || SPREADSHEET_EXTENSION_PATTERN.test(file.name)) {
-      const text = spreadsheetToText(file.base64Data, file.name);
+    } else if (file.mimeType === "text/csv" || /\.csv$/i.test(file.name)) {
+      const text = csvToText(file.base64Data, file.name);
       if (text) parts.push(text);
     }
     // ملاحظة: ملفات الصور تُتجاهل هنا عمداً — DeepSeek نموذج نصي بلا رؤية، والصورة تبقى مرفقة بالطلب لمراجعة الفريق يدوياً فقط

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateOTP, verifyOTP, generateVerifiedToken } from "@/lib/otp";
 import { sendEmailVerificationOTP } from "@/lib/email";
-import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { checkSharedRateLimit } from "@/lib/shared-store";
 
 const emailField = z.string().trim().toLowerCase().email();
 
@@ -22,7 +23,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
 
   if (body.action === "send") {
-    const { ok, resetAt } = checkRateLimit(`otp-send:${clientId}`, "auth");
+    let limited: { ok: boolean; resetAt: number };
+    try { limited = await checkSharedRateLimit(`otp-send:${clientId}`, 5, 60 * 60); }
+    catch { return NextResponse.json({ error: "خدمة الحماية غير متاحة؛ حاول لاحقاً" }, { status: 503 }); }
+    const { ok, resetAt } = limited;
     if (!ok) return rateLimitError(resetAt, "OTP");
 
     const parsed = sendSchema.safeParse(body);
@@ -41,7 +45,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === "verify") {
-    const { ok, resetAt } = checkRateLimit(`otp-verify:${clientId}`, "auth");
+    let limited: { ok: boolean; resetAt: number };
+    try { limited = await checkSharedRateLimit(`otp-verify:${clientId}`, 10, 15 * 60); }
+    catch { return NextResponse.json({ error: "خدمة الحماية غير متاحة؛ حاول لاحقاً" }, { status: 503 }); }
+    const { ok, resetAt } = limited;
     if (!ok) return rateLimitError(resetAt, "OTP");
 
     const parsed = verifySchema.safeParse(body);

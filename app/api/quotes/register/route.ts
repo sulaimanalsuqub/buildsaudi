@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import {
   OdooClientError,
@@ -12,6 +13,7 @@ import {
   findMatchingSuppliers,
   findOrCreateCustomerPartner,
   findOrCreateCustomerProject,
+  findProcurementRequestBySubmissionKey,
   generateProcurementTracking,
   listActiveMaterialCategories,
   listCatalogProductNames,
@@ -22,6 +24,7 @@ import {
   resolveExistingBrandIds,
   updateProcurementRequestCategories,
 } from "@/lib/odoo";
+import { reserveSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -109,6 +112,7 @@ const registerSchema = z
     description: z.string().trim().max(2000).optional().or(z.literal("")).default(""),
     items: z.array(itemSchema).max(MAX_ITEMS, "الحد الأقصى 50 صنفاً").optional().default([]),
     files: z.array(fileSchema).max(MAX_FILES, "يمكن رفع 5 ملفات كحد أقصى").optional().default([]),
+    submission_id: z.string().uuid("معرف الإرسال غير صحيح"),
     turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
   })
   .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
@@ -144,6 +148,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
+  const submissionKey = `procurement-submission:${data.submission_id}`;
+  const correlationId = randomUUID();
+  const initialState: SubmissionState = { status: "processing", submissionId: data.submission_id, correlationId, stage: "validated" };
+  let submissionState: SubmissionState = initialState;
+  try {
+    const reservation = await reserveSubmission(submissionKey, initialState);
+    submissionState = reservation.state;
+    if (!reservation.claimed) {
+      if (submissionState.status === "completed" && submissionState.trackingNumber && submissionState.trackingToken) {
+        return NextResponse.json({ ok: true, replayed: true, tracking_number: submissionState.trackingNumber, tracking_token: submissionState.trackingToken });
+      }
+      // A concurrent invocation owns this submission. Do not start a second Odoo workflow.
+      return NextResponse.json({ error: "طلبكم قيد المعالجة بالفعل؛ أعد المحاولة بعد لحظات", correlation_id: submissionState.correlationId }, { status: 202 });
+    }
+  } catch (error) {
+    console.error("[quotes/register] durable idempotency unavailable:", error);
+    return NextResponse.json({ error: "تعذر تأمين طلبكم بشكل موثوق؛ حاول لاحقاً" }, { status: 503 });
+  }
+
+  let createdRequestId: number | null = null;
   try {
     const customerId = await findOrCreateCustomerPartner({
       contactName: data.contact_name,
@@ -154,7 +178,10 @@ export async function POST(req: NextRequest) {
 
     const projectId = await findOrCreateCustomerProject(customerId, data.project_name);
 
-    const requestId = await createProcurementRequest(
+    // Recovery after a timeout is keyed in Odoo as well as the shared store.  A schema migration
+    // makes x_studio_submission_key unique; without it production must not be released.
+    const prior = await findProcurementRequestBySubmissionKey(data.submission_id);
+    const requestId = prior?.id ?? await createProcurementRequest(
       {
         contactName: data.contact_name,
         companyName: data.company_name || undefined,
@@ -170,8 +197,12 @@ export async function POST(req: NextRequest) {
       },
       [],
       customerId,
-      projectId
+      projectId,
+      data.submission_id
     );
+    createdRequestId = requestId;
+    submissionState = { ...submissionState, requestId, stage: "request_created" };
+    await saveSubmissionState(submissionKey, submissionState);
 
     let matchedCategoryIds: number[] = [];
     let requestedBrandNames: string[] = [];
@@ -294,8 +325,21 @@ export async function POST(req: NextRequest) {
       payload: { request_id: requestId, tracking_token: trackingToken },
     });
 
-    return NextResponse.json({ ok: true, tracking_number: trackingNumber, tracking_token: trackingToken });
+    submissionState = { ...submissionState, status: "completed", trackingNumber, trackingToken, stage: "completed" };
+    await saveSubmissionState(submissionKey, submissionState);
+    return NextResponse.json({ ok: true, tracking_number: trackingNumber, tracking_token: trackingToken, correlation_id: correlationId });
   } catch (error) {
+    try {
+      await saveSubmissionState(submissionKey, {
+        ...submissionState,
+        status: "failed",
+        requestId: createdRequestId ?? submissionState.requestId,
+        stage: submissionState.stage ?? "unknown",
+        error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+      });
+    } catch (stateError) {
+      console.error("[quotes/register] unable to record failed submission:", stateError);
+    }
     if (error instanceof OdooClientError) {
       console.error(`[quotes/register][${error.correlationId}] ${error.kind}: ${error.message}`);
       const status = error.kind === "validation" ? 400 : error.kind === "conflict" ? 409 : 500;
