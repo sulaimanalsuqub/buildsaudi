@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { sendOpsAlertEmail } from "@/lib/email";
 import { processQuoteReply } from "@/lib/quote-intake";
+import { extractEmailAddress, resolveInboundContent } from "@/lib/resend-inbound";
 
 // نقطة استقبال Resend Inbound (webhook) — القناة التلقائية لردود الموردين/الناقلين على RFQ.
 // حلّت محل قارئ IMAP (Zoho يحجب IMAP على الخطة الحالية). التفعيل يحتاج من لوحة Resend:
@@ -36,24 +37,6 @@ function verifySvixSignature(req: NextRequest, rawBody: string, secret: string):
   });
 }
 
-/** يستخرج عنوان البريد من صيغ "Name <a@b.c>" أو العنوان المجرد */
-function extractEmailAddress(raw: unknown): string | null {
-  if (typeof raw !== "string" || !raw.trim()) return null;
-  const angled = raw.match(/<([^>]+)>/);
-  const candidate = (angled ? angled[1] : raw).trim().toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate) ? candidate : null;
-}
-
-/** نص بديل بسيط عندما لا يرسل Resend جزء text — يكفي للاستخلاص، لا يُعرض لأحد */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 const FAILURE_LABELS: Record<string, string> = {
   request_not_found: "لا يوجد طلب برقم التتبع المذكور بالموضوع",
   partner_not_matched: "بريد المرسل ليس ضمن المرسَل لهم RFQ لهذا الطلب",
@@ -85,7 +68,26 @@ export async function POST(req: NextRequest) {
   const data = payload.data;
   const fromEmail = extractEmailAddress(data.from);
   const subject = typeof data.subject === "string" ? data.subject : "";
-  const text = typeof data.text === "string" && data.text.trim() ? data.text.trim() : typeof data.html === "string" ? stripHtml(data.html) : "";
+  let text = "";
+  let attachmentCount = 0;
+  try {
+    const content = await resolveInboundContent(data);
+    text = content.text;
+    attachmentCount = content.attachmentCount;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[rfq/inbound-email] failed to retrieve received email:", message);
+    await sendOpsAlertEmail({
+      subject: "وصل رد RFQ لكن تعذر جلب محتوى الرسالة من Resend",
+      details: [
+        { label: "المرسل", value: typeof data.from === "string" ? data.from : "غير معروف" },
+        { label: "الموضوع", value: subject || "بلا موضوع" },
+        { label: "الخطأ", value: message.slice(0, 300) },
+      ],
+    }).catch(() => undefined);
+    // خطأ provider مؤقت؛ نعيد 500 كي يعيد Resend تسليم الحدث بدلاً من إسقاط الرد نهائياً.
+    return NextResponse.json({ error: "Unable to retrieve inbound email" }, { status: 500 });
+  }
   const trackingMatch = subject.match(TRACKING_NUMBER_PATTERN);
 
   // من هنا فصاعداً نرجع 200 دائماً: إعادة محاولة Resend لن تصلح رسالة ناقصة، والتنبيه الداخلي يضمن ألا يضيع رد فعلي بصمت
@@ -95,7 +97,16 @@ export async function POST(req: NextRequest) {
       details: [
         { label: "المرسل", value: typeof data.from === "string" ? data.from : "غير معروف" },
         { label: "الموضوع", value: subject || "بلا موضوع" },
-        { label: "السبب", value: !fromEmail ? "عنوان مرسل غير صالح" : !trackingMatch ? "لا يوجد رقم تتبع بالموضوع" : "نص الرسالة فارغ" },
+        {
+          label: "السبب",
+          value: !fromEmail
+            ? "عنوان مرسل غير صالح"
+            : !trackingMatch
+              ? "لا يوجد رقم تتبع بالموضوع"
+              : attachmentCount
+                ? "الرسالة بلا نص وتحتوي مرفقاً؛ تحتاج معالجة يدوية"
+                : "نص الرسالة فارغ",
+        },
       ],
       rawText: text,
     }).catch((error) => console.error("[rfq/inbound-email] ops alert failed:", error instanceof Error ? error.message : error));

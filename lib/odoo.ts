@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
 import { isEnglishBrandName, normalizeVendorPhone } from "@/lib/vendor-options";
+import { convertToSar, normalizeCurrencyCode } from "@/lib/currency";
+import { generateSecureTrackingToken } from "@/lib/tracking-token";
+
+export { convertToSar, normalizeCurrencyCode } from "@/lib/currency";
 
 /**
  * عميل Odoo مستقل (JSON-RPC) — النظام الوحيد المعتمد لرحلة تسجيل الموردين.
@@ -2056,6 +2060,11 @@ const GENERATE_TRACKING_ACTION_ID = 929;
 
 /** يستدعي إجراء أودو الجاهز (نفس المنطق المستخدم يدوياً) لتوليد رقم/رمز التتبع بشكل متّسق */
 export async function generateProcurementTracking(requestId: number): Promise<{ trackingNumber: string; trackingToken: string }> {
+  // لا نعتمد على token الحتمي في Server Action (مشتق من sequence + record.id).
+  // نضع bearer secret عشوائياً أولاً؛ الإجراء يحافظ على القيمة الموجودة ويولّد رقم التتبع فقط.
+  await write("x_build_procurement_request", [requestId], {
+    x_studio_tracking_token: generateSecureTrackingToken(),
+  });
   await executeKw("ir.actions.server", "run", [[GENERATE_TRACKING_ACTION_ID]], {
     context: { active_model: "x_build_procurement_request", active_id: requestId, active_ids: [requestId] },
   });
@@ -2282,7 +2291,11 @@ export async function findPartnerIdByEmailAndRequest(email: string, requestId: n
   if (!normalized) return null;
   const comms = await searchRead<{ id: number; x_studio_partner_id: [number, string] | false }>(
     "x_build_ai_communication",
-    [["x_studio_request_id", "=", requestId]],
+    [
+      ["x_studio_request_id", "=", requestId],
+      // لا يكفي أن يكون المورد ضمن recommendation/draft؛ لا نقبل رده إلا بعد اعتماد RFQ وإرساله فعلياً.
+      ["x_studio_status", "=", "sent"],
+    ],
     ["x_studio_partner_id"]
   );
   const partnerIds = comms.map((c) => c.x_studio_partner_id && c.x_studio_partner_id[0]).filter((id): id is number => typeof id === "number");
@@ -2299,23 +2312,6 @@ export async function findPartnerIdByEmailAndRequest(email: string, requestId: n
 // ─────────────────────────────────────────────────────────────
 // Currency — Odoo res.currency هو مصدر الحقيقة الوحيد لأسعار الصرف (لا سعر صرف مثبّت في الكود)
 // ─────────────────────────────────────────────────────────────
-
-const CURRENCY_ALIASES: Record<string, string> = {
-  sar: "SAR", sr: "SAR", sars: "SAR", "ر.س": "SAR", "ريال": "SAR", "ريال سعودي": "SAR", "﷼": "SAR",
-  usd: "USD", "us$": "USD", "$": "USD", dollar: "USD", dollars: "USD", "دولار": "USD", "دولار أمريكي": "USD",
-  eur: "EUR", "€": "EUR", euro: "EUR", euros: "EUR", "يورو": "EUR",
-  aed: "AED", "درهم": "AED", "درهم إماراتي": "AED", dirham: "AED",
-  gbp: "GBP", "£": "GBP", pound: "GBP", "جنيه": "GBP",
-};
-
-/** يوحّد رمز العملة الحر (نص من الاستخلاص) إلى رمز ISO — يرجع null إن تعذّر التعرّف عليه */
-export function normalizeCurrencyCode(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const t = raw.trim();
-  if (!t) return null;
-  if (/^[A-Za-z]{3}$/.test(t)) return t.toUpperCase();
-  return CURRENCY_ALIASES[t.toLowerCase()] ?? null;
-}
 
 /**
  * أسعار صرف Odoo مقابل عملة الشركة (SAR). دلالة Odoo: rate = عدد وحدات العملة مقابل 1 SAR،
@@ -2334,13 +2330,6 @@ export async function getCurrencyRatesToSar(codes: string[]): Promise<Map<string
     if (typeof row.rate === "number" && row.rate > 0) map.set(row.name.toUpperCase(), row.rate);
   }
   return map;
-}
-
-/** يحوّل مبلغاً إلى SAR بأسعار Odoo. يرجع null إن كانت العملة مجهولة أو بلا سعر صرف نشط (لا تخمين إطلاقاً). */
-export function convertToSar(amount: number, currencyCode: string, rates: Map<string, number>): number | null {
-  const rate = rates.get(currencyCode.toUpperCase());
-  if (rate === undefined || rate <= 0) return null;
-  return Math.round((amount / rate) * 100) / 100;
 }
 
 async function replaceSupplierQuoteLines(
