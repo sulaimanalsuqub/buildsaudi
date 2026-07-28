@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
@@ -116,6 +117,15 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailToken, setEmailToken] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  // ربط الرد من ويدجت Turnstile بحالة الفورم عبر callback عام (النمط المتوافق مع سكربت Cloudflare)
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).onCarrierTurnstileVerified = (token: string) => setTurnstileToken(token);
+    return () => {
+      delete (window as unknown as Record<string, unknown>).onCarrierTurnstileVerified;
+    };
+  }, []);
 
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
@@ -126,6 +136,10 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
     if (!emailVerified) {
       form.setError("email", { message: "required" });
       setSubmitError(isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first");
+      return;
+    }
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
       return;
     }
     setSubmitError("");
@@ -142,6 +156,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
           job_title: data.jobTitle?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
+          turnstile_token: turnstileToken,
           phone: normalizeVendorPhone(data.contactNumber),
           service_areas: data.serviceAreas,
           vehicle_types: data.vehicleTypes,
@@ -383,8 +398,20 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
         </AnimatePresence>
       </div>
 
+      {showDetails && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+        <div className="mt-6">
+          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+          <div
+            className="cf-turnstile"
+            data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            data-callback="onCarrierTurnstileVerified"
+            data-language={isRtl ? "ar" : "en"}
+          />
+        </div>
+      )}
+
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !showDetails} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !showDetails || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

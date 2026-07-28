@@ -216,7 +216,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setSubmitError(textByLang(isRtl, "Add a description, items, or a file for the materials needed", "أضف وصفاً، أصنافاً، أو ملفاً للمواد المطلوبة"));
       return;
     }
-    if (!turnstileToken) {
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
       setSubmitError(textByLang(isRtl, "Please complete the security check below", "يرجى إكمال التحقق الأمني أدناه"));
       return;
     }
@@ -487,7 +487,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       </div>
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || !turnstileToken} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : textByLang(isRtl, "Submit Request", "إرسال الطلب")}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

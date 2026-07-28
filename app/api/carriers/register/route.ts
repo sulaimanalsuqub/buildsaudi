@@ -20,6 +20,7 @@ import {
 } from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
 
 /** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرمي إن كان الرمز غير معروف */
@@ -58,6 +59,7 @@ const registerSchema = z
     preferred_language: z.enum(["ar", "en"]),
     privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
     terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
+    turnstile_token: z.string().optional().default(""),
   })
   .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
     path: ["email"],
@@ -76,6 +78,12 @@ export async function POST(req: NextRequest) {
   }
 
   const carrier = parsed.data;
+
+  const humanVerified = await verifyTurnstileToken(carrier.turnstile_token, clientId);
+  if (!humanVerified) {
+    return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
+  }
+
   const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
 
   // نطاقات مرجعية ثابتة (مناطق/مركبات/فئات) — تُطابَق فقط ضد سجلات نشطة موجودة، لا تُنشأ من مدخلات عامة غير موثوقة
