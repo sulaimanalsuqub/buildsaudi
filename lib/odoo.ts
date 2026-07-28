@@ -1836,7 +1836,8 @@ export async function createProcurementRequest(
   data: ProcurementRequestInput,
   categoryIds: number[],
   customerId: number,
-  projectId: number
+  projectId: number,
+  submissionKey?: string
 ): Promise<number> {
   return create("x_build_procurement_request", {
     x_name: data.projectName,
@@ -1858,7 +1859,21 @@ export async function createProcurementRequest(
     x_studio_customer_status: "received",
     x_studio_request_date: new Date().toISOString().slice(0, 19).replace("T", " "),
     x_studio_material_category_ids: categoryIds.length ? [[6, 0, categoryIds]] : false,
+    // Created by the remediation migration. This is the durable reconciliation key for a website submission.
+    x_studio_submission_key: submissionKey || false,
   });
+}
+
+export async function findProcurementRequestBySubmissionKey(submissionKey: string): Promise<{ id: number; trackingNumber: string | null; trackingToken: string | null } | null> {
+  const rows = await searchRead<{ id: number; x_studio_tracking_number: string | false; x_studio_tracking_token: string | false }>(
+    "x_build_procurement_request",
+    [["x_studio_submission_key", "=", submissionKey]],
+    ["x_studio_tracking_number", "x_studio_tracking_token"],
+    { limit: 2, order: "id asc" }
+  );
+  if (rows.length > 1) throw new OdooClientError({ message: `Duplicate submission key ${submissionKey}`, kind: "conflict", retryable: false, correlationId: randomUUID() });
+  const row = rows[0];
+  return row ? { id: row.id, trackingNumber: row.x_studio_tracking_number || null, trackingToken: row.x_studio_tracking_token || null } : null;
 }
 
 /** يضيف بنود مواد بمعرفة العميل مباشرة (اسم صنف + كمية) — تبقى بحالة "جديد" بانتظار مراجعة الفريق */
