@@ -2296,6 +2296,79 @@ export async function findPartnerIdByEmailAndRequest(email: string, requestId: n
   return partners[0]?.id ?? null;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Currency — Odoo res.currency هو مصدر الحقيقة الوحيد لأسعار الصرف (لا سعر صرف مثبّت في الكود)
+// ─────────────────────────────────────────────────────────────
+
+const CURRENCY_ALIASES: Record<string, string> = {
+  sar: "SAR", sr: "SAR", sars: "SAR", "ر.س": "SAR", "ريال": "SAR", "ريال سعودي": "SAR", "﷼": "SAR",
+  usd: "USD", "us$": "USD", "$": "USD", dollar: "USD", dollars: "USD", "دولار": "USD", "دولار أمريكي": "USD",
+  eur: "EUR", "€": "EUR", euro: "EUR", euros: "EUR", "يورو": "EUR",
+  aed: "AED", "درهم": "AED", "درهم إماراتي": "AED", dirham: "AED",
+  gbp: "GBP", "£": "GBP", pound: "GBP", "جنيه": "GBP",
+};
+
+/** يوحّد رمز العملة الحر (نص من الاستخلاص) إلى رمز ISO — يرجع null إن تعذّر التعرّف عليه */
+export function normalizeCurrencyCode(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = raw.trim();
+  if (!t) return null;
+  if (/^[A-Za-z]{3}$/.test(t)) return t.toUpperCase();
+  return CURRENCY_ALIASES[t.toLowerCase()] ?? null;
+}
+
+/**
+ * أسعار صرف Odoo مقابل عملة الشركة (SAR). دلالة Odoo: rate = عدد وحدات العملة مقابل 1 SAR،
+ * فالتحويل لSAR = المبلغ ÷ rate. يرجع خريطة code→rate للعملات النشطة فقط (SAR=1 دائماً).
+ */
+export async function getCurrencyRatesToSar(codes: string[]): Promise<Map<string, number>> {
+  const map = new Map<string, number>([["SAR", 1]]);
+  const needed = [...new Set(codes.map((c) => c.toUpperCase()))].filter((c) => c && c !== "SAR");
+  if (!needed.length) return map;
+  const rows = await searchRead<{ name: string; rate: number }>(
+    "res.currency",
+    [["name", "in", needed], ["active", "=", true]],
+    ["name", "rate"]
+  );
+  for (const row of rows) {
+    if (typeof row.rate === "number" && row.rate > 0) map.set(row.name.toUpperCase(), row.rate);
+  }
+  return map;
+}
+
+/** يحوّل مبلغاً إلى SAR بأسعار Odoo. يرجع null إن كانت العملة مجهولة أو بلا سعر صرف نشط (لا تخمين إطلاقاً). */
+export function convertToSar(amount: number, currencyCode: string, rates: Map<string, number>): number | null {
+  const rate = rates.get(currencyCode.toUpperCase());
+  if (rate === undefined || rate <= 0) return null;
+  return Math.round((amount / rate) * 100) / 100;
+}
+
+async function replaceSupplierQuoteLines(
+  quoteId: number,
+  lines: { itemName: string; unitPrice?: number | null; quantity?: number | null; available?: boolean | null; notes?: string | null }[]
+): Promise<void> {
+  const existing = await searchRead<{ id: number }>("x_build_supplier_quote_line", [["x_studio_quote_id", "=", quoteId]], ["id"]);
+  if (existing.length) {
+    await callMethod("x_build_supplier_quote_line", "unlink", [existing.map((r) => r.id)]);
+  }
+  for (const line of lines) {
+    await create("x_build_supplier_quote_line", {
+      x_name: line.itemName,
+      x_studio_quote_id: quoteId,
+      x_studio_item_name: line.itemName,
+      x_studio_unit_price: line.unitPrice ?? false,
+      x_studio_quantity: line.quantity ?? false,
+      x_studio_available: line.available ?? true,
+      x_studio_notes: line.notes || false,
+    });
+  }
+}
+
+/**
+ * يسجّل رد مورد/ناقل كعرض سعر منظَّم في Odoo.
+ * - العملة: تُوحَّد لرمز ISO؛ وإن كانت غير SAR وبلا سعر صرف نشط في Odoo، يُجبَر العرض على needs_review (لا يُسعَّر آلياً برقم خاطئ).
+ * - منع التكرار (F2): عرض واحد لكل (طلب + مورد + نوع). ردّ مكرّر/إعادة تسليم webhook تُحدّث العرض القائم بدل إنشاء عرض ثانٍ.
+ */
 export async function createSupplierQuote(params: {
   requestId: number;
   partnerId: number;
@@ -2314,8 +2387,18 @@ export async function createSupplierQuote(params: {
     lines: { itemName: string; unitPrice?: number | null; quantity?: number | null; available?: boolean | null; notes?: string | null }[];
   };
 }): Promise<number> {
-  const status = params.extraction.confidence >= 0.5 ? "analyzed" : "needs_review";
-  const quoteId = await create("x_build_supplier_quote", {
+  const currencyCode = normalizeCurrencyCode(params.extraction.currency) || "SAR";
+
+  // إن كان هناك سعر بعملة غير SAR، تأكّد من توفّر سعر صرف نشط في Odoo قبل السماح بالتسعير الآلي
+  let currencyConvertible = true;
+  if (params.extraction.totalPrice != null && currencyCode !== "SAR") {
+    const rates = await getCurrencyRatesToSar([currencyCode]);
+    currencyConvertible = rates.has(currencyCode);
+  }
+  // عرض بعملة لا يمكن تحويلها بأمان لا يجوز أن يدخل المقارنة/التسعير الآلي — يُحوَّل للمراجعة اليدوية
+  const status = !currencyConvertible ? "needs_review" : params.extraction.confidence >= 0.5 ? "analyzed" : "needs_review";
+
+  const fields = {
     x_name: `Quote — Request #${params.requestId} — Partner #${params.partnerId}`,
     x_studio_request_id: params.requestId,
     x_studio_partner_id: params.partnerId,
@@ -2323,7 +2406,7 @@ export async function createSupplierQuote(params: {
     x_studio_quote_type: params.quoteType,
     x_studio_status: status,
     x_studio_total_price: params.extraction.totalPrice ?? false,
-    x_studio_currency: params.extraction.currency || "SAR",
+    x_studio_currency: currencyCode,
     x_studio_lead_time_days: params.extraction.leadTimeDays ?? false,
     x_studio_validity_days: params.extraction.validityDays ?? false,
     x_studio_payment_terms: params.extraction.paymentTerms || false,
@@ -2332,18 +2415,39 @@ export async function createSupplierQuote(params: {
     x_studio_raw_reply_text: params.rawReplyText,
     x_studio_confidence_score: params.extraction.confidence,
     x_studio_received_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-  });
+  };
 
-  for (const line of params.extraction.lines) {
-    await create("x_build_supplier_quote_line", {
-      x_name: line.itemName,
-      x_studio_quote_id: quoteId,
-      x_studio_item_name: line.itemName,
-      x_studio_unit_price: line.unitPrice ?? false,
-      x_studio_quantity: line.quantity ?? false,
-      x_studio_available: line.available ?? true,
-      x_studio_notes: line.notes || false,
-    });
+  // منع التكرار: عرض قائم لنفس (الطلب + المورد + النوع) يُحدَّث ويُعاد استخدامه بدل إنشاء عرض جديد
+  const existing = await searchRead<{ id: number }>(
+    "x_build_supplier_quote",
+    [
+      ["x_studio_request_id", "=", params.requestId],
+      ["x_studio_partner_id", "=", params.partnerId],
+      ["x_studio_quote_type", "=", params.quoteType],
+    ],
+    ["id"],
+    { limit: 1, order: "id asc" }
+  );
+
+  let quoteId: number;
+  if (existing[0]) {
+    quoteId = existing[0].id;
+    // لا نعيد كتابة is_winner إن سبق اعتماد فائز — نحدّث بيانات العرض فقط
+    await write("x_build_supplier_quote", [quoteId], fields);
+    await replaceSupplierQuoteLines(quoteId, params.extraction.lines);
+  } else {
+    quoteId = await create("x_build_supplier_quote", fields);
+    for (const line of params.extraction.lines) {
+      await create("x_build_supplier_quote_line", {
+        x_name: line.itemName,
+        x_studio_quote_id: quoteId,
+        x_studio_item_name: line.itemName,
+        x_studio_unit_price: line.unitPrice ?? false,
+        x_studio_quantity: line.quantity ?? false,
+        x_studio_available: line.available ?? true,
+        x_studio_notes: line.notes || false,
+      });
+    }
   }
 
   if (params.communicationId) {
@@ -2365,6 +2469,8 @@ type QuoteForComparison = {
   partnerName: string;
   totalPrice: number | null;
   currency: string;
+  /** السعر بعد التحويل لSAR بأسعار Odoo — أساس المقارنة والترتيب. null إن تعذّر التحويل */
+  totalPriceSar: number | null;
   leadTimeDays: number | null;
   validityDays: number | null;
   paymentTerms: string | null;
@@ -2388,34 +2494,53 @@ async function getAnalyzedQuotesForComparison(requestId: number, quoteType: "sup
     ],
     ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_payment_terms"]
   );
-  return rows
-    .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
-    .map((row) => ({
+  const withPartner = rows.filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id);
+
+  // كل المقارنة تتم بعملة موحّدة (SAR) — نجلب أسعار الصرف مرة واحدة من Odoo
+  const currencies = withPartner.map((r) => normalizeCurrencyCode(r.x_studio_currency || "SAR") || "SAR");
+  const rates = await getCurrencyRatesToSar(currencies);
+
+  return withPartner.map((row) => {
+    const totalPrice = row.x_studio_total_price === false ? null : row.x_studio_total_price;
+    const currency = normalizeCurrencyCode(row.x_studio_currency || "SAR") || "SAR";
+    const totalPriceSar = totalPrice === null ? null : convertToSar(totalPrice, currency, rates);
+    return {
       id: row.id,
       partnerId: row.x_studio_partner_id[0],
       partnerName: row.x_studio_partner_id[1],
-      totalPrice: row.x_studio_total_price === false ? null : row.x_studio_total_price,
-      currency: row.x_studio_currency || "SAR",
+      totalPrice,
+      currency,
+      totalPriceSar,
       leadTimeDays: row.x_studio_lead_time_days === false ? null : row.x_studio_lead_time_days,
       validityDays: row.x_studio_validity_days === false ? null : row.x_studio_validity_days,
       paymentTerms: row.x_studio_payment_terms || null,
-    }));
+    };
+  });
 }
 
-/** ترتيب العروض: السعر الأقل أولاً (العروض بلا سعر مستخرَج تُدفَع لآخر الترتيب)، ثم مدة التجهيز الأقل كفاصل عند تعادل السعر */
+/** ترتيب العروض بالسعر بعد التحويل لSAR (الأقل أولاً)؛ العروض بلا سعر قابل للتحويل تُدفَع لآخر الترتيب، ثم مدة التجهيز الأقل كفاصل */
 function rankQuotes(quotes: QuoteForComparison[]): QuoteForComparison[] {
   return [...quotes].sort((a, b) => {
-    if (a.totalPrice === null && b.totalPrice === null) return 0;
-    if (a.totalPrice === null) return 1;
-    if (b.totalPrice === null) return -1;
-    if (a.totalPrice !== b.totalPrice) return a.totalPrice - b.totalPrice;
+    if (a.totalPriceSar === null && b.totalPriceSar === null) return 0;
+    if (a.totalPriceSar === null) return 1;
+    if (b.totalPriceSar === null) return -1;
+    if (a.totalPriceSar !== b.totalPriceSar) return a.totalPriceSar - b.totalPriceSar;
     return (a.leadTimeDays ?? Infinity) - (b.leadTimeDays ?? Infinity);
   });
 }
 
 function formatQuoteComparisonLine(quote: QuoteForComparison, rank: number): string {
+  // نعرض السعر الأصلي بعملته، ونضيف المقابل بالـSAR عند اختلاف العملة لشفافية أساس المقارنة
+  const priceLabel =
+    quote.totalPrice === null
+      ? "سعر غير محدد"
+      : quote.currency === "SAR"
+        ? `${quote.totalPrice} SAR`
+        : quote.totalPriceSar !== null
+          ? `${quote.totalPrice} ${quote.currency} (= ${quote.totalPriceSar} SAR)`
+          : `${quote.totalPrice} ${quote.currency} (تعذّر التحويل لSAR)`;
   const parts = [
-    quote.totalPrice !== null ? `${quote.totalPrice} ${quote.currency}` : "سعر غير محدد",
+    priceLabel,
     quote.leadTimeDays !== null ? `تجهيز ${quote.leadTimeDays} يوم` : null,
     quote.validityDays !== null ? `صلاحية ${quote.validityDays} يوم` : null,
     quote.paymentTerms || null,
@@ -2597,6 +2722,8 @@ type WinnerQuote = {
   partnerName: string;
   totalPrice: number | null;
   currency: string;
+  /** السعر بعد التحويل لSAR — أساس كل الحسابات المالية. null إن تعذّر التحويل */
+  totalPriceSar: number | null;
   leadTimeDays: number | null;
   validityDays: number | null;
   includesDelivery: boolean;
@@ -2625,11 +2752,15 @@ async function getWinnerQuote(requestId: number, quoteType: "supplier" | "freigh
   );
   const row = rows[0];
   if (!row) return null;
+  const totalPrice = row.x_studio_total_price === false ? null : row.x_studio_total_price;
+  const currency = normalizeCurrencyCode(row.x_studio_currency || "SAR") || "SAR";
+  const rates = totalPrice !== null && currency !== "SAR" ? await getCurrencyRatesToSar([currency]) : new Map([["SAR", 1]]);
   return {
     id: row.id,
     partnerName: row.x_studio_partner_id ? row.x_studio_partner_id[1] : "-",
-    totalPrice: row.x_studio_total_price === false ? null : row.x_studio_total_price,
-    currency: row.x_studio_currency || "SAR",
+    totalPrice,
+    currency,
+    totalPriceSar: totalPrice === null ? null : convertToSar(totalPrice, currency, rates),
     leadTimeDays: row.x_studio_lead_time_days === false ? null : row.x_studio_lead_time_days,
     validityDays: row.x_studio_validity_days === false ? null : row.x_studio_validity_days,
     includesDelivery: row.x_studio_includes_delivery,
@@ -2660,6 +2791,14 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
 
   const supplierWinner = await getWinnerQuote(requestId, "supplier");
   if (!supplierWinner || supplierWinner.totalPrice === null) return;
+  // عرض مورد فائز بعملة تعذّر تحويلها لSAR لا يجوز تسعيره آلياً — يُترك للمعالجة اليدوية (لا نُرسل رقماً خاطئاً)
+  if (supplierWinner.totalPriceSar === null) {
+    await postProcurementRequestNote(
+      requestId,
+      `تعذّر إعداد عرض العميل آلياً: عرض المورد الفائز بعملة "${supplierWinner.currency}" بلا سعر صرف نشط في Odoo. فعّل العملة وسعر صرفها في Odoo أو سعّر الطلب يدوياً.`
+    );
+    return;
+  }
 
   // مكوّن الشحن مطلوب فقط إن كانت جولة مقارنة شحن قد فُتحت لهذا الطلب — إن كانت مفتوحة ولم يُعتمَد فائزها بعد، ننتظر (يُعاد الفحص عند اعتماده)
   const freightRound = await searchRead<{ id: number }>(
@@ -2675,20 +2814,42 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
   if (freightRound.length) {
     freightWinner = await getWinnerQuote(requestId, "freight");
     if (!freightWinner || freightWinner.totalPrice === null) return;
+    if (freightWinner.totalPriceSar === null) {
+      await postProcurementRequestNote(
+        requestId,
+        `تعذّر إعداد عرض العميل آلياً: عرض الناقل الفائز بعملة "${freightWinner.currency}" بلا سعر صرف نشط في Odoo.`
+      );
+      return;
+    }
   }
 
-  const totalCost = round2(supplierWinner.totalPrice + (freightWinner?.totalPrice ?? 0));
-  const markupPct = Number(process.env.CUSTOMER_QUOTE_MARKUP_PCT) || DEFAULT_CUSTOMER_MARKUP_PCT;
+  // احترام التجاوز اليدوي: إن كان الفريق قد سعّر الطلب يدوياً، لا نكتب فوق حساباته
+  const overrideRows = await read<{ x_studio_cost_manual_override: boolean }>(
+    "x_build_procurement_request",
+    [requestId],
+    ["x_studio_cost_manual_override"]
+  );
+  if (overrideRows[0]?.x_studio_cost_manual_override) return;
+
+  // كل الحسابات بعملة موحّدة (SAR) بعد التحويل بأسعار Odoo — لا جمع/مقارنة أرقام بعملات مختلفة
+  const materialsCostSar = supplierWinner.totalPriceSar;
+  const freightCostSar = freightWinner?.totalPriceSar ?? 0;
+  const totalCost = round2(materialsCostSar + freightCostSar);
+  const rawMarkup = Number(process.env.CUSTOMER_QUOTE_MARKUP_PCT);
+  const markupPct = Number.isFinite(rawMarkup) && rawMarkup >= 0 ? rawMarkup : DEFAULT_CUSTOMER_MARKUP_PCT;
   const salePrice = round2(totalCost * (1 + markupPct / 100));
   const margin = round2(salePrice - totalCost);
   const grossMarginPct = salePrice > 0 ? round2((margin / salePrice) * 100) : 0;
 
-  // تُكتب حقول الإدخال فقط (تكلفة مواد/نقل + سعر بيع) — أتمتة أودو الجاهزة "Auto Cost/Margin"
-  // تعيد اشتقاق total_cost/margin/markup_pct/gross_margin_pct منها تلقائياً عند الكتابة
+  // نكتب حقول الإدخال + الحقول المشتقّة معاً (بالـSAR) — لا اعتماد على أتمتة خارجية غير مضمونة لاشتقاق الهامش
   await write("x_build_procurement_request", [requestId], {
-    x_studio_materials_cost: supplierWinner.totalPrice,
-    x_studio_freight_cost: freightWinner?.totalPrice ?? 0,
+    x_studio_materials_cost: materialsCostSar,
+    x_studio_freight_cost: freightCostSar,
+    x_studio_total_cost: totalCost,
     x_studio_sale_price: salePrice,
+    x_studio_margin: margin,
+    x_studio_markup_pct: markupPct,
+    x_studio_gross_margin_pct: grossMarginPct,
     x_studio_quote_scenario: "auto-v1",
     x_studio_internal_status: "preparing_customer_offer",
     x_studio_customer_status: "quote_preparing",
@@ -2696,11 +2857,13 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
 
   const flags = (quote: WinnerQuote) =>
     `${quote.includesDelivery ? "شامل التوصيل" : "غير شامل التوصيل"} | ${quote.includesTax ? "شامل الضريبة" : "غير شامل الضريبة"}`;
+  const costLabel = (quote: WinnerQuote, sar: number) =>
+    quote.currency === "SAR" ? `${quote.totalPrice} SAR` : `${quote.totalPrice} ${quote.currency} (= ${sar} SAR)`;
   const summary = [
-    `عرض سعر العميل للطلب #${requestId} (محسوب آلياً من العروض الفائزة المعتمدة):`,
-    `تكلفة التوريد: ${supplierWinner.totalPrice} ${supplierWinner.currency} — ${supplierWinner.partnerName} (${flags(supplierWinner)})`,
+    `عرض سعر العميل للطلب #${requestId} (محسوب آلياً من العروض الفائزة المعتمدة، كل المبالغ موحّدة بالـSAR بأسعار Odoo):`,
+    `تكلفة التوريد: ${costLabel(supplierWinner, materialsCostSar)} — ${supplierWinner.partnerName} (${flags(supplierWinner)})`,
     freightWinner
-      ? `تكلفة الشحن: ${freightWinner.totalPrice} ${freightWinner.currency} — ${freightWinner.partnerName} (${flags(freightWinner)})`
+      ? `تكلفة الشحن: ${costLabel(freightWinner, freightCostSar)} — ${freightWinner.partnerName} (${flags(freightWinner)})`
       : `تكلفة الشحن: لا توجد جولة عروض شحن لهذا الطلب — التسعير بلا مكوّن شحن`,
     `إجمالي التكلفة: ${totalCost} SAR`,
     `الهامش: ${markupPct}% على التكلفة = ${margin} SAR (${grossMarginPct}% من سعر البيع)`,
