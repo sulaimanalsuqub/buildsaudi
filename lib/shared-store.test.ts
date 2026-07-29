@@ -21,16 +21,30 @@ test("completed submission replays its persisted result", async () => {
   await saveSubmissionState("submission:b", { ...initial, status: "completed", requestId: 42, trackingNumber: "BLD-1", trackingToken: "secure" });
   const replay = await claimSubmission("submission:b", { ...initial, correlationId: "new" });
   assert.equal(replay.claimed, false);
-  assert.deepEqual(replay.state, { ...initial, status: "completed", requestId: 42, trackingNumber: "BLD-1", trackingToken: "secure" });
+  assert.equal(replay.state.status, "completed");
+  assert.equal(replay.state.requestId, 42);
+  assert.equal(replay.state.trackingToken, "secure");
+  assert.ok(replay.state.completedAt, "completed operations retain a durable tombstone");
   assert.equal((await getSubmissionState("submission:b"))?.requestId, 42);
 });
 
 test("failed submission has a single atomic resume claimant", async () => {
   resetSharedStoreForTests();
-  const failed = { status: "failed" as const, submissionId: "d", correlationId: "old", error: "timeout" };
+  const failed = { status: "failed" as const, submissionId: "d", correlationId: "old", error: "timeout", retryAfter: 0 };
   await saveSubmissionState("submission:d", failed);
   const results = await Promise.all(Array.from({ length: 10 }, (_, i) => claimSubmission("submission:d", { status: "processing", submissionId: "d", correlationId: `retry-${i}` })));
   assert.equal(results.filter((r) => r.claimed).length, 1);
+});
+
+test("an active processing lease blocks a duplicate while an expired lease is reclaimable", async () => {
+  resetSharedStoreForTests();
+  const initial = { status: "processing" as const, submissionId: "lease", correlationId: "first" };
+  const first = await claimSubmission("submission:lease", initial);
+  assert.equal((await claimSubmission("submission:lease", { ...initial, correlationId: "second" })).claimed, false);
+  await saveSubmissionState("submission:lease", { ...first.state, leaseExpiresAt: 0 });
+  const recovered = await claimSubmission("submission:lease", { ...initial, correlationId: "recovered" });
+  assert.equal(recovered.claimed, true);
+  assert.equal(recovered.state.attempts, 2);
 });
 
 test("shared OTP rate limit survives parallel calls", async () => {

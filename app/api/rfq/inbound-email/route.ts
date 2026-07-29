@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendOpsAlertEmail } from "@/lib/email";
 import { processQuoteReply } from "@/lib/quote-intake";
 import { extractEmailAddress, resolveInboundContent } from "@/lib/resend-inbound";
+import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
 
 // نقطة استقبال Resend Inbound (webhook) — القناة التلقائية لردود الموردين/الناقلين على RFQ.
 // حلّت محل قارئ IMAP (Zoho يحجب IMAP على الخطة الحالية). التفعيل يحتاج من لوحة Resend:
@@ -66,6 +67,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: "not_email_received" });
   }
 
+  const eventId = req.headers.get("svix-id")!;
+  const eventKey = `webhook-event:${eventId}`;
+  const eventInitial = { status: "processing" as const, operation: "webhook_event" as const, submissionId: eventId, correlationId: eventId, stage: "received" };
+  let eventState: SubmissionState = eventInitial;
+  try {
+    const claimed = await claimSubmission(eventKey, eventInitial);
+    eventState = claimed.state;
+    if (!claimed.claimed) {
+      if (claimed.state.status === "completed") return NextResponse.json({ ok: true, replayed: true });
+      // Return retryable failure while a valid lease is active. A crashed worker lease
+      // expires, then a provider retry can reclaim it without duplicate processing.
+      return NextResponse.json({ error: "Webhook event is still processing" }, { status: 500 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Webhook idempotency unavailable" }, { status: 503 });
+  }
+  const completeEvent = async (stage: string) => saveSubmissionState(eventKey, { ...eventState, status: "completed", stage });
+  const failEvent = async (error: unknown) => saveSubmissionState(eventKey, { ...eventState, status: "failed", stage: "failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) });
+
   const data = payload.data;
   const fromEmail = extractEmailAddress(data.from);
   const subject = typeof data.subject === "string" ? data.subject : "";
@@ -86,6 +106,7 @@ export async function POST(req: NextRequest) {
         { label: "الخطأ", value: message.slice(0, 300) },
       ],
     }).catch(() => undefined);
+    await failEvent(error).catch(() => undefined);
     // خطأ provider مؤقت؛ نعيد 500 كي يعيد Resend تسليم الحدث بدلاً من إسقاط الرد نهائياً.
     return NextResponse.json({ error: "Unable to retrieve inbound email" }, { status: 500 });
   }
@@ -114,6 +135,7 @@ export async function POST(req: NextRequest) {
       ],
       rawText: text,
     }).catch((error) => console.error("[rfq/inbound-email] ops alert failed:", error instanceof Error ? error.message : error));
+    await completeEvent("unmatched_email");
     return NextResponse.json({ ok: true, skipped: "unmatched_email" });
   }
 
@@ -137,8 +159,10 @@ export async function POST(req: NextRequest) {
         ],
         rawText: text,
       }).catch((error) => console.error("[rfq/inbound-email] ops alert failed:", error instanceof Error ? error.message : error));
+      await completeEvent(result.reason);
       return NextResponse.json({ ok: true, skipped: result.reason });
     }
+    await completeEvent("quote_processed");
     return NextResponse.json({ ok: true, quoteId: result.quoteId, quoteType: result.quoteType, confidence: result.confidence });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -152,6 +176,7 @@ export async function POST(req: NextRequest) {
       ],
       rawText: text,
     }).catch(() => undefined);
+    await failEvent(error).catch(() => undefined);
     return NextResponse.json({ ok: true, skipped: "processing_error" });
   }
 }

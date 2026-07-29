@@ -31,7 +31,7 @@ export async function processQuoteReply(params: {
   // same email under a new event id as well as normal Svix replay.
   const quoteIdentity = `${params.correlation || params.trackingNumber}:${contentHash}`;
   const key = `quote-intake:${quoteIdentity}`;
-  const initial = { status: "processing" as const, submissionId: quoteIdentity, correlationId: randomUUID(), stage: "received" };
+  const initial = { status: "processing" as const, operation: "quote" as const, submissionId: quoteIdentity, correlationId: randomUUID(), stage: "received" };
   const claim = await claimSubmission(key, initial);
   if (!claim.claimed) {
     if (claim.state.status === "completed" && claim.state.requestId) {
@@ -95,6 +95,8 @@ export async function processQuoteReply(params: {
     partnerId,
     communicationId,
     quoteType,
+    idempotencyKey: quoteIdentity,
+    webhookEventId: params.idempotencyKey,
     rawReplyText: params.rawText,
     extraction,
   });

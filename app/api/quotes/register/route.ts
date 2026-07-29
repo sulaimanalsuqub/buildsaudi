@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 
   const submissionKey = `procurement-submission:${data.submission_id}`;
   const correlationId = randomUUID();
-  const initialState: SubmissionState = { status: "processing", submissionId: data.submission_id, correlationId, stage: "validated" };
+  const initialState: SubmissionState = { status: "processing", operation: "customer_submission", submissionId: data.submission_id, correlationId, stage: "validated" };
   let submissionState: SubmissionState = initialState;
   try {
     const reservation = await claimSubmission(submissionKey, initialState);
@@ -188,8 +188,8 @@ export async function POST(req: NextRequest) {
 
     const projectId = await findOrCreateCustomerProject(customerId, data.project_name);
 
-    // Recovery after a timeout is keyed in Odoo as well as the shared store.  A schema migration
-    // makes x_studio_submission_key unique; without it production must not be released.
+    // Odoo Studio stores this key for reconciliation. Redis is the authoritative
+    // atomic claim, and retries reconcile against the stored business key.
     const prior = await findProcurementRequestBySubmissionKey(data.submission_id);
     if (prior && (!prior.trackingNumber || !prior.trackingToken)) {
       // A prior invocation committed part of the request but not a safe completion. Do not guess

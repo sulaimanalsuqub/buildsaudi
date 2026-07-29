@@ -2263,7 +2263,7 @@ export async function createOutboxEvent(params: {
   payload: Record<string, unknown>;
 }): Promise<{ id: number; created: boolean }> {
   const claimKey = `outbox:${params.idempotencyKey}`;
-  const claimInitial = { status: "processing" as const, submissionId: params.idempotencyKey, correlationId: randomUUID(), stage: "creating_outbox" };
+  const claimInitial = { status: "processing" as const, operation: "outbox" as const, submissionId: params.idempotencyKey, correlationId: randomUUID(), stage: "creating_outbox" };
   const claim = await claimSubmission(claimKey, claimInitial);
   if (!claim.claimed) {
     if (claim.state.status === "completed" && claim.state.requestId) return { id: claim.state.requestId, created: false };
@@ -2434,6 +2434,9 @@ export async function createSupplierQuote(params: {
   partnerId: number;
   communicationId: number | null;
   quoteType: "supplier" | "freight";
+  /** Redis claim key persisted in Studio for reconciliation/deduplication. */
+  idempotencyKey: string;
+  webhookEventId?: string;
   rawReplyText: string;
   extraction: {
     totalPrice?: number | null;
@@ -2470,6 +2473,8 @@ export async function createSupplierQuote(params: {
     x_studio_partner_id: params.partnerId,
     x_studio_communication_id: params.communicationId ?? false,
     x_studio_quote_type: params.quoteType,
+    x_studio_idempotency_key: params.idempotencyKey,
+    x_studio_webhook_event_id: params.webhookEventId || false,
     x_studio_status: status,
     x_studio_total_price: params.extraction.totalPrice ?? false,
     x_studio_currency: currencyCode,
@@ -2491,7 +2496,12 @@ export async function createSupplierQuote(params: {
   };
 
   // منع التكرار: عرض قائم لنفس (الطلب + المورد + النوع) يُحدَّث ويُعاد استخدامه بدل إنشاء عرض جديد
-  const existing = await searchRead<{ id: number }>(
+  const existingByKey = await searchRead<{ id: number }>(
+    "x_build_supplier_quote",
+    [["x_studio_idempotency_key", "=", params.idempotencyKey]],
+    ["id"], { limit: 1 }
+  );
+  const existing = existingByKey.length ? existingByKey : await searchRead<{ id: number }>(
     "x_build_supplier_quote",
     [
       ["x_studio_request_id", "=", params.requestId],
@@ -2638,7 +2648,7 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
   if (quotes.length < 2) return;
 
   const claimKey = `winner-selection:${requestId}:${quoteType}`;
-  const claimInitial = { status: "processing" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_winner_selection" };
+  const claimInitial = { status: "processing" as const, operation: "winner_selection" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_winner_selection" };
   const claim = await claimSubmission(claimKey, claimInitial);
   if (!claim.claimed) return;
   try {
@@ -2698,6 +2708,7 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
     x_studio_task_id: task.taskId,
     x_studio_request_id: requestId,
     x_studio_decision_type: WINNER_DECISION_TYPE[quoteType],
+    x_studio_idempotency_key: claimKey,
     x_studio_recommendation: comparisonText,
     x_studio_approval_request_id: approvalRequestId || false,
     x_studio_status: "pending",
@@ -2881,7 +2892,7 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
  */
 export async function checkAndTriggerCustomerOffer(requestId: number): Promise<void> {
   const claimKey = `customer-offer:${requestId}`;
-  const claimInitial = { status: "processing" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_customer_offer" };
+  const claimInitial = { status: "processing" as const, operation: "customer_offer" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_customer_offer" };
   const claim = await claimSubmission(claimKey, claimInitial);
   if (!claim.claimed) return;
   try {
@@ -3063,6 +3074,7 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     x_studio_task_id: task.taskId,
     x_studio_request_id: requestId,
     x_studio_decision_type: CUSTOMER_OFFER_DECISION_TYPE,
+    x_studio_idempotency_key: claimKey,
     x_studio_recommendation: summary,
     x_studio_approval_request_id: approvalRequestId || false,
     x_studio_status: "pending",

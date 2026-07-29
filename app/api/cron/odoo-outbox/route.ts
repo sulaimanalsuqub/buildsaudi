@@ -594,7 +594,7 @@ export async function GET(req: NextRequest) {
 
   for (const row of candidates) {
     const dispatchKey = `outbox-dispatch:${row.id}`;
-    const dispatchInitial = { status: "processing" as const, submissionId: dispatchKey, correlationId: runId, stage: "dispatching_outbox" };
+    const dispatchInitial = { status: "processing" as const, operation: "outbox_dispatch" as const, submissionId: dispatchKey, correlationId: runId, stage: "dispatching_outbox" };
     const dispatchClaim = await claimSubmission(dispatchKey, dispatchInitial);
     if (!dispatchClaim.claimed) {
       // A completed dispatch may have crashed before the Odoo status update. Leave it
