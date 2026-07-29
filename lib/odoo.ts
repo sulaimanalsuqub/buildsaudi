@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { isEnglishBrandName, normalizeVendorPhone } from "@/lib/vendor-options";
 import { convertToSar, normalizeCurrencyCode } from "@/lib/currency";
 import { generateSecureTrackingToken } from "@/lib/tracking-token";
+import { normalizeCustomerPricing } from "@/lib/financial";
+import { claimSubmission, saveSubmissionState } from "@/lib/shared-store";
 
 export { convertToSar, normalizeCurrencyCode } from "@/lib/currency";
 
@@ -1347,6 +1349,7 @@ export async function createAiRecommendationWorkflow(params: {
         x_studio_status: "draft",
         x_studio_reference: `approval:${approvalId}`,
         x_studio_from_address: params.decisionType === "supplier_rfq" ? "supplier@build.sa" : "logistics@build.sa",
+        x_studio_rfq_correlation: generateSecureTrackingToken(),
       })
     );
   }
@@ -1414,12 +1417,14 @@ export async function getPendingAiApprovalDecisions(): Promise<PendingAiApproval
 export type AiCommunicationDraft = {
   id: number;
   partnerId: number;
+  correlation: string;
 };
 
 export async function getDraftAiCommunications(requestId: number, agentId: number): Promise<AiCommunicationDraft[]> {
   const rows = await searchRead<{
     id: number;
     x_studio_partner_id: [number, string] | false;
+    x_studio_rfq_correlation: string | false;
   }>(
     "x_build_ai_communication",
     [
@@ -1427,12 +1432,25 @@ export async function getDraftAiCommunications(requestId: number, agentId: numbe
       ["x_studio_agent_id", "=", agentId],
       ["x_studio_status", "=", "draft"],
     ],
-    ["x_studio_partner_id"],
+    ["x_studio_partner_id", "x_studio_rfq_correlation"],
     { limit: 50, order: "id asc" }
   );
   return rows
     .filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id)
-    .map((row) => ({ id: row.id, partnerId: row.x_studio_partner_id[0] }));
+    .map((row) => ({ id: row.id, partnerId: row.x_studio_partner_id[0], correlation: row.x_studio_rfq_correlation || "" }));
+}
+
+export async function findSentCommunicationByCorrelation(correlation: string, email: string): Promise<{ requestId: number; partnerId: number; communicationId: number; quoteType: "supplier" | "freight" } | null> {
+  const comms = await searchRead<{ id: number; x_name: string | false; x_studio_request_id: [number, string] | false; x_studio_partner_id: [number, string] | false }>(
+    "x_build_ai_communication",
+    [["x_studio_rfq_correlation", "=", correlation], ["x_studio_status", "=", "sent"]],
+    ["x_name", "x_studio_request_id", "x_studio_partner_id"], { limit: 2 }
+  );
+  const comm = comms[0];
+  if (!comm?.x_studio_request_id || !comm.x_studio_partner_id) return null;
+  const partners = await searchRead<{ id: number }>("res.partner", [["id", "=", comm.x_studio_partner_id[0]], ["email", "=ilike", normalizeEmail(email)]], ["id"], { limit: 1 });
+  if (!partners.length) return null;
+  return { requestId: comm.x_studio_request_id[0], partnerId: comm.x_studio_partner_id[0], communicationId: comm.id, quoteType: typeof comm.x_name === "string" && comm.x_name.startsWith("Freight") ? "freight" : "supplier" };
 }
 
 export async function markAiCommunicationSent(communicationId: number, messageId?: string): Promise<void> {
@@ -2244,6 +2262,16 @@ export async function createOutboxEvent(params: {
   /** يُحتفظ به محدوداً — IDs ومعلومات إرسال فقط، لا أسرار ولا بيانات حساسة */
   payload: Record<string, unknown>;
 }): Promise<{ id: number; created: boolean }> {
+  const claimKey = `outbox:${params.idempotencyKey}`;
+  const claimInitial = { status: "processing" as const, submissionId: params.idempotencyKey, correlationId: randomUUID(), stage: "creating_outbox" };
+  const claim = await claimSubmission(claimKey, claimInitial);
+  if (!claim.claimed) {
+    if (claim.state.status === "completed" && claim.state.requestId) return { id: claim.state.requestId, created: false };
+    // A timeout after Odoo commits must be reconciled by the durable event key, not
+    // blindly retried into a second side effect.
+    throw new Error(`Outbox event ${params.idempotencyKey} is already ${claim.state.status}; reconciliation required`);
+  }
+  try {
   const existing = await searchRead<{ id: number }>(
     "x_build_integration_outbox",
     [["x_studio_idempotency_key", "=", params.idempotencyKey]],
@@ -2251,6 +2279,7 @@ export async function createOutboxEvent(params: {
     { limit: 1 }
   );
   if (existing[0]) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: existing[0].id, stage: "existing_outbox" });
     return { id: existing[0].id, created: false };
   }
 
@@ -2268,7 +2297,12 @@ export async function createOutboxEvent(params: {
     x_studio_max_attempts: 5,
     x_studio_payload_json: JSON.stringify(params.payload),
   });
+  await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: id, stage: "outbox_created" });
   return { id, created: true };
+  } catch (error) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage: "outbox_failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }).catch(() => undefined);
+    throw error;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2347,6 +2381,28 @@ export async function getCurrencyRatesToSar(codes: string[]): Promise<Map<string
   return map;
 }
 
+export type FxSnapshot = { currency: string; rate: number; rateDate: string; snapshotAt: string; source: "odoo.res.currency.rate"; amountSar: number };
+
+/** Reads the effective Odoo rate once and returns immutable metadata to persist with the quote. */
+export async function snapshotToSar(amount: number, currency: string): Promise<FxSnapshot | null> {
+  const snapshotAt = new Date().toISOString();
+  const today = snapshotAt.slice(0, 10);
+  if (currency === "SAR") return { currency: "SAR", rate: 1, rateDate: today, snapshotAt, source: "odoo.res.currency.rate", amountSar: Math.round(amount * 100) / 100 };
+  const rows = await searchRead<{ name: string; rate: number; currency_id: [number, string] | false }>(
+    "res.currency.rate",
+    [["currency_id.name", "=", currency], ["name", "<=", today]],
+    ["name", "rate", "currency_id"],
+    { limit: 1, order: "name desc" }
+  );
+  const row = rows[0];
+  if (!row || typeof row.rate !== "number" || row.rate <= 0) return null;
+  const maxAgeDays = Number(process.env.MAX_FX_RATE_AGE_DAYS ?? 2);
+  const ageMs = Date.parse(`${today}T00:00:00Z`) - Date.parse(`${row.name}T00:00:00Z`);
+  if (!Number.isFinite(maxAgeDays) || maxAgeDays < 0 || !Number.isFinite(ageMs) || ageMs > maxAgeDays * 86_400_000) return null;
+  const amountSar = convertToSar(amount, currency, new Map([[currency, row.rate]]));
+  return amountSar === null ? null : { currency, rate: row.rate, rateDate: row.name, snapshotAt, source: "odoo.res.currency.rate", amountSar };
+}
+
 async function replaceSupplierQuoteLines(
   quoteId: number,
   lines: { itemName: string; unitPrice?: number | null; quantity?: number | null; available?: boolean | null; notes?: string | null }[]
@@ -2391,16 +2447,22 @@ export async function createSupplierQuote(params: {
     lines: { itemName: string; unitPrice?: number | null; quantity?: number | null; available?: boolean | null; notes?: string | null }[];
   };
 }): Promise<number> {
-  const currencyCode = normalizeCurrencyCode(params.extraction.currency) || "SAR";
+  // A missing or unrecognized currency is a financial exception, never an implicit SAR value.
+  const currencyCode = normalizeCurrencyCode(params.extraction.currency) || "UNKNOWN";
 
   // إن كان هناك سعر بعملة غير SAR، تأكّد من توفّر سعر صرف نشط في Odoo قبل السماح بالتسعير الآلي
+  let snapshot: FxSnapshot | null = null;
   let currencyConvertible = true;
   if (params.extraction.totalPrice != null && currencyCode !== "SAR") {
-    const rates = await getCurrencyRatesToSar([currencyCode]);
-    currencyConvertible = rates.has(currencyCode);
+    snapshot = await snapshotToSar(params.extraction.totalPrice, currencyCode);
+    currencyConvertible = snapshot !== null;
+  } else if (params.extraction.totalPrice != null && currencyCode === "SAR") {
+    snapshot = await snapshotToSar(params.extraction.totalPrice, currencyCode);
   }
   // عرض بعملة لا يمكن تحويلها بأمان لا يجوز أن يدخل المقارنة/التسعير الآلي — يُحوَّل للمراجعة اليدوية
   const status = !currencyConvertible ? "needs_review" : params.extraction.confidence >= 0.5 ? "analyzed" : "needs_review";
+  const taxState = params.extraction.includesTax === true ? "included" : params.extraction.includesTax === false ? "excluded" : "unknown";
+  const deliveryState = params.extraction.includesDelivery === true ? "included" : params.extraction.includesDelivery === false ? "excluded" : "unknown";
 
   const fields = {
     x_name: `Quote — Request #${params.requestId} — Partner #${params.partnerId}`,
@@ -2411,11 +2473,18 @@ export async function createSupplierQuote(params: {
     x_studio_status: status,
     x_studio_total_price: params.extraction.totalPrice ?? false,
     x_studio_currency: currencyCode,
+    x_studio_fx_rate: snapshot?.rate ?? false,
+    x_studio_fx_rate_date: snapshot?.rateDate ?? false,
+    x_studio_fx_snapshot_at: snapshot?.snapshotAt?.slice(0, 19).replace("T", " ") ?? false,
+    x_studio_fx_source: snapshot?.source ?? false,
+    x_studio_total_price_sar: snapshot?.amountSar ?? false,
     x_studio_lead_time_days: params.extraction.leadTimeDays ?? false,
     x_studio_validity_days: params.extraction.validityDays ?? false,
     x_studio_payment_terms: params.extraction.paymentTerms || false,
     x_studio_includes_delivery: params.extraction.includesDelivery ?? false,
     x_studio_includes_tax: params.extraction.includesTax ?? false,
+    x_studio_tax_inclusion_state: taxState,
+    x_studio_delivery_inclusion_state: deliveryState,
     x_studio_raw_reply_text: params.rawReplyText,
     x_studio_confidence_score: params.extraction.confidence,
     x_studio_received_at: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -2486,6 +2555,7 @@ async function getAnalyzedQuotesForComparison(requestId: number, quoteType: "sup
     x_studio_partner_id: [number, string] | false;
     x_studio_total_price: number | false;
     x_studio_currency: string | false;
+    x_studio_total_price_sar: number | false;
     x_studio_lead_time_days: number | false;
     x_studio_validity_days: number | false;
     x_studio_payment_terms: string | false;
@@ -2496,18 +2566,15 @@ async function getAnalyzedQuotesForComparison(requestId: number, quoteType: "sup
       ["x_studio_quote_type", "=", quoteType],
       ["x_studio_status", "=", "analyzed"],
     ],
-    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_payment_terms"]
+    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_total_price_sar", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_payment_terms"]
   );
   const withPartner = rows.filter((row): row is typeof row & { x_studio_partner_id: [number, string] } => !!row.x_studio_partner_id);
 
-  // كل المقارنة تتم بعملة موحّدة (SAR) — نجلب أسعار الصرف مرة واحدة من Odoo
-  const currencies = withPartner.map((r) => normalizeCurrencyCode(r.x_studio_currency || "SAR") || "SAR");
-  const rates = await getCurrencyRatesToSar(currencies);
-
   return withPartner.map((row) => {
     const totalPrice = row.x_studio_total_price === false ? null : row.x_studio_total_price;
-    const currency = normalizeCurrencyCode(row.x_studio_currency || "SAR") || "SAR";
-    const totalPriceSar = totalPrice === null ? null : convertToSar(totalPrice, currency, rates);
+    const currency = normalizeCurrencyCode(row.x_studio_currency || null) || "UNKNOWN";
+    // A decision must be reproducible. Never re-price a received quote using today's rate.
+    const totalPriceSar = row.x_studio_total_price_sar === false ? null : row.x_studio_total_price_sar;
     return {
       id: row.id,
       partnerId: row.x_studio_partner_id[0],
@@ -2570,6 +2637,11 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
   const quotes = await getAnalyzedQuotesForComparison(requestId, quoteType);
   if (quotes.length < 2) return;
 
+  const claimKey = `winner-selection:${requestId}:${quoteType}`;
+  const claimInitial = { status: "processing" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_winner_selection" };
+  const claim = await claimSubmission(claimKey, claimInitial);
+  if (!claim.claimed) return;
+  try {
   const existingDecision = await searchRead<{ id: number }>(
     "x_build_ai_approval",
     [
@@ -2579,7 +2651,10 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
     ["id"],
     { limit: 1 }
   );
-  if (existingDecision.length) return;
+  if (existingDecision.length) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: existingDecision[0].id, stage: "existing_winner_selection" });
+    return;
+  }
 
   const ranked = rankQuotes(quotes);
   const comparisonText = `مقارنة عروض ${quoteType === "supplier" ? "الموردين" : "الشحن"} للطلب #${requestId} (الأفضل أولاً):\n${ranked
@@ -2594,7 +2669,10 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
     needsApproval: true,
     status: "needs_approval",
   });
-  if (!task) return;
+  if (!task) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage: "task_not_created" });
+    return;
+  }
 
   const categoryName = WINNER_CATEGORY_NAME[quoteType];
   const categoryId = await ensureApprovalCategoryId(categoryName, categoryName);
@@ -2614,7 +2692,7 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
     }
   }
 
-  await create("x_build_ai_approval", {
+  const decisionId = await create("x_build_ai_approval", {
     x_name: `${categoryName} - Request #${requestId}`,
     x_studio_agent_id: task.agentId,
     x_studio_task_id: task.taskId,
@@ -2626,6 +2704,11 @@ export async function checkAndTriggerWinnerSelection(requestId: number, quoteTyp
   });
 
   await write("x_build_procurement_request", [requestId], { x_studio_internal_status: "comparing" });
+  await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: decisionId, stage: "winner_selection_created" });
+  } catch (error) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage: "winner_selection_failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export type PendingWinnerSelectionDecision = {
@@ -2732,6 +2815,11 @@ type WinnerQuote = {
   validityDays: number | null;
   includesDelivery: boolean;
   includesTax: boolean;
+  fxRate: number | null;
+  fxRateDate: string | null;
+  fxSnapshotAt: string | null;
+  taxState: "included" | "excluded" | "unknown";
+  deliveryState: "included" | "excluded" | "unknown";
 };
 
 async function getWinnerQuote(requestId: number, quoteType: "supplier" | "freight"): Promise<WinnerQuote | null> {
@@ -2740,6 +2828,12 @@ async function getWinnerQuote(requestId: number, quoteType: "supplier" | "freigh
     x_studio_partner_id: [number, string] | false;
     x_studio_total_price: number | false;
     x_studio_currency: string | false;
+    x_studio_total_price_sar: number | false;
+    x_studio_fx_rate: number | false;
+    x_studio_fx_rate_date: string | false;
+    x_studio_fx_snapshot_at: string | false;
+    x_studio_tax_inclusion_state: "included" | "excluded" | "unknown" | false;
+    x_studio_delivery_inclusion_state: "included" | "excluded" | "unknown" | false;
     x_studio_lead_time_days: number | false;
     x_studio_validity_days: number | false;
     x_studio_includes_delivery: boolean;
@@ -2751,24 +2845,28 @@ async function getWinnerQuote(requestId: number, quoteType: "supplier" | "freigh
       ["x_studio_quote_type", "=", quoteType],
       ["x_studio_is_winner", "=", true],
     ],
-    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_includes_delivery", "x_studio_includes_tax"],
+    ["x_studio_partner_id", "x_studio_total_price", "x_studio_currency", "x_studio_total_price_sar", "x_studio_fx_rate", "x_studio_fx_rate_date", "x_studio_fx_snapshot_at", "x_studio_tax_inclusion_state", "x_studio_delivery_inclusion_state", "x_studio_lead_time_days", "x_studio_validity_days", "x_studio_includes_delivery", "x_studio_includes_tax"],
     { limit: 1, order: "id desc" }
   );
   const row = rows[0];
   if (!row) return null;
   const totalPrice = row.x_studio_total_price === false ? null : row.x_studio_total_price;
-  const currency = normalizeCurrencyCode(row.x_studio_currency || "SAR") || "SAR";
-  const rates = totalPrice !== null && currency !== "SAR" ? await getCurrencyRatesToSar([currency]) : new Map([["SAR", 1]]);
+  const currency = normalizeCurrencyCode(row.x_studio_currency || null) || "UNKNOWN";
   return {
     id: row.id,
     partnerName: row.x_studio_partner_id ? row.x_studio_partner_id[1] : "-",
     totalPrice,
     currency,
-    totalPriceSar: totalPrice === null ? null : convertToSar(totalPrice, currency, rates),
+    totalPriceSar: row.x_studio_total_price_sar === false ? null : row.x_studio_total_price_sar,
     leadTimeDays: row.x_studio_lead_time_days === false ? null : row.x_studio_lead_time_days,
     validityDays: row.x_studio_validity_days === false ? null : row.x_studio_validity_days,
     includesDelivery: row.x_studio_includes_delivery,
     includesTax: row.x_studio_includes_tax,
+    fxRate: row.x_studio_fx_rate === false ? null : row.x_studio_fx_rate,
+    fxRateDate: row.x_studio_fx_rate_date || null,
+    fxSnapshotAt: row.x_studio_fx_snapshot_at || null,
+    taxState: row.x_studio_tax_inclusion_state || "unknown",
+    deliveryState: row.x_studio_delivery_inclusion_state || "unknown",
   };
 }
 
@@ -2782,6 +2880,14 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
  * لا يكرر الإنشاء لو سبق أن أُنشئ قرار عرض عميل لنفس الطلب.
  */
 export async function checkAndTriggerCustomerOffer(requestId: number): Promise<void> {
+  const claimKey = `customer-offer:${requestId}`;
+  const claimInitial = { status: "processing" as const, submissionId: claimKey, correlationId: randomUUID(), stage: "creating_customer_offer" };
+  const claim = await claimSubmission(claimKey, claimInitial);
+  if (!claim.claimed) return;
+  try {
+  const stop = async (stage: string) => {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage });
+  };
   const existingDecision = await searchRead<{ id: number }>(
     "x_build_ai_approval",
     [
@@ -2791,17 +2897,20 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     ["id"],
     { limit: 1 }
   );
-  if (existingDecision.length) return;
+  if (existingDecision.length) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: existingDecision[0].id, stage: "existing_customer_offer" });
+    return;
+  }
 
   const supplierWinner = await getWinnerQuote(requestId, "supplier");
-  if (!supplierWinner || supplierWinner.totalPrice === null) return;
+  if (!supplierWinner || supplierWinner.totalPrice === null) { await stop("supplier_winner_missing"); return; }
   // عرض مورد فائز بعملة تعذّر تحويلها لSAR لا يجوز تسعيره آلياً — يُترك للمعالجة اليدوية (لا نُرسل رقماً خاطئاً)
   if (supplierWinner.totalPriceSar === null) {
     await postProcurementRequestNote(
       requestId,
       `تعذّر إعداد عرض العميل آلياً: عرض المورد الفائز بعملة "${supplierWinner.currency}" بلا سعر صرف نشط في Odoo. فعّل العملة وسعر صرفها في Odoo أو سعّر الطلب يدوياً.`
     );
-    return;
+    await stop("supplier_fx_missing"); return;
   }
 
   // مكوّن الشحن مطلوب فقط إن كانت جولة مقارنة شحن قد فُتحت لهذا الطلب — إن كانت مفتوحة ولم يُعتمَد فائزها بعد، ننتظر (يُعاد الفحص عند اعتماده)
@@ -2817,13 +2926,13 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
   let freightWinner: WinnerQuote | null = null;
   if (freightRound.length) {
     freightWinner = await getWinnerQuote(requestId, "freight");
-    if (!freightWinner || freightWinner.totalPrice === null) return;
+    if (!freightWinner || freightWinner.totalPrice === null) { await stop("freight_winner_missing"); return; }
     if (freightWinner.totalPriceSar === null) {
       await postProcurementRequestNote(
         requestId,
         `تعذّر إعداد عرض العميل آلياً: عرض الناقل الفائز بعملة "${freightWinner.currency}" بلا سعر صرف نشط في Odoo.`
       );
-      return;
+      await stop("freight_fx_missing"); return;
     }
   }
 
@@ -2833,16 +2942,46 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     [requestId],
     ["x_studio_cost_manual_override"]
   );
-  if (overrideRows[0]?.x_studio_cost_manual_override) return;
+  if (overrideRows[0]?.x_studio_cost_manual_override) { await stop("manual_override"); return; }
 
   // كل الحسابات بعملة موحّدة (SAR) بعد التحويل بأسعار Odoo — لا جمع/مقارنة أرقام بعملات مختلفة
-  const materialsCostSar = supplierWinner.totalPriceSar;
-  const freightCostSar = freightWinner?.totalPriceSar ?? 0;
-  const totalCost = round2(materialsCostSar + freightCostSar);
+  if (supplierWinner.taxState === "unknown" || supplierWinner.deliveryState === "unknown") {
+    await postProcurementRequestNote(requestId, "تعذر التسعير الآلي: حالة شمول ضريبة القيمة المضافة أو التوصيل في عرض المورد غير معروفة.");
+    await stop("supplier_inclusion_unknown"); return;
+  }
+  const vatRatePct = Number(process.env.SAUDI_VAT_RATE_PCT ?? 15);
+  if (!Number.isFinite(vatRatePct) || vatRatePct < 0) throw new Error("Invalid SAUDI_VAT_RATE_PCT");
+  let freightNetSar: number | null = null;
+  if (freightWinner) {
+    if (freightWinner.taxState === "unknown" || freightWinner.totalPriceSar === null) {
+      await postProcurementRequestNote(requestId, "تعذر التسعير الآلي: حالة ضريبة عرض الشحن غير معروفة.");
+      await stop("freight_tax_unknown"); return;
+    }
+    freightNetSar = freightWinner.taxState === "included"
+      ? round2(freightWinner.totalPriceSar / (1 + vatRatePct / 100))
+      : freightWinner.totalPriceSar;
+  }
   const rawMarkup = Number(process.env.CUSTOMER_QUOTE_MARKUP_PCT);
   const markupPct = Number.isFinite(rawMarkup) && rawMarkup >= 0 ? rawMarkup : DEFAULT_CUSTOMER_MARKUP_PCT;
-  const salePrice = round2(totalCost * (1 + markupPct / 100));
-  const margin = round2(salePrice - totalCost);
+  let normalized;
+  try {
+    normalized = normalizeCustomerPricing({
+      supplierGrossSar: supplierWinner.totalPriceSar,
+      taxState: supplierWinner.taxState,
+      deliveryState: supplierWinner.deliveryState,
+      externalFreightSar: freightNetSar,
+      vatRatePct,
+      markupPct,
+    });
+  } catch (error) {
+    await postProcurementRequestNote(requestId, `تعذر التسعير الآلي: ${error instanceof Error ? error.message : "بيانات مالية متناقضة"}`);
+    await stop("financial_normalization_failed"); return;
+  }
+  const materialsCostSar = normalized.materialsNetSar;
+  const freightCostSar = normalized.externalFreightSar;
+  const totalCost = normalized.procurementCostSar;
+  const salePrice = normalized.customerTaxableBaseSar;
+  const margin = normalized.markupSar;
   const grossMarginPct = salePrice > 0 ? round2((margin / salePrice) * 100) : 0;
 
   // نكتب حقول الإدخال + الحقول المشتقّة معاً (بالـSAR) — لا اعتماد على أتمتة خارجية غير مضمونة لاشتقاق الهامش
@@ -2854,6 +2993,15 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     x_studio_margin: margin,
     x_studio_markup_pct: markupPct,
     x_studio_gross_margin_pct: grossMarginPct,
+    x_studio_materials_net_cost: normalized.materialsNetSar,
+    x_studio_supplier_input_vat: normalized.supplierInputVatSar,
+    x_studio_customer_taxable_base: normalized.customerTaxableBaseSar,
+    x_studio_output_vat: normalized.outputVatSar,
+    x_studio_customer_gross_total: normalized.customerGrossSar,
+    x_studio_fx_rate: supplierWinner.fxRate ?? false,
+    x_studio_fx_rate_date: supplierWinner.fxRateDate || false,
+    x_studio_fx_snapshot_at: supplierWinner.fxSnapshotAt || false,
+    x_studio_fx_source: "odoo.res.currency.rate",
     x_studio_quote_scenario: "auto-v1",
     x_studio_internal_status: "preparing_customer_offer",
     x_studio_customer_status: "quote_preparing",
@@ -2887,7 +3035,10 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     needsApproval: true,
     status: "needs_approval",
   });
-  if (!task) return;
+  if (!task) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage: "task_not_created" });
+    return;
+  }
 
   const categoryId = await ensureApprovalCategoryId(CUSTOMER_OFFER_CATEGORY_NAME, WINNER_CATEGORY_NAME.supplier);
   let approvalRequestId: number | null = null;
@@ -2906,7 +3057,7 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     }
   }
 
-  await create("x_build_ai_approval", {
+  const decisionId = await create("x_build_ai_approval", {
     x_name: `${CUSTOMER_OFFER_CATEGORY_NAME} - Request #${requestId}`,
     x_studio_agent_id: task.agentId,
     x_studio_task_id: task.taskId,
@@ -2916,6 +3067,11 @@ export async function checkAndTriggerCustomerOffer(requestId: number): Promise<v
     x_studio_approval_request_id: approvalRequestId || false,
     x_studio_status: "pending",
   });
+  await saveSubmissionState(claimKey, { ...claimInitial, status: "completed", requestId: decisionId, stage: "customer_offer_created" });
+  } catch (error) {
+    await saveSubmissionState(claimKey, { ...claimInitial, status: "failed", stage: "customer_offer_failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export type PendingCustomerOfferDecision = {

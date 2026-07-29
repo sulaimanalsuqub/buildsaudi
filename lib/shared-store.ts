@@ -17,6 +17,8 @@ function config() {
 
 const local = new Map<string, { value: string; expiresAt: number }>();
 
+export function resetSharedStoreForTests(): void { local.clear(); }
+
 async function command(args: string[]): Promise<RedisReply> {
   const cfg = config();
   if (!cfg) {
@@ -52,6 +54,7 @@ export type SubmissionState = {
   requestId?: number;
   trackingNumber?: string;
   trackingToken?: string;
+  quoteType?: "supplier" | "freight";
   stage?: string;
   correlationId: string;
   error?: string;
@@ -72,6 +75,45 @@ export async function reserveSubmission(key: string, initial: SubmissionState): 
   const existing = await getSubmissionState(key);
   if (!existing) throw new Error("Shared submission reservation lost");
   return { claimed: false, state: existing };
+}
+
+/**
+ * Atomically starts a new submission or safely resumes a previously failed one.
+ * A completed result is immutable; a processing result is owned by another invocation.
+ */
+export async function claimSubmission(key: string, initial: SubmissionState): Promise<{ claimed: boolean; state: SubmissionState }> {
+  const cfg = config();
+  if (!cfg) {
+    const now = Date.now();
+    const raw = local.get(key);
+    if (raw && raw.expiresAt <= now) local.delete(key);
+    const currentRaw = local.get(key)?.value;
+    const current = currentRaw ? JSON.parse(currentRaw) as SubmissionState : null;
+    if (!current || current.status === "failed") {
+      local.set(key, { value: JSON.stringify(initial), expiresAt: now + SUBMISSION_TTL_SECONDS * 1000 });
+      return { claimed: true, state: initial };
+    }
+    return { claimed: false, state: current };
+  }
+  const script = [
+    "local raw=redis.call('GET',KEYS[1])",
+    "if not raw then redis.call('SET',KEYS[1],ARGV[1],'EX',ARGV[2]); return {1,ARGV[1]} end",
+    "local state=cjson.decode(raw)",
+    "if state.status=='failed' then redis.call('SET',KEYS[1],ARGV[1],'EX',ARGV[2]); return {1,ARGV[1]} end",
+    "return {0,raw}",
+  ].join("; ");
+  const response = await fetch(`${cfg.url}/pipeline`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cfg.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify([["EVAL", script, "1", key, JSON.stringify(initial), String(SUBMISSION_TTL_SECONDS)]]),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Shared Redis HTTP ${response.status}`);
+  const body = (await response.json()) as { result?: unknown; error?: string }[];
+  if (body[0]?.error) throw new Error(`Shared Redis error: ${body[0].error}`);
+  const result = body[0]?.result as [number, string] | undefined;
+  if (!Array.isArray(result) || typeof result[1] !== "string") throw new Error("Invalid shared submission claim response");
+  return { claimed: result[0] === 1, state: JSON.parse(result[1]) as SubmissionState };
 }
 
 export async function saveSubmissionState(key: string, state: SubmissionState): Promise<void> {

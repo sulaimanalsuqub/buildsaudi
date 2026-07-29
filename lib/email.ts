@@ -1164,6 +1164,8 @@ export async function sendSupplierRfqRequestEmail(req: {
   email: string;
   projectName: string;
   trackingNumber: string;
+  /** Correlation token unique to this RFQ communication; replies must preserve it. */
+  correlation: string;
   description: string;
   lines: RfqLine[];
 }) {
@@ -1171,7 +1173,7 @@ export async function sendSupplierRfqRequestEmail(req: {
     from: FROM,
     to: req.email,
     replyTo: "supplier@build.sa",
-    subject: `RFQ Request — ${req.trackingNumber} — Build Saudi`,
+    subject: `RFQ Request — ${req.trackingNumber} — Build Saudi [RFQID:${req.correlation}]`,
     html: emailShell({
       previewText: `طلب عرض سعر من Build Saudi للطلب ${req.trackingNumber}`,
       accentColor: "#1D3F1F",
@@ -1198,6 +1200,8 @@ export async function sendCarrierRfqRequestEmail(req: {
   email: string;
   projectName: string;
   trackingNumber: string;
+  /** Correlation token unique to this RFQ communication; replies must preserve it. */
+  correlation: string;
   description: string;
   lines: RfqLine[];
 }) {
@@ -1205,7 +1209,7 @@ export async function sendCarrierRfqRequestEmail(req: {
     from: FROM,
     to: req.email,
     replyTo: "operations@build.sa",
-    subject: `Freight RFQ — ${req.trackingNumber} — Build Saudi`,
+    subject: `Freight RFQ — ${req.trackingNumber} — Build Saudi [RFQID:${req.correlation}]`,
     html: emailShell({
       previewText: `طلب عرض سعر شحن من Build Saudi للطلب ${req.trackingNumber}`,
       accentColor: "#1D3F1F",

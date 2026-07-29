@@ -25,20 +25,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // pdf-parse / xlsx تحتوي native/CJS وقد تُسقط وحدات API عند bundling إن لم تُستثنَ
-  serverExternalPackages: ["pdf-parse", "xlsx"],
+  // pdf-parse contains native/CJS dependencies and is loaded only on server routes.
+  serverExternalPackages: ["pdf-parse"],
   // pdfjs-dist (تبعية pdf-parse) تستدعي @napi-rs/canvas ديناميكياً (require داخل try/catch) — تعقّب Vercel التلقائي (@vercel/nft)
   // لا يكتشف هذا النمط الديناميكي فيُسقط الملف الثنائي من الحزمة المنشورة → "Cannot find module '@napi-rs/canvas'" وقت التشغيل
   outputFileTracingIncludes: {
     "/api/quotes/register": ["./node_modules/@napi-rs/canvas*/**/*"],
-  },
-  webpack(config) {
-    config.infrastructureLogging = {
-      ...config.infrastructureLogging,
-      level: "error",
-    };
-
-    return config;
   },
   async headers() {
     return [

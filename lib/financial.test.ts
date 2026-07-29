@@ -18,3 +18,13 @@ test("unknown supplier inclusion states block automatic pricing", () => {
   assert.throws(() => normalizeCustomerPricing({ supplierGrossSar: 1000, taxState: "unknown", deliveryState: "included", externalFreightSar: null, vatRatePct: 15, markupPct: 10 }));
   assert.throws(() => normalizeCustomerPricing({ supplierGrossSar: 1000, taxState: "excluded", deliveryState: "unknown", externalFreightSar: null, vatRatePct: 15, markupPct: 10 }));
 });
+
+test("all tax/delivery combinations either normalize or fail closed", () => {
+  const base = { supplierGrossSar: 1150, vatRatePct: 15, markupPct: 10 };
+  assert.equal(normalizeCustomerPricing({ ...base, taxState: "included", deliveryState: "included", externalFreightSar: null }).customerGrossSar, 1265);
+  assert.equal(normalizeCustomerPricing({ ...base, taxState: "included", deliveryState: "excluded", externalFreightSar: 100 }).customerGrossSar, 1391.5);
+  assert.equal(normalizeCustomerPricing({ ...base, taxState: "excluded", deliveryState: "included", externalFreightSar: null }).customerGrossSar, 1454.75);
+  assert.equal(normalizeCustomerPricing({ ...base, taxState: "excluded", deliveryState: "excluded", externalFreightSar: 100 }).customerGrossSar, 1581.25);
+  assert.throws(() => normalizeCustomerPricing({ ...base, taxState: "included", deliveryState: "included", externalFreightSar: 1 }));
+  assert.throws(() => normalizeCustomerPricing({ ...base, taxState: "excluded", deliveryState: "excluded", externalFreightSar: null }));
+});

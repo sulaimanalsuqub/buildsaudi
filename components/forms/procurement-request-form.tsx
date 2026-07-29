@@ -405,7 +405,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
                 }`}
               >
                 <Paperclip className="h-5 w-5 text-brand-primary" />
-                <input type="file" multiple accept=".csv,.pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
+                <input type="file" multiple accept=".csv,.pdf" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
                 <span>{textByLang(isRtl, "Choose a file, or drag and drop it here", "اختر ملفاً، أو اسحبه وأفلته هنا")}</span>
               </label>
               {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}

@@ -32,6 +32,7 @@ import {
   type SupplierNotificationProfile,
 } from "@/lib/odoo";
 import { generateOnboardingToken } from "@/lib/vendor-onboarding-token";
+import { claimSubmission, saveSubmissionState } from "@/lib/shared-store";
 import {
   sendCarrierFinalReviewNotification,
   sendCarrierFullyApprovedEmail,
@@ -410,6 +411,15 @@ async function syncApprovedAiRfqs(): Promise<{ approved: number; rejected: numbe
 
     const communications = await getDraftAiCommunications(decision.requestId, decision.agentId);
     for (const communication of communications) {
+      if (!communication.correlation) {
+        // Do not send an RFQ that cannot later be associated unambiguously.
+        await sendOpsAlertEmail({
+          subject: "تم منع إرسال RFQ بلا رمز ارتباط فريد",
+          details: [{ label: "معرف الاتصال", value: String(communication.id) }, { label: "معرف الطلب", value: String(decision.requestId) }],
+        }).catch(() => undefined);
+        results.missingRecipients += 1;
+        continue;
+      }
       const recipient = await getPartnerRfqRecipient(communication.partnerId);
       if (!recipient) {
         results.missingRecipients += 1;
@@ -423,6 +433,7 @@ async function syncApprovedAiRfqs(): Promise<{ approved: number; rejected: numbe
               email: recipient.email,
               projectName: request.projectName,
               trackingNumber: request.trackingNumber,
+              correlation: communication.correlation,
               description: request.description,
               lines: request.lines,
             })
@@ -431,6 +442,7 @@ async function syncApprovedAiRfqs(): Promise<{ approved: number; rejected: numbe
               email: recipient.email,
               projectName: request.projectName,
               trackingNumber: request.trackingNumber,
+              correlation: communication.correlation,
               description: request.description,
               lines: request.lines,
             });
@@ -581,9 +593,19 @@ export async function GET(req: NextRequest) {
   const results = { processed: 0, sent: 0, retried: 0, dead_letter: 0, skipped: 0 };
 
   for (const row of candidates) {
+    const dispatchKey = `outbox-dispatch:${row.id}`;
+    const dispatchInitial = { status: "processing" as const, submissionId: dispatchKey, correlationId: runId, stage: "dispatching_outbox" };
+    const dispatchClaim = await claimSubmission(dispatchKey, dispatchInitial);
+    if (!dispatchClaim.claimed) {
+      // A completed dispatch may have crashed before the Odoo status update. Leave it
+      // visible for reconciliation rather than re-sending an email side effect.
+      results.skipped += 1;
+      continue;
+    }
     // قفل تفاؤلي: تحقّق أن الحدث ما زال بحالة قابلة للمعالجة قبل الادّعاء به (يقلل تصادم التشغيل المتزامن)
     const freshRows = await read<{ x_studio_status: string }>("x_build_integration_outbox", [row.id], ["x_studio_status"]);
     if (!freshRows[0] || !["pending", "processing"].includes(freshRows[0].x_studio_status)) {
+      await saveSubmissionState(dispatchKey, { ...dispatchInitial, status: "completed", stage: "outbox_not_dispatchable" });
       results.skipped += 1;
       continue;
     }
@@ -606,8 +628,10 @@ export async function GET(req: NextRequest) {
         x_studio_processed_at: toOdooDatetime(new Date()),
         x_studio_last_error: false,
       });
+      await saveSubmissionState(dispatchKey, { ...dispatchInitial, status: "completed", requestId: row.id, stage: "outbox_sent" });
       results.sent += 1;
     } catch (error) {
+      await saveSubmissionState(dispatchKey, { ...dispatchInitial, status: "failed", stage: "outbox_dispatch_failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }).catch(() => undefined);
       const message = error instanceof Error ? error.message : String(error);
       const maxAttempts = row.x_studio_max_attempts || 5;
       if (attempts >= maxAttempts) {

@@ -24,8 +24,10 @@ import {
   resolveExistingBrandIds,
   updateProcurementRequestCategories,
 } from "@/lib/odoo";
-import { reserveSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
-import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
+import { rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
+import { checkSharedRateLimit } from "@/lib/shared-store";
+import { validateSafeUpload } from "@/lib/file-validation";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
@@ -133,8 +135,12 @@ const registerSchema = z
 
 export async function POST(req: NextRequest) {
   const clientId = getClientIdentifier(req);
-  const { ok, resetAt } = checkRateLimit(clientId, "forms");
-  if (!ok) return rateLimitError(resetAt, "طلبات التوريد");
+  try {
+    const { ok, resetAt } = await checkSharedRateLimit(`procurement-submit:${clientId}`, 10, 60 * 60);
+    if (!ok) return rateLimitError(resetAt, "طلبات التوريد");
+  } catch {
+    return NextResponse.json({ error: "تعذر تأمين الطلب ضد الإساءة بشكل موثوق؛ حاول لاحقاً" }, { status: 503 });
+  }
 
   const parsed = registerSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
@@ -142,6 +148,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: firstError }, { status: 400 });
   }
   const data = parsed.data;
+  for (const file of data.files) {
+    const validation = validateSafeUpload(file);
+    if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
 
   const humanVerified = await verifyTurnstileToken(data.turnstile_token, clientId);
   if (!humanVerified) {
@@ -153,7 +163,7 @@ export async function POST(req: NextRequest) {
   const initialState: SubmissionState = { status: "processing", submissionId: data.submission_id, correlationId, stage: "validated" };
   let submissionState: SubmissionState = initialState;
   try {
-    const reservation = await reserveSubmission(submissionKey, initialState);
+    const reservation = await claimSubmission(submissionKey, initialState);
     submissionState = reservation.state;
     if (!reservation.claimed) {
       if (submissionState.status === "completed" && submissionState.trackingNumber && submissionState.trackingToken) {
@@ -181,7 +191,31 @@ export async function POST(req: NextRequest) {
     // Recovery after a timeout is keyed in Odoo as well as the shared store.  A schema migration
     // makes x_studio_submission_key unique; without it production must not be released.
     const prior = await findProcurementRequestBySubmissionKey(data.submission_id);
-    const requestId = prior?.id ?? await createProcurementRequest(
+    if (prior && (!prior.trackingNumber || !prior.trackingToken)) {
+      // A prior invocation committed part of the request but not a safe completion. Do not guess
+      // which child writes ran; reconciliation owns it and this retry must not duplicate lines/files.
+      submissionState = { ...submissionState, status: "failed", requestId: prior.id, stage: "reconciliation_required", error: "Existing incomplete Odoo submission" };
+      await saveSubmissionState(submissionKey, submissionState);
+      await postProcurementRequestNote(prior.id, `طلب الموقع ذو مفتاح الإرسال ${data.submission_id} يحتاج reconciliation: سجل موجود بلا tracking مكتمل. لا تُنشأ بنود/مرفقات مكررة تلقائياً.`).catch(() => undefined);
+      return NextResponse.json({ error: "طلب سابق يحتاج مراجعة تشغيلية قبل استئناف المعالجة", correlation_id: correlationId }, { status: 409 });
+    }
+    if (prior?.trackingNumber && prior.trackingToken) {
+      // A prior invocation can have committed tracking then timed out before its
+      // notification outbox write. Reconcile that idempotently before acknowledging
+      // the replay as complete.
+      await createOutboxEvent({
+        eventType: "procurement.request_received",
+        resourceModel: "x_build_procurement_request",
+        resourceId: prior.id,
+        procurementRequestId: prior.id,
+        idempotencyKey: `procurement.request_received:${prior.id}`,
+        payload: { request_id: prior.id, tracking_token: prior.trackingToken },
+      });
+      submissionState = { ...submissionState, status: "completed", requestId: prior.id, trackingNumber: prior.trackingNumber, trackingToken: prior.trackingToken, stage: "recovered_completed" };
+      await saveSubmissionState(submissionKey, submissionState);
+      return NextResponse.json({ ok: true, replayed: true, tracking_number: prior.trackingNumber, tracking_token: prior.trackingToken, correlation_id: correlationId });
+    }
+    const requestId = await createProcurementRequest(
       {
         contactName: data.contact_name,
         companyName: data.company_name || undefined,

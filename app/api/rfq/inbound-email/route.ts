@@ -12,6 +12,7 @@ export const maxDuration = 60;
 
 // يستخرج رقم التتبع من سطر الموضوع رغم أي بادئة رد (Re:/RE:/رد:) تضيفها برامج البريد
 const TRACKING_NUMBER_PATTERN = /(BLD-\d{6}-[A-Z0-9]+)/i;
+const RFQ_CORRELATION_PATTERN = /\[RFQID:([A-Za-z0-9_-]{32,})\]/;
 const TIMESTAMP_TOLERANCE_SECONDS = 5 * 60;
 
 /** تحقق توقيع Svix (المعيار الذي توقّع به Resend كل الـwebhooks) — HMAC-SHA256 على "id.timestamp.body" بمفتاح whsec_ بعد فك base64 */
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
   let attachmentCount = 0;
   try {
     const content = await resolveInboundContent(data);
-    text = content.text;
+    text = [content.text, content.attachmentText].filter(Boolean).join("\n\n---\n\n");
     attachmentCount = content.attachmentCount;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -89,9 +90,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unable to retrieve inbound email" }, { status: 500 });
   }
   const trackingMatch = subject.match(TRACKING_NUMBER_PATTERN);
+  const correlationMatch = subject.match(RFQ_CORRELATION_PATTERN);
 
   // من هنا فصاعداً نرجع 200 دائماً: إعادة محاولة Resend لن تصلح رسالة ناقصة، والتنبيه الداخلي يضمن ألا يضيع رد فعلي بصمت
-  if (!fromEmail || !trackingMatch || text.length < 5) {
+  if (!fromEmail || !trackingMatch || !correlationMatch || (text.length < 5 && !attachmentCount)) {
     await sendOpsAlertEmail({
       subject: "بريد وارد على قناة RFQ تعذر ربطه",
       details: [
@@ -103,6 +105,8 @@ export async function POST(req: NextRequest) {
             ? "عنوان مرسل غير صالح"
             : !trackingMatch
               ? "لا يوجد رقم تتبع بالموضوع"
+              : !correlationMatch
+                ? "لا يوجد رمز RFQ فريد بالموضوع؛ لا نستخدم تخميناً لربط الرد"
               : attachmentCount
                 ? "الرسالة بلا نص وتحتوي مرفقاً؛ تحتاج معالجة يدوية"
                 : "نص الرسالة فارغ",
@@ -114,7 +118,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await processQuoteReply({ trackingNumber: trackingMatch[1], email: fromEmail, rawText: text });
+    const result = await processQuoteReply({
+      trackingNumber: trackingMatch[1],
+      correlation: correlationMatch[1],
+      email: fromEmail,
+      rawText: text,
+      attachmentOnly: text.length < 5 && attachmentCount > 0,
+      // Svix guarantees a unique delivery event id; the durable store makes retries/replays harmless.
+      idempotencyKey: req.headers.get("svix-id") || undefined,
+    });
     if (!result.ok) {
       await sendOpsAlertEmail({
         subject: "رد RFQ وصل لكن تعذر تسجيله كعرض سعر",

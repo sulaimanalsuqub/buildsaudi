@@ -16,9 +16,9 @@ async function rpc(service, method, args) {
 }
 async function kw(model, method, args, kwargs = {}) { return rpc("object", "execute_kw", [process.env.ODOO_DATABASE, uid, process.env.ODOO_API_KEY, model, method, args, kwargs]); }
 uid = await rpc("common", "login", [process.env.ODOO_DATABASE, process.env.ODOO_USERNAME, process.env.ODOO_API_KEY]);
-const modelRows = await kw("ir.model", "search_read", [[ ["model", "=", "x_build_procurement_request"] ]], { fields: ["id"], limit: 1 });
-if (!modelRows[0]) throw new Error("Procurement request model missing");
-const modelId = modelRows[0].id;
+const models = await kw("ir.model", "search_read", [[ ["model", "in", ["x_build_procurement_request", "x_build_supplier_quote", "x_build_ai_communication"]] ]], { fields: ["id", "model"], limit: 3 });
+const modelByName = new Map(models.map((row) => [row.model, row.id]));
+if (!modelByName.get("x_build_procurement_request") || !modelByName.get("x_build_supplier_quote") || !modelByName.get("x_build_ai_communication")) throw new Error("Required Build models missing");
 const fields = [
   { name: "x_studio_submission_key", field_description: "Website Submission Key", ttype: "char", index: true, copy: false },
   { name: "x_studio_materials_net_cost", field_description: "Materials Net Cost SAR", ttype: "monetary" },
@@ -29,9 +29,25 @@ const fields = [
   { name: "x_studio_fx_rate", field_description: "FX Rate Used", ttype: "float" },
   { name: "x_studio_fx_rate_date", field_description: "FX Rate Date", ttype: "date" },
   { name: "x_studio_fx_source", field_description: "FX Source", ttype: "char" },
+  { name: "x_studio_fx_snapshot_at", field_description: "FX Snapshot At", ttype: "datetime" },
 ];
-for (const field of fields) {
-  const exists = await kw("ir.model.fields", "search_read", [[ ["model_id", "=", modelId], ["name", "=", field.name] ]], { fields: ["id"], limit: 1 });
-  if (!exists.length) await kw("ir.model.fields", "create", [{ ...field, model_id: modelId, state: "manual" }]);
+const quoteFields = [
+  { name: "x_studio_total_price_sar", field_description: "Quote SAR Snapshot", ttype: "monetary" },
+  { name: "x_studio_fx_rate", field_description: "FX Rate Used", ttype: "float" },
+  { name: "x_studio_fx_rate_date", field_description: "FX Rate Date", ttype: "date" },
+  { name: "x_studio_fx_source", field_description: "FX Source", ttype: "char" },
+  { name: "x_studio_fx_snapshot_at", field_description: "FX Snapshot At", ttype: "datetime" },
+  { name: "x_studio_tax_inclusion_state", field_description: "Tax Inclusion State", ttype: "selection", selection: "[('included','Included'),('excluded','Excluded'),('unknown','Unknown')]" },
+  { name: "x_studio_delivery_inclusion_state", field_description: "Delivery Inclusion State", ttype: "selection", selection: "[('included','Included'),('excluded','Excluded'),('unknown','Unknown')]" },
+];
+const communicationFields = [
+  { name: "x_studio_rfq_correlation", field_description: "RFQ Reply Correlation", ttype: "char", index: true, copy: false },
+];
+for (const [model, fieldsForModel] of [["x_build_procurement_request", fields], ["x_build_supplier_quote", quoteFields], ["x_build_ai_communication", communicationFields]]) {
+  const modelId = modelByName.get(model);
+  for (const field of fieldsForModel) {
+    const exists = await kw("ir.model.fields", "search_read", [[ ["model_id", "=", modelId], ["name", "=", field.name] ]], { fields: ["id"], limit: 1 });
+    if (!exists.length) await kw("ir.model.fields", "create", [{ ...field, model_id: modelId, state: "manual" }]);
+  }
 }
-console.log("Schema fields ensured. A database-level unique constraint on x_studio_submission_key is still mandatory and must be added through supported Odoo custom-module/managed-database tooling; Studio fields alone cannot enforce it.");
+console.log("Schema fields ensured. Studio fields cannot provide a database UNIQUE constraint. Durable submission/event claims remain in Redis; a managed Odoo custom module must add UNIQUE constraints for x_studio_submission_key, x_studio_idempotency_key, and x_studio_rfq_correlation before production launch.");

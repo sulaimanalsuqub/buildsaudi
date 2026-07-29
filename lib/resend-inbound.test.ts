@@ -18,7 +18,7 @@ test("resolveInboundContent retrieves the body using Resend email_id", async () 
     }
   );
   assert.equal(requestedId, "received-email-123");
-  assert.deepEqual(result, { text: "Total: 1000 SAR", attachmentCount: 0 });
+  assert.deepEqual(result, { text: "Total: 1000 SAR", attachmentCount: 0, attachmentText: "" });
 });
 
 test("resolveInboundContent converts retrieved HTML when text is absent", async () => {
@@ -42,7 +42,7 @@ test("attachment-only reply remains explicitly detectable for manual handling", 
       attachments: [{ id: "a1", filename: "quote.pdf", content_type: "application/pdf", size: 100 }],
     })
   );
-  assert.deepEqual(result, { text: "", attachmentCount: 1 });
+  assert.deepEqual(result, { text: "", attachmentCount: 1, attachmentText: "" });
 });
 
 test("stripInboundHtml removes scripts and markup", () => {
