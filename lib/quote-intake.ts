@@ -14,7 +14,7 @@ import { createHash, randomUUID } from "crypto";
 
 export type QuoteIntakeResult =
   | { ok: true; quoteId: number; quoteType: "supplier" | "freight"; confidence: number }
-  | { ok: false; reason: "request_not_found" | "partner_not_matched" | "extraction_failed" };
+  | { ok: false; reason: "request_not_found" | "partner_not_matched" | "extraction_failed" | "attachment_review_required" };
 
 /** يعالج رد مورد/ناقل على RFQ (نصاً حراً) ويحوّله لعرض سعر منظَّم في Odoo — تُستخدم من نقطة الاستقبال اليدوية ومن قارئ البريد الوارد معاً */
 export async function processQuoteReply(params: {
@@ -24,6 +24,7 @@ export async function processQuoteReply(params: {
   /** Token embedded in the original RFQ subject. Required for automatic association. */
   correlation?: string;
   attachmentOnly?: boolean;
+  attachmentReference?: string;
   idempotencyKey?: string;
 }): Promise<QuoteIntakeResult> {
   const contentHash = createHash("sha256").update(`${params.trackingNumber}\n${params.email}\n${params.rawText}`).digest("hex");
@@ -37,7 +38,9 @@ export async function processQuoteReply(params: {
     if (claim.state.status === "completed" && claim.state.requestId) {
       return { ok: true, quoteId: claim.state.requestId, quoteType: claim.state.quoteType || "supplier", confidence: 1 };
     }
-    return { ok: false, reason: "extraction_failed" };
+    // Another invocation owns a valid lease. Do not convert that transient state
+    // into a terminal "no quote" acknowledgement; the provider must retry.
+    throw new Error(`Quote intake is ${claim.state.status}; retry after its lease/retry window`);
   }
   try {
   // A tracking number identifies a procurement request, but not one communication: a
@@ -78,9 +81,9 @@ export async function processQuoteReply(params: {
   async function persistExtractedQuote(requestId: number, partnerId: number, communicationId: number | null, quoteType: "supplier" | "freight"): Promise<QuoteIntakeResult> {
 
   if (params.attachmentOnly) {
-    await postProcurementRequestNote(requestId, `وصل رد RFQ بمرفق فقط من ${params.email}. لم يمكن استخراج نص صالح بأمان؛ حُوّل للمراجعة التشغيلية. اتصال RFQ: ${communicationId ?? "غير محدد"}.`);
+    await postProcurementRequestNote(requestId, `وصل رد RFQ بمرفق فقط من ${params.email}. لم يمكن استخراج نص صالح بأمان؛ حُوّل للمراجعة التشغيلية. اتصال RFQ: ${communicationId ?? "غير محدد"}. مرجع البريد/المرفق: ${params.attachmentReference ?? "غير متاح"}. حدث البريد: ${params.idempotencyKey ?? "غير متاح"}.`);
     await saveSubmissionState(key, { ...initial, status: "completed", stage: "attachment_review_required" });
-    return { ok: false, reason: "extraction_failed" };
+    return { ok: false, reason: "attachment_review_required" };
   }
 
   const extraction = await extractQuoteFromReply(params.rawText);

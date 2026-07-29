@@ -28,6 +28,18 @@ test("completed submission replays its persisted result", async () => {
   assert.equal((await getSubmissionState("submission:b"))?.requestId, 42);
 });
 
+test("a failed webhook retry can reclaim once, while a completed quote never creates a second quote", async () => {
+  resetSharedStoreForTests();
+  const webhook = { status: "failed" as const, operation: "webhook_event" as const, submissionId: "evt-1", correlationId: "evt-1", retryAfter: 0 };
+  await saveSubmissionState("webhook-event:evt-1", webhook);
+  assert.equal((await claimSubmission("webhook-event:evt-1", { ...webhook, status: "processing" })).claimed, true);
+  const quote = { status: "processing" as const, operation: "quote" as const, submissionId: "quote-key", correlationId: "quote-1" };
+  await claimSubmission("quote-intake:quote-key", quote);
+  await saveSubmissionState("quote-intake:quote-key", { ...quote, status: "completed", requestId: 501, quoteType: "supplier" });
+  const replay = await claimSubmission("quote-intake:quote-key", { ...quote, correlationId: "quote-2" });
+  assert.equal(replay.claimed, false); assert.equal(replay.state.requestId, 501);
+});
+
 test("failed submission has a single atomic resume claimant", async () => {
   resetSharedStoreForTests();
   const failed = { status: "failed" as const, submissionId: "d", correlationId: "old", error: "timeout", retryAfter: 0 };

@@ -21,6 +21,7 @@ const QuoteExtractionSchema = z.object({
 });
 
 export type ExtractedQuote = z.infer<typeof QuoteExtractionSchema>;
+export class QuoteExtractionRetryableError extends Error {}
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
@@ -43,9 +44,9 @@ const SYSTEM_PROMPT = `أنت خبير مشتريات متمرس في سوق م�
 {"totalPrice": 0, "currency": "string?", "leadTimeDays": 0, "validityDays": 0, "paymentTerms": "string?", "includesDelivery": true, "includesTax": true, "confidence": 0, "lines": [{"itemName": "string", "unitPrice": 0, "quantity": 0, "available": true, "notes": "string?"}]}
 الحقول المنتهية بـ"?" اختيارية — احذفها إن لم تنطبق. إن لم يكن النص عرض سعر فعلي (استفسار/رفض/غير ذي صلة)، أرجع confidence منخفضة جداً (أقل من 0.2) وlines فارغة والحقول الرقمية null.`;
 
-/** يستخلص بيانات عرض سعر من نص رد المورد/الناقل الحر عبر DeepSeek — يعيد null عند غياب المفتاح أو فشل الطلب أو نص فارغ */
+/** Returns null only for a valid message with no extractable quotation. Infrastructure failures throw retryable errors. */
 export async function extractQuoteFromReply(rawText: string): Promise<ExtractedQuote | null> {
-  if (!process.env.DEEPSEEK_API_KEY) return null;
+  if (!process.env.DEEPSEEK_API_KEY) throw new QuoteExtractionRetryableError("DEEPSEEK_API_KEY is not configured");
   const trimmed = rawText.trim();
   if (!trimmed) return null;
 
@@ -67,23 +68,18 @@ export async function extractQuoteFromReply(rawText: string): Promise<ExtractedQ
       }),
     });
 
-    if (!res.ok) {
-      console.error("[quote-extraction] DeepSeek API error:", res.status, await res.text().catch(() => ""));
-      return null;
-    }
+    if (!res.ok) throw new QuoteExtractionRetryableError(`DeepSeek API error: ${res.status}`);
 
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const rawContent = json.choices?.[0]?.message?.content;
-    if (!rawContent) return null;
+    if (!rawContent) throw new QuoteExtractionRetryableError("DeepSeek returned no content");
 
     const parsed = QuoteExtractionSchema.safeParse(JSON.parse(rawContent));
-    if (!parsed.success) {
-      console.error("[quote-extraction] DeepSeek output failed schema validation:", parsed.error.message);
-      return null;
-    }
-    return parsed.data;
+    if (!parsed.success) throw new QuoteExtractionRetryableError("DeepSeek output failed schema validation");
+    return parsed.data.confidence < 0.2 && parsed.data.totalPrice == null ? null : parsed.data;
   } catch (error) {
+    if (error instanceof QuoteExtractionRetryableError) throw error;
     console.error("[quote-extraction] failed:", error instanceof Error ? error.message : error);
-    return null;
+    throw new QuoteExtractionRetryableError(error instanceof Error ? error.message : "DeepSeek request failed");
   }
 }

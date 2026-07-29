@@ -4,6 +4,7 @@ import { sendOpsAlertEmail } from "@/lib/email";
 import { processQuoteReply } from "@/lib/quote-intake";
 import { extractEmailAddress, resolveInboundContent } from "@/lib/resend-inbound";
 import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
+import { retryableInboundOutcome, terminalInboundOutcome } from "@/lib/inbound-webhook-policy";
 
 // نقطة استقبال Resend Inbound (webhook) — القناة التلقائية لردود الموردين/الناقلين على RFQ.
 // حلّت محل قارئ IMAP (Zoho يحجب IMAP على الخطة الحالية). التفعيل يحتاج من لوحة Resend:
@@ -43,9 +44,19 @@ const FAILURE_LABELS: Record<string, string> = {
   request_not_found: "لا يوجد طلب برقم التتبع المذكور بالموضوع",
   partner_not_matched: "بريد المرسل ليس ضمن المرسَل لهم RFQ لهذا الطلب",
   extraction_failed: "تعذر استخلاص بيانات العرض من نص الرد",
+  attachment_review_required: "مرفق العرض يحتاج مراجعة تشغيلية",
 };
 
-export async function POST(req: NextRequest) {
+export type InboundDeps = {
+  resolveInboundContent: typeof resolveInboundContent;
+  processQuoteReply: typeof processQuoteReply;
+  sendOpsAlertEmail: typeof sendOpsAlertEmail;
+  claimSubmission: typeof claimSubmission;
+  saveSubmissionState: typeof saveSubmissionState;
+};
+const defaultDeps: InboundDeps = { resolveInboundContent, processQuoteReply, sendOpsAlertEmail, claimSubmission, saveSubmissionState };
+
+export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps = defaultDeps) {
   const secret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "Inbound webhook is not configured" }, { status: 503 });
@@ -72,7 +83,7 @@ export async function POST(req: NextRequest) {
   const eventInitial = { status: "processing" as const, operation: "webhook_event" as const, submissionId: eventId, correlationId: eventId, stage: "received" };
   let eventState: SubmissionState = eventInitial;
   try {
-    const claimed = await claimSubmission(eventKey, eventInitial);
+    const claimed = await deps.claimSubmission(eventKey, eventInitial);
     eventState = claimed.state;
     if (!claimed.claimed) {
       if (claimed.state.status === "completed") return NextResponse.json({ ok: true, replayed: true });
@@ -83,8 +94,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Webhook idempotency unavailable" }, { status: 503 });
   }
-  const completeEvent = async (stage: string) => saveSubmissionState(eventKey, { ...eventState, status: "completed", stage });
-  const failEvent = async (error: unknown) => saveSubmissionState(eventKey, { ...eventState, status: "failed", stage: "failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) });
+  const completeEvent = async (stage: string) => deps.saveSubmissionState(eventKey, { ...eventState, status: "completed", stage });
+  const failEvent = async (error: unknown) => deps.saveSubmissionState(eventKey, { ...eventState, status: "failed", stage: "failed", error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) });
 
   const data = payload.data;
   const fromEmail = extractEmailAddress(data.from);
@@ -92,13 +103,13 @@ export async function POST(req: NextRequest) {
   let text = "";
   let attachmentCount = 0;
   try {
-    const content = await resolveInboundContent(data);
+    const content = await deps.resolveInboundContent(data);
     text = [content.text, content.attachmentText].filter(Boolean).join("\n\n---\n\n");
     attachmentCount = content.attachmentCount;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[rfq/inbound-email] failed to retrieve received email:", message);
-    await sendOpsAlertEmail({
+    await deps.sendOpsAlertEmail({
       subject: "وصل رد RFQ لكن تعذر جلب محتوى الرسالة من Resend",
       details: [
         { label: "المرسل", value: typeof data.from === "string" ? data.from : "غير معروف" },
@@ -106,16 +117,17 @@ export async function POST(req: NextRequest) {
         { label: "الخطأ", value: message.slice(0, 300) },
       ],
     }).catch(() => undefined);
-    await failEvent(error).catch(() => undefined);
     // خطأ provider مؤقت؛ نعيد 500 كي يعيد Resend تسليم الحدث بدلاً من إسقاط الرد نهائياً.
-    return NextResponse.json({ error: "Unable to retrieve inbound email" }, { status: 500 });
+    const outcome = await retryableInboundOutcome(error, failEvent);
+    return NextResponse.json({ error: "Unable to retrieve inbound email" }, { status: outcome.status });
   }
   const trackingMatch = subject.match(TRACKING_NUMBER_PATTERN);
   const correlationMatch = subject.match(RFQ_CORRELATION_PATTERN);
 
-  // من هنا فصاعداً نرجع 200 دائماً: إعادة محاولة Resend لن تصلح رسالة ناقصة، والتنبيه الداخلي يضمن ألا يضيع رد فعلي بصمت
+  // Terminal malformed/unmatched messages are acknowledged only after their ops alert
+  // has been recorded. Infrastructure failures below remain retryable.
   if (!fromEmail || !trackingMatch || !correlationMatch || (text.length < 5 && !attachmentCount)) {
-    await sendOpsAlertEmail({
+    await deps.sendOpsAlertEmail({
       subject: "بريد وارد على قناة RFQ تعذر ربطه",
       details: [
         { label: "المرسل", value: typeof data.from === "string" ? data.from : "غير معروف" },
@@ -134,23 +146,24 @@ export async function POST(req: NextRequest) {
         },
       ],
       rawText: text,
-    }).catch((error) => console.error("[rfq/inbound-email] ops alert failed:", error instanceof Error ? error.message : error));
-    await completeEvent("unmatched_email");
-    return NextResponse.json({ ok: true, skipped: "unmatched_email" });
+    });
+    const outcome = await terminalInboundOutcome("unmatched_email", () => completeEvent("unmatched_email"));
+    return NextResponse.json(outcome.body, { status: outcome.status });
   }
 
   try {
-    const result = await processQuoteReply({
+    const result = await deps.processQuoteReply({
       trackingNumber: trackingMatch[1],
       correlation: correlationMatch[1],
       email: fromEmail,
       rawText: text,
       attachmentOnly: text.length < 5 && attachmentCount > 0,
+      attachmentReference: typeof data.email_id === "string" ? data.email_id : undefined,
       // Svix guarantees a unique delivery event id; the durable store makes retries/replays harmless.
       idempotencyKey: req.headers.get("svix-id") || undefined,
     });
     if (!result.ok) {
-      await sendOpsAlertEmail({
+      await deps.sendOpsAlertEmail({
         subject: "رد RFQ وصل لكن تعذر تسجيله كعرض سعر",
         details: [
           { label: "المرسل", value: fromEmail },
@@ -159,15 +172,15 @@ export async function POST(req: NextRequest) {
         ],
         rawText: text,
       }).catch((error) => console.error("[rfq/inbound-email] ops alert failed:", error instanceof Error ? error.message : error));
-      await completeEvent(result.reason);
-      return NextResponse.json({ ok: true, skipped: result.reason });
+      const outcome = await terminalInboundOutcome(result.reason, () => completeEvent(result.reason));
+      return NextResponse.json(outcome.body, { status: outcome.status });
     }
     await completeEvent("quote_processed");
     return NextResponse.json({ ok: true, quoteId: result.quoteId, quoteType: result.quoteType, confidence: result.confidence });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[rfq/inbound-email] processing failed:", message);
-    await sendOpsAlertEmail({
+    await deps.sendOpsAlertEmail({
       subject: "خطأ غير متوقع أثناء معالجة رد RFQ وارد",
       details: [
         { label: "المرسل", value: fromEmail },
@@ -176,7 +189,9 @@ export async function POST(req: NextRequest) {
       ],
       rawText: text,
     }).catch(() => undefined);
-    await failEvent(error).catch(() => undefined);
-    return NextResponse.json({ ok: true, skipped: "processing_error" });
+    const outcome = await retryableInboundOutcome(error, failEvent);
+    return NextResponse.json(outcome.body, { status: outcome.status });
   }
 }
+
+export async function POST(req: NextRequest) { return handleInboundWebhook(req); }
