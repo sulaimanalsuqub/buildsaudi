@@ -70,10 +70,10 @@ export function rateLimitError(resetAt: number, type: string = "متكرر") {
   );
 }
 
+// ملاحظة أمنية: لا تثق بأي ترويسة يضبطها العميل نفسه (مثل x-user-id سابقاً) كمعرّف —
+// أي طالب يقدر يزوّرها ليتجاوز الحدّ بالكامل. الاعتماد فقط على ترويسات IP التي تضبطها
+// منصة الاستضافة (Vercel/Cloudflare) ولا يقدر المتصفح تزويرها.
 export function getClientIdentifier(req: Request): string {
-  const userId = req.headers.get("x-user-id");
-  if (userId) return userId;
-
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     req.headers.get("x-real-ip") ||

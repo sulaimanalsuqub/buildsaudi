@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { processQuoteReply } from "@/lib/quote-intake";
+import { verifyBearerSecret } from "@/lib/bearer-auth";
 
 // نقطة استقبال داخلية فقط (لا واجهة عامة) — تُستدعى يدوياً من فريق العمليات
 // لتسجيل رد مورد/ناقل على RFQ كعرض سعر منظَّم في Odoo. القناة التلقائية: /api/rfq/inbound-email (Resend Inbound webhook).
@@ -17,9 +18,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret || authHeader !== `Bearer ${secret}`) {
+  if (!verifyBearerSecret(req.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

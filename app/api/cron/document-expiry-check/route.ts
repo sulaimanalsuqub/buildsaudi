@@ -7,6 +7,7 @@ import {
   write,
 } from "@/lib/odoo";
 import { sendDocumentExpiryAlertEmail } from "@/lib/email";
+import { verifyBearerSecret } from "@/lib/bearer-auth";
 
 export const maxDuration = 60;
 
@@ -26,9 +27,7 @@ function daysBetween(dateStr: string): number {
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerSecret(req.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

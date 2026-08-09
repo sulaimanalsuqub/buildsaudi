@@ -33,6 +33,7 @@ import {
 } from "@/lib/odoo";
 import { generateOnboardingToken } from "@/lib/vendor-onboarding-token";
 import { claimSubmission, saveSubmissionState } from "@/lib/shared-store";
+import { verifyBearerSecret } from "@/lib/bearer-auth";
 import {
   sendCarrierFinalReviewNotification,
   sendCarrierFullyApprovedEmail,
@@ -520,9 +521,7 @@ async function syncCustomerOffers(): Promise<{ approved: number; rejected: numbe
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerSecret(req.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -595,7 +594,16 @@ export async function GET(req: NextRequest) {
   for (const row of candidates) {
     const dispatchKey = `outbox-dispatch:${row.id}`;
     const dispatchInitial = { status: "processing" as const, operation: "outbox_dispatch" as const, submissionId: dispatchKey, correlationId: runId, stage: "dispatching_outbox" };
-    const dispatchClaim = await claimSubmission(dispatchKey, dispatchInitial);
+    // الادّعاء بالحدث (claimSubmission) يعتمد على Redis المشترك — لو غاب/فشل مؤقتاً لا نريد أن
+    // يُسقط ذلك التشغيلة كلها (بقية الدفعة)، بل نتخطى هذا الحدث فقط ويُعاد المحاولة بالتشغيلة التالية.
+    let dispatchClaim: Awaited<ReturnType<typeof claimSubmission>>;
+    try {
+      dispatchClaim = await claimSubmission(dispatchKey, dispatchInitial);
+    } catch (error) {
+      console.error(`[cron/odoo-outbox] claimSubmission unavailable for event ${row.id}, skipping this run:`, error instanceof Error ? error.message : error);
+      results.skipped += 1;
+      continue;
+    }
     if (!dispatchClaim.claimed) {
       // A completed dispatch may have crashed before the Odoo status update. Leave it
       // visible for reconciliation rather than re-sending an email side effect.
@@ -605,7 +613,7 @@ export async function GET(req: NextRequest) {
     // قفل تفاؤلي: تحقّق أن الحدث ما زال بحالة قابلة للمعالجة قبل الادّعاء به (يقلل تصادم التشغيل المتزامن)
     const freshRows = await read<{ x_studio_status: string }>("x_build_integration_outbox", [row.id], ["x_studio_status"]);
     if (!freshRows[0] || !["pending", "processing"].includes(freshRows[0].x_studio_status)) {
-      await saveSubmissionState(dispatchKey, { ...dispatchInitial, status: "completed", stage: "outbox_not_dispatchable" });
+      await saveSubmissionState(dispatchKey, { ...dispatchInitial, status: "completed", stage: "outbox_not_dispatchable" }).catch(() => undefined);
       results.skipped += 1;
       continue;
     }
