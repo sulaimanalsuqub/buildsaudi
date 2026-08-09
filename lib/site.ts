@@ -9,9 +9,9 @@ export const siteConfig = {
   nameAr: "بيلد",
   /** Positioning: supplier of materials & finishes — not a marketplace/platform */
   description:
-    "Building materials and finishes supplier for construction projects in Saudi Arabia. We supply contractors and developers with delivery to site across the Kingdom.",
+    "Building materials and finishes supply for contractors and developers across Saudi Arabia, with quotations and delivery directly to your project site.",
   descriptionAr:
-    "مورد مواد بناء وتشطيب للمشاريع الإنشائية في السعودية. نورد للمقاولين والمطورين مع التسليم لموقع المشروع في الرياض وجدة وجميع المناطق.",
+    "نورد مواد البناء والتشطيبات للمقاولين والمطورين في السعودية، مع تجهيز العرض والتسليم إلى موقع المشروع في الرياض وجدة وجميع المناطق.",
   url: appUrl,
   salesEmail: "sales@build.sa",
   keywords: [

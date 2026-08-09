@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar",
-  title: "مورد مواد بناء وتشطيب للمشاريع | بيلد السعودية",
+  title: "توريد مواد البناء والتشطيبات للمقاولين والمطورين | بيلد",
   description: siteConfig.descriptionAr,
   keywords: siteConfig.keywordsAr,
 });

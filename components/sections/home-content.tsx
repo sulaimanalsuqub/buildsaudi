@@ -12,6 +12,7 @@ import {
   Droplet,
   Droplets,
   Fan,
+  Check,
   LampCeiling,
   Layers,
   LayoutGrid,
@@ -118,6 +119,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-white pb-20 pt-24 md:pb-32 md:pt-40">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_92%_8%,rgba(197,217,45,.22),transparent_26rem)]" />
 
         <Container className="relative">
           <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
@@ -129,6 +131,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-dark/10 bg-brand-light/70 px-3 py-1.5 text-xs font-bold text-brand-dark/70">
+                  <span className="h-2 w-2 rounded-full bg-brand-primary" />
+                  {isRtl ? "توريد للمشاريع في جميع مناطق المملكة" : "Project supply across Saudi Arabia"}
+                </div>
                 <h1 className="type-hero text-brand-dark leading-[1.15]">
                   {isRtl ? (
                     <>
@@ -154,6 +160,14 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                     {t.primary}
                   </Link>
                 </div>
+                <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm font-medium text-brand-dark/65 md:justify-start">
+                  {[isRtl ? "عرض سعر واضح" : "Clear quotations", isRtl ? "توريد للموقع" : "Site delivery", isRtl ? "متابعة من البداية" : "End-to-end support"].map((item) => (
+                    <span key={item} className="inline-flex items-center gap-1.5">
+                      <Check className="h-4 w-4 text-brand-primary" aria-hidden="true" />
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </motion.div>
             </div>
 
@@ -164,7 +178,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
-              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light md:aspect-square md:rounded-[3rem]">
+              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light shadow-[0_24px_70px_rgba(29,63,31,.13)] md:aspect-square md:rounded-[3rem]">
                 <Image
                   src="/images/buildman.png"
                   alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
@@ -234,7 +248,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <div
                   key={item.en}
                   ref={(el) => { catalogCardRefs.current[index] = el; }}
-                  className="group relative flex flex-col p-7"
+                  className="group relative flex flex-col p-7 transition-colors duration-300 hover:bg-brand-light/70"
                 >
                   <div
                     ref={(el) => { catalogIconRefs.current[index] = el; }}
@@ -254,6 +268,30 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       {/* ── How it works ─────────────────────────────── */}
       <HowItWorks isRtl={isRtl} />
 
+      {/* ── Final CTA ───────────────────────────────── */}
+      <section className="bg-brand-dark py-16 md:py-24">
+        <Container>
+          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-accent">
+                {isRtl ? "ابدأ مشروعك" : "Start your project"}
+              </p>
+              <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-white md:text-5xl">
+                {t.ctaTitle}
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-8 text-white/70 md:text-lg">
+                {t.ctaBody}
+              </p>
+            </div>
+            <Link
+              href={isRtl ? "/ar/get-quote" : "/get-quote"}
+              className="inline-flex h-14 items-center justify-center rounded-full bg-brand-accent px-8 text-base font-bold text-brand-dark transition hover:bg-white"
+            >
+              {t.primary}
+            </Link>
+          </div>
+        </Container>
+      </section>
 
     </main>
   );

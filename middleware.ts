@@ -8,6 +8,15 @@ const ODOO_URL = process.env.ODOO_BASE_URL;
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get("host")?.split(":")[0].toLowerCase();
+
+  // Keep a single public hostname so search engines do not index duplicate pages.
+  if (hostname === "build.com.sa" || hostname === "www.build.com.sa") {
+    const url = request.nextUrl.clone();
+    url.protocol = "https:";
+    url.host = "www.build.sa";
+    return NextResponse.redirect(url, 308);
+  }
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     return NextResponse.redirect(new URL(ODOO_URL || "/", request.url));

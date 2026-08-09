@@ -73,6 +73,12 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           >
             <Languages className="h-4 w-4" />
           </Link>
+          <Link
+            href={isRtl ? "/ar/get-quote" : "/get-quote"}
+            className="inline-flex h-9 items-center justify-center rounded-full bg-brand-dark px-4 text-sm font-bold text-white transition hover:bg-brand-primary sm:px-5"
+          >
+            {isRtl ? "اطلب عرض سعر" : "Request a quote"}
+          </Link>
         </div>
       </Container>
     </header>

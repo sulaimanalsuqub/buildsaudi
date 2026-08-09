@@ -15,14 +15,14 @@ import "../globals.css";
 export const metadata: Metadata = {
   ...commonMetadata,
   title: {
-    default: "Build | توريد مواد بناء وتشطيب للمشاريع في السعودية",
+    default: "بيلد | توريد مواد البناء والتشطيبات للمقاولين والمطورين",
     template: "%s | بيلد السعودية",
   },
   description: siteConfig.descriptionAr,
   keywords: siteConfig.keywordsAr,
   alternates: localeAlternates,
   openGraph: {
-    title: "Build | توريد مواد بناء وتشطيب للمشاريع في السعودية",
+    title: "بيلد | توريد مواد البناء والتشطيبات للمقاولين والمطورين",
     description: siteConfig.descriptionAr,
     url: `${siteConfig.url}/ar`,
     siteName: "بيلد السعودية",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Build | توريد مواد بناء وتشطيب للمشاريع في السعودية",
+    title: "بيلد | توريد مواد البناء والتشطيبات للمقاولين والمطورين",
     description: siteConfig.descriptionAr,
     site: "@buildsaudi",
   },
