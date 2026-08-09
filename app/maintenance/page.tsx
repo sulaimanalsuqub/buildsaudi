@@ -25,7 +25,7 @@ export default function MaintenancePage() {
               نعمل على تجهيز تجربة بيلد الجديدة
             </h1>
             <p className="type-body mt-5 max-w-xl text-brand-dark/62">
-              سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
+              سنعود قريبًا برحلة شراء مواد البناء لمشاريعك أسرع وأسهل.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-3">
