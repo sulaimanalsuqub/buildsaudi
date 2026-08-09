@@ -25,23 +25,8 @@ export default function MaintenancePage() {
               نعمل على تجهيز تجربة بيلد الجديدة
             </h1>
             <p className="type-body mt-5 max-w-xl text-brand-dark/62">
-              الموقع متوقف مؤقتًا أثناء ربط العمليات مع نظام العمليات. سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
+              سنعود قريبًا بواجهة أكثر استقرارًا لإدارة الطلبات والموردين.
             </p>
-
-            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-              <div className="surface-card p-4">
-                <p className="type-card-title">Odoo</p>
-                <p className="type-small mt-1 text-brand-dark/55">ربط العمليات</p>
-              </div>
-              <div className="surface-card p-4">
-                <p className="type-card-title">RFQ</p>
-                <p className="type-small mt-1 text-brand-dark/55">تجهيز الطلبات</p>
-              </div>
-              <div className="surface-card p-4">
-                <p className="type-card-title">KSA</p>
-                <p className="type-small mt-1 text-brand-dark/55">توريد داخل المملكة</p>
-              </div>
-            </div>
 
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
