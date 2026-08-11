@@ -269,7 +269,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <HowItWorks isRtl={isRtl} />
 
       {/* ── Final CTA ───────────────────────────────── */}
-      <section className="bg-[#3db44a] py-16 md:py-24">
+      <section className="bg-gradient-to-br from-[#3db44a] to-[#224224] py-16 md:py-24">
         <Container>
           <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
             <div className="max-w-2xl">
