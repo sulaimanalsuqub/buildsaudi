@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -30,15 +29,8 @@ export function alternateLocalePath(pathname: string): string {
 }
 
 export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
-  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const homeHref = isRtl ? "/ar" : "/";
   const altPath = alternateLocalePath(pathname);
@@ -46,12 +38,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const languageHref = query ? `${altPath}?${query}` : altPath;
 
   return (
-    <header
-      className={[
-        "fixed inset-x-0 top-0 z-50 border-b border-brand-dark/8 bg-white/92 backdrop-blur-xl transition-all duration-300",
-        scrolled ? "border-b border-brand-dark/10 shadow-sm" : "",
-      ].join(" ")}
-    >
+    <header className="fixed inset-x-0 top-0 z-50">
       <Container className="flex h-[72px] items-center justify-between gap-4">
         <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
           <Image
