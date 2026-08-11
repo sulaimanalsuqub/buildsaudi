@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
-import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, Paperclip, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
@@ -101,7 +100,8 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
 
   const handleEmailVerified = async (token: string) => {
-    setVerifiedEmail(values.email.trim().toLowerCase());
+    const email = form.getValues("email").trim().toLowerCase();
+    setVerifiedEmail(email);
     setEmailToken(token);
     form.clearErrors("email");
 
@@ -109,16 +109,20 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       const res = await fetch("/api/quotes/lookup-customer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email.trim().toLowerCase(), email_verified_token: token }),
+        body: JSON.stringify({ email, email_verified_token: token }),
       });
       const body = (await res.json().catch(() => null)) as ({ ok?: boolean; found?: boolean } & Partial<CustomerLookup>) | null;
       if (body?.ok && body.found) {
         const data: CustomerLookup = { contactName: body.contactName || "", companyName: body.companyName || "", phone: body.phone || "", projects: body.projects || [] };
         setLookup(data);
-        form.setValue("contactName", data.contactName);
-        form.setValue("companyName", data.companyName);
-        form.setValue("phone", data.phone);
-        if (data.projects.length) form.setValue("projectChoice", String(data.projects[0].id));
+        // بما أن التحقق صار آخر خطوة، الحقول غالباً معبّاة يدوياً مسبقاً — لا نستبدل إلا الفارغ منها
+        const current = form.getValues();
+        if (!current.contactName.trim()) form.setValue("contactName", data.contactName);
+        if (!current.companyName?.trim()) form.setValue("companyName", data.companyName);
+        if (!current.phone.trim()) form.setValue("phone", data.phone);
+        if (data.projects.length && !current.projectChoice && !current.newProjectName?.trim()) {
+          form.setValue("projectChoice", String(data.projects[0].id));
+        }
       }
     } catch {
       // فشل البحث لا يوقف الفورم — تكملة الإدخال يدوياً
@@ -306,7 +310,142 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       </div>
 
       <div className="space-y-5">
-        <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "We'll verify it first to speed up your request", "نتحقق منه أولاً لتسريع طلبك")}>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <VendorField label={textByLang(isRtl, "Your Name", "اسمك")}>
+            <Input {...form.register("contactName")} className="h-12" autoFocus />
+            <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
+          </VendorField>
+          <VendorField label={textByLang(isRtl, "Company (optional)", "المنشأة (اختياري)")}>
+            <Input {...form.register("companyName")} className="h-12" />
+          </VendorField>
+        </div>
+
+        <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
+          <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
+          <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
+        </VendorField>
+
+        <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
+          {hasExistingProjects ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {lookup!.projects.map((p) => (
+                  <div key={p.id} className="flex items-center gap-1">
+                    <VendorOptionCard checked={values.projectChoice === String(p.id)}>
+                      <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === String(p.id)} onChange={() => form.setValue("projectChoice", String(p.id), { shouldValidate: true })} />
+                      {p.name}
+                    </VendorOptionCard>
+                    <button type="button" onClick={() => deleteProject(p.id)} className="shrink-0 text-brand-dark/35 hover:text-red-600" title={textByLang(isRtl, "Delete project", "حذف المشروع")}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <VendorOptionCard checked={values.projectChoice === NEW_PROJECT}>
+                  <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === NEW_PROJECT} onChange={() => form.setValue("projectChoice", NEW_PROJECT, { shouldValidate: true })} />
+                  {textByLang(isRtl, "New project", "مشروع جديد")}
+                </VendorOptionCard>
+              </div>
+              {values.projectChoice === NEW_PROJECT && (
+                <Input {...form.register("newProjectName")} className="h-12" placeholder={textByLang(isRtl, "New project name", "اسم المشروع الجديد")} />
+              )}
+            </div>
+          ) : (
+            <Input {...form.register("newProjectName")} className="h-12" />
+          )}
+          <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
+        </VendorField>
+
+        <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
+          <label
+            onDragOver={handleFilesDragOver}
+            onDragLeave={handleFilesDragLeave}
+            onDrop={handleFilesDrop}
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border border-dashed px-4 py-6 transition-colors ${
+              isDraggingFiles ? "border-brand-primary bg-brand-primary/15" : "border-brand-primary/40 bg-brand-primary/5 hover:bg-brand-primary/10"
+            }`}
+          >
+            <Paperclip className="h-5 w-5 text-brand-primary" />
+            <input type="file" multiple accept=".csv,.pdf" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
+            <span>{textByLang(isRtl, "Choose a file, or drag and drop it here", "اختر ملفاً، أو اسحبه وأفلته هنا")}</span>
+          </label>
+          {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
+          {files.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {files.map((f) => (
+                <li key={f.name} className="flex items-center justify-between rounded-lg bg-brand-light/50 px-3 py-2 text-sm">
+                  <span className="truncate">{f.name} <span className="text-brand-dark/40">({f.sizeLabel})</span></span>
+                  <button type="button" onClick={() => removeFile(f.name)} className="text-brand-dark/45 hover:text-red-600">
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-brand-dark/40">{textByLang(isRtl, "Or list items", "أو عدّد الأصناف")}</p>
+          <div className="space-y-3">
+            {items.map((item, i) => (
+              <div key={i} className="rounded-xl border border-brand-dark/10 p-3">
+                <div className="flex items-center gap-2">
+                  <Input value={item.itemName} onChange={(e) => updateItemRow(i, { itemName: e.target.value })} placeholder={textByLang(isRtl, "Item name", "اسم الصنف")} className="h-11" />
+                  <button type="button" onClick={() => removeItemRow(i)} className="shrink-0 text-brand-dark/40 hover:text-red-600">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Input value={item.quantity} onChange={(e) => updateItemRow(i, { quantity: e.target.value })} type="number" min="0" placeholder={textByLang(isRtl, "Qty", "الكمية")} className="h-11" />
+                  <Input value={item.unit} onChange={(e) => updateItemRow(i, { unit: e.target.value })} placeholder={textByLang(isRtl, "Unit", "الوحدة")} className="h-11" />
+                  <Input value={item.brand} onChange={(e) => updateItemRow(i, { brand: e.target.value })} placeholder={textByLang(isRtl, "Brand in English", "العلامة بالإنجليزي")} className="h-11" dir="ltr" />
+                  <select
+                    value={item.countryOfOrigin}
+                    onChange={(e) => updateItemRow(i, { countryOfOrigin: e.target.value })}
+                    className="h-11 rounded-xl border border-brand-dark/15 bg-white px-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                  >
+                    <option value="">{textByLang(isRtl, "Country of origin", "بلد المنشأ")}</option>
+                    {supplierCountries.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {optionLabel(isRtl, supplierCountries, c.value)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={addItemRow} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-dark">
+              <Plus className="h-4 w-4" />
+              {textByLang(isRtl, "Add an item", "أضف صنفاً")}
+            </button>
+          </div>
+          <textarea
+            {...form.register("description")}
+            className="mt-3 min-h-[64px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            placeholder={textByLang(isRtl, "Additional notes (optional)", "ملاحظات إضافية (اختياري)")}
+          />
+        </VendorField>
+
+        <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Enter your national short address, or the city/district", "أدخل رمز العنوان الوطني المختصر، أو المدينة/الحي")}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
+              {form.formState.errors.nationalAddressCode && (
+                <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
+              )}
+            </div>
+            <Input {...form.register("addressNotes")} className="h-12" placeholder={textByLang(isRtl, "City, district, building, landmark…", "المدينة، الحي، المبنى، أقرب معلَم…")} />
+          </div>
+        </VendorField>
+
+        <VendorField label={textByLang(isRtl, "Preferred Delivery Date (optional)", "تاريخ التسليم المفضّل (اختياري)")}>
+          <Input type="date" {...form.register("requestedDeliveryDate")} className="h-12" />
+        </VendorField>
+
+        {lookup && (
+          <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
+            {textByLang(isRtl, `Welcome back, ${lookup.contactName}!`, `مرحباً بعودتك، ${lookup.contactName}!`)}
+          </div>
+        )}
+
+        <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "Last step — we verify your email to submit the request", "آخر خطوة — نتحقق من بريدك لإرسال الطلب")}>
           <Input
             type="email"
             {...form.register("email", {
@@ -321,7 +460,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             })}
             className="h-12"
             dir="ltr"
-            autoFocus
           />
           <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
         </VendorField>
@@ -342,150 +480,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           </div>
         )}
 
-        {emailVerified && lookupChecked && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-            {lookup && (
-              <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
-                {textByLang(isRtl, `Welcome back, ${lookup.contactName}! We filled in your details below.`, `مرحباً بعودتك، ${lookup.contactName}! عبّينا بياناتكم أدناه.`)}
-              </div>
-            )}
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <VendorField label={textByLang(isRtl, "Your Name", "اسمك")}>
-                <Input {...form.register("contactName")} className="h-12" />
-                <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
-              </VendorField>
-              <VendorField label={textByLang(isRtl, "Company (optional)", "المنشأة (اختياري)")}>
-                <Input {...form.register("companyName")} className="h-12" />
-              </VendorField>
-            </div>
-
-            <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
-              <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
-              <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
-              {hasExistingProjects ? (
-                <div className="space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {lookup!.projects.map((p) => (
-                      <div key={p.id} className="flex items-center gap-1">
-                        <VendorOptionCard checked={values.projectChoice === String(p.id)}>
-                          <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === String(p.id)} onChange={() => form.setValue("projectChoice", String(p.id), { shouldValidate: true })} />
-                          {p.name}
-                        </VendorOptionCard>
-                        <button type="button" onClick={() => deleteProject(p.id)} className="shrink-0 text-brand-dark/35 hover:text-red-600" title={textByLang(isRtl, "Delete project", "حذف المشروع")}>
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                    <VendorOptionCard checked={values.projectChoice === NEW_PROJECT}>
-                      <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === NEW_PROJECT} onChange={() => form.setValue("projectChoice", NEW_PROJECT, { shouldValidate: true })} />
-                      {textByLang(isRtl, "New project", "مشروع جديد")}
-                    </VendorOptionCard>
-                  </div>
-                  {values.projectChoice === NEW_PROJECT && (
-                    <Input {...form.register("newProjectName")} className="h-12" placeholder={textByLang(isRtl, "New project name", "اسم المشروع الجديد")} />
-                  )}
-                </div>
-              ) : (
-                <Input {...form.register("newProjectName")} className="h-12" />
-              )}
-              <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
-              <label
-                onDragOver={handleFilesDragOver}
-                onDragLeave={handleFilesDragLeave}
-                onDrop={handleFilesDrop}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border border-dashed px-4 py-6 transition-colors ${
-                  isDraggingFiles ? "border-brand-primary bg-brand-primary/15" : "border-brand-primary/40 bg-brand-primary/5 hover:bg-brand-primary/10"
-                }`}
-              >
-                <Paperclip className="h-5 w-5 text-brand-primary" />
-                <input type="file" multiple accept=".csv,.pdf" className="hidden" onChange={(e) => toggleFilesPicked(e.target.files)} />
-                <span>{textByLang(isRtl, "Choose a file, or drag and drop it here", "اختر ملفاً، أو اسحبه وأفلته هنا")}</span>
-              </label>
-              {fileError && <p className="mt-2 text-sm text-red-600">{fileError}</p>}
-              {files.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {files.map((f) => (
-                    <li key={f.name} className="flex items-center justify-between rounded-lg bg-brand-light/50 px-3 py-2 text-sm">
-                      <span className="truncate">{f.name} <span className="text-brand-dark/40">({f.sizeLabel})</span></span>
-                      <button type="button" onClick={() => removeFile(f.name)} className="text-brand-dark/45 hover:text-red-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-brand-dark/40">{textByLang(isRtl, "Or list items", "أو عدّد الأصناف")}</p>
-              <div className="space-y-3">
-                {items.map((item, i) => (
-                  <div key={i} className="rounded-xl border border-brand-dark/10 p-3">
-                    <div className="flex items-center gap-2">
-                      <Input value={item.itemName} onChange={(e) => updateItemRow(i, { itemName: e.target.value })} placeholder={textByLang(isRtl, "Item name", "اسم الصنف")} className="h-11" />
-                      <button type="button" onClick={() => removeItemRow(i)} className="shrink-0 text-brand-dark/40 hover:text-red-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <Input value={item.quantity} onChange={(e) => updateItemRow(i, { quantity: e.target.value })} type="number" min="0" placeholder={textByLang(isRtl, "Qty", "الكمية")} className="h-11" />
-                      <Input value={item.unit} onChange={(e) => updateItemRow(i, { unit: e.target.value })} placeholder={textByLang(isRtl, "Unit", "الوحدة")} className="h-11" />
-                      <Input value={item.brand} onChange={(e) => updateItemRow(i, { brand: e.target.value })} placeholder={textByLang(isRtl, "Brand in English", "العلامة بالإنجليزي")} className="h-11" dir="ltr" />
-                      <select
-                        value={item.countryOfOrigin}
-                        onChange={(e) => updateItemRow(i, { countryOfOrigin: e.target.value })}
-                        className="h-11 rounded-xl border border-brand-dark/15 bg-white px-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                      >
-                        <option value="">{textByLang(isRtl, "Country of origin", "بلد المنشأ")}</option>
-                        {supplierCountries.map((c) => (
-                          <option key={c.value} value={c.value}>
-                            {optionLabel(isRtl, supplierCountries, c.value)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ))}
-                <button type="button" onClick={addItemRow} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-dark">
-                  <Plus className="h-4 w-4" />
-                  {textByLang(isRtl, "Add an item", "أضف صنفاً")}
-                </button>
-              </div>
-              <textarea
-                {...form.register("description")}
-                className="mt-3 min-h-[64px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                placeholder={textByLang(isRtl, "Additional notes (optional)", "ملاحظات إضافية (اختياري)")}
-              />
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Enter your national short address, or the city/district", "أدخل رمز العنوان الوطني المختصر، أو المدينة/الحي")}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
-                  {form.formState.errors.nationalAddressCode && (
-                    <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
-                  )}
-                </div>
-                <Input {...form.register("addressNotes")} className="h-12" placeholder={textByLang(isRtl, "City, district, building, landmark…", "المدينة، الحي، المبنى، أقرب معلَم…")} />
-              </div>
-            </VendorField>
-
-            <VendorField label={textByLang(isRtl, "Preferred Delivery Date (optional)", "تاريخ التسليم المفضّل (اختياري)")}>
-              <Input type="date" {...form.register("requestedDeliveryDate")} className="h-12" />
-            </VendorField>
-
-            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-              <div>
-                <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
-                <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-language={isRtl ? "ar" : "en"} />
-              </div>
-            )}
-          </motion.div>
+        {emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          <div>
+            <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+            <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-language={isRtl ? "ar" : "en"} />
+          </div>
         )}
       </div>
 

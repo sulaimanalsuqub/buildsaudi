@@ -200,9 +200,8 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
   const showContactName = values.establishmentName.trim().length >= 2;
   const showPhone = showContactName && values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.contactNumber).localNumber;
-  const showEmail = showPhone && phoneDigits.length >= 8;
-  const showVerify = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
-  const showDetails = showEmail && emailVerified;
+  const showDetails = showPhone && phoneDigits.length >= 8;
+  const showVerify = showDetails && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
 
   const toggleArea = (value: string) => {
     const current = values.serviceAreas;
@@ -283,45 +282,6 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
         </AnimatePresence>
 
         <AnimatePresence>
-          {showEmail && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-              <VendorField label={t.labels.email}>
-                <Input
-                  type="email"
-                  {...form.register("email", {
-                    onChange: () => {
-                      if (emailVerified) {
-                        setVerifiedEmail("");
-                        setEmailToken("");
-                      }
-                    },
-                  })}
-                  className="h-12 text-base"
-                  dir="ltr"
-                />
-                <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-              </VendorField>
-              {emailVerified ? (
-                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                  {isRtl ? "تم التحقق من البريد ✓" : "Email verified ✓"}
-                </div>
-              ) : showVerify ? (
-                <EmailVerify
-                  email={values.email.trim()}
-                  isRtl={isRtl}
-                  onVerified={(token) => {
-                    setVerifiedEmail(values.email.trim().toLowerCase());
-                    setEmailToken(token);
-                    form.clearErrors("email");
-                  }}
-                />
-              ) : null}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
           {showDetails && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
               <VendorField label={t.labels.serviceAreas}>
@@ -377,6 +337,41 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
                 <Input {...form.register("website")} dir="ltr" className="h-12 text-base" />
               </VendorField>
 
+              <div className="space-y-3">
+                <VendorField label={t.labels.email}>
+                  <Input
+                    type="email"
+                    {...form.register("email", {
+                      onChange: () => {
+                        if (emailVerified) {
+                          setVerifiedEmail("");
+                          setEmailToken("");
+                        }
+                      },
+                    })}
+                    className="h-12 text-base"
+                    dir="ltr"
+                  />
+                  <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
+                </VendorField>
+                {emailVerified ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {isRtl ? "تم التحقق من البريد ✓" : "Email verified ✓"}
+                  </div>
+                ) : showVerify ? (
+                  <EmailVerify
+                    email={values.email.trim()}
+                    isRtl={isRtl}
+                    onVerified={(token) => {
+                      setVerifiedEmail(values.email.trim().toLowerCase());
+                      setEmailToken(token);
+                      form.clearErrors("email");
+                    }}
+                  />
+                ) : null}
+              </div>
+
               <div className="space-y-3 rounded-xl bg-brand-light/40 p-4">
                 <label className="flex items-start gap-3 text-sm text-brand-dark/85">
                   <Checkbox
@@ -398,7 +393,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
         </AnimatePresence>
       </div>
 
-      {showDetails && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+      {emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
         <div className="mt-6">
           <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
           <div
@@ -411,7 +406,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
       )}
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !showDetails || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
