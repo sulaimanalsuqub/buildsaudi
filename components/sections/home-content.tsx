@@ -118,7 +118,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#DCF1E1] via-white to-white pb-20 pt-24 md:pb-32 md:pt-40">
+      <section className="relative -mt-[72px] overflow-hidden bg-gradient-to-b from-[#DCF1E1] via-white to-white pb-20 pt-24 md:pb-32 md:pt-40">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_92%_8%,rgba(197,217,45,.35),transparent_26rem)]" />
 
         <Container className="relative">
