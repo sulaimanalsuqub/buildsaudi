@@ -33,6 +33,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
   const [hidden, setHidden] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
@@ -40,6 +41,9 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
     const onScroll = () => {
       const y = window.scrollY;
       setHidden(y > lastScrollY.current && y > 72);
+      // بدون خلفية، الهيدر لو رجع يظهر وسط الصفحة (بعد التمرير) يتراكب مع أي محتوى تحته مباشرة —
+      // نعطيه خلفية بمجرد ما يتجاوز الهيرو، بغض النظر عن اتجاه التمرير.
+      setScrolled(y > 72);
       lastScrollY.current = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -53,7 +57,11 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-transform duration-300 ${hidden ? "-translate-y-full" : "translate-y-0"}`}
+      className={[
+        "fixed inset-x-0 top-0 z-50 transition-[transform,background-color,box-shadow] duration-300",
+        hidden ? "-translate-y-full" : "translate-y-0",
+        scrolled ? "border-b border-brand-dark/8 bg-white/92 shadow-sm backdrop-blur-xl" : "",
+      ].join(" ")}
     >
       <Container className="flex h-[72px] items-center justify-between gap-4">
         <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
