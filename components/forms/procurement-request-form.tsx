@@ -315,7 +315,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const hasExistingProjects = !!lookup && lookup.projects.length > 0;
   const showPhone = values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.phone).localNumber;
-  const showRest = showPhone && phoneDigits.length >= 8;
+  const showProject = showPhone && phoneDigits.length >= 8;
+  const hasProjectSet = hasExistingProjects
+    ? !!values.projectChoice
+    : (values.newProjectName?.trim().length ?? 0) >= 2;
+  const showRest = showProject && hasProjectSet;
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-4xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
@@ -346,8 +350,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           )}
         </AnimatePresence>
 
-        {showRest && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+        <AnimatePresence>
+          {showProject && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
           {hasExistingProjects ? (
             <div className="space-y-3">
@@ -377,7 +382,12 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           )}
           <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
         </VendorField>
+        </motion.div>
+          )}
+        </AnimatePresence>
 
+        {showRest && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
         <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
           <label
             onDragOver={handleFilesDragOver}
