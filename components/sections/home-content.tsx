@@ -172,19 +172,84 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
-              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light shadow-[0_24px_70px_rgba(29,63,31,.13)] md:aspect-square md:rounded-[3rem]">
-                <Image
-                  src="/images/buildman.png"
-                  alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
-                  width={800}
-                  height={800}
-                  className="w-full h-auto object-cover object-center md:h-full"
-                  priority
-                />
+              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 shadow-[0_24px_70px_rgba(29,63,31,.13)] md:aspect-square md:rounded-[3rem]">
+                <div
+                  className="grid min-h-[340px] gap-[3px] bg-brand-dark/8 p-[3px] md:h-full md:min-h-0"
+                  style={{
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gridTemplateRows: "repeat(3, 1fr)",
+                    gridTemplateAreas: '"tiles tiles paint paint" "tiles tiles plumb elec" "wall wall sani sani"',
+                  }}
+                >
+                  <div
+                    className="relative flex flex-col gap-3 p-5"
+                    style={{
+                      gridArea: "tiles",
+                      backgroundColor: "#DCD6C4",
+                      backgroundImage:
+                        "linear-gradient(rgba(29,63,31,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(29,63,31,.14) 1px, transparent 1px)",
+                      backgroundSize: "26px 26px",
+                    }}
+                  >
+                    <LayoutGrid className="h-6 w-6 text-brand-dark/70" aria-hidden="true" />
+                    <span className="text-sm font-bold text-brand-dark">{isRtl ? "الأرضيات" : "Flooring"}</span>
+                  </div>
+
+                  <div className="relative flex flex-col gap-3 bg-brand-primary p-5" style={{ gridArea: "paint" }}>
+                    <Paintbrush className="h-6 w-6 text-white" aria-hidden="true" />
+                    <span className="text-sm font-bold text-white">{isRtl ? "الدهانات" : "Paints"}</span>
+                  </div>
+
+                  <div
+                    className="relative flex flex-col gap-3 p-4"
+                    style={{
+                      gridArea: "plumb",
+                      backgroundColor: "#1D3F1F",
+                      backgroundImage:
+                        "radial-gradient(circle at 50% 50%, transparent 0 14px, rgba(255,255,255,.14) 14px 16px, transparent 16px)",
+                      backgroundSize: "40px 40px",
+                    }}
+                  >
+                    <Droplets className="h-5 w-5 text-white/85" aria-hidden="true" />
+                    <span className="text-xs font-bold text-white/90">{isRtl ? "السباكة" : "Plumbing"}</span>
+                  </div>
+
+                  <div
+                    className="relative flex flex-col gap-3 p-4"
+                    style={{
+                      gridArea: "elec",
+                      backgroundColor: "#0F1F13",
+                      backgroundImage: "repeating-linear-gradient(135deg, rgba(197,217,45,.18) 0 2px, transparent 2px 14px)",
+                    }}
+                  >
+                    <LampCeiling className="h-5 w-5 text-brand-accent" aria-hidden="true" />
+                    <span className="text-xs font-bold text-white/90">{isRtl ? "الكهرباء" : "Electrical"}</span>
+                  </div>
+
+                  <div
+                    className="relative flex flex-col gap-3 p-5"
+                    style={{
+                      gridArea: "wall",
+                      backgroundColor: "#F4F3EB",
+                      backgroundImage: "repeating-linear-gradient(-45deg, rgba(29,63,31,.09) 0 8px, transparent 8px 16px)",
+                    }}
+                  >
+                    <Layers className="h-6 w-6 text-brand-dark/70" aria-hidden="true" />
+                    <span className="text-sm font-bold text-brand-dark">{isRtl ? "الجداريات" : "Wall Finishes"}</span>
+                  </div>
+
+                  <div
+                    className="relative flex flex-col gap-3 border border-brand-dark/8 bg-white p-4"
+                    style={{ gridArea: "sani" }}
+                  >
+                    <Bath className="h-5 w-5 text-brand-dark/70" aria-hidden="true" />
+                    <span className="text-xs font-bold text-brand-dark">{isRtl ? "الأدوات الصحية" : "Sanitaryware"}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Floating Stat Card — مخفي على الجوال لتفادي الـ overflow */}
-              <div className="absolute -bottom-6 -inline-start-6 hidden rounded-2xl border border-brand-dark/10 bg-white p-6 md:flex">
+              <div className="absolute -bottom-6 -start-6 hidden rounded-2xl border border-brand-dark/10 bg-white p-6 md:flex">
                 <div className="flex items-center gap-4">
                   <Image
                     src="/images/build-icon.png"
