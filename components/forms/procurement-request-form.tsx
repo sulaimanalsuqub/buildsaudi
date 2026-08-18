@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
+import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2, Paperclip, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
@@ -10,7 +11,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries, textByLang } from "@/lib/vendor-options";
+import {
+  isEnglishBrandName,
+  isValidVendorPhone,
+  normalizeVendorPhone,
+  optionLabel,
+  parseVendorPhone,
+  saudiCities,
+  saudiVatRegex,
+  supplierCountries,
+  textByLang,
+} from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
@@ -26,15 +37,19 @@ const formSchema = z.object({
   email: z.string().email("invalidEmail"),
   contactName: z.string().min(2, "required"),
   companyName: z.string().optional(),
+  taxNumber: z
+    .string()
+    .optional()
+    .refine((v) => !v || saudiVatRegex.test(v), { message: "invalidTaxNumber" }),
   phone: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   projectChoice: z.string().optional(),
   newProjectName: z.string().optional(),
   description: z.string().optional(),
+  city: z.string().optional(),
   nationalAddressCode: z
     .string()
     .optional()
     .refine((v) => !v || NATIONAL_ADDRESS_PATTERN.test(v), { message: "invalidNationalAddress" }),
-  requestedDeliveryDate: z.string().optional(),
   addressNotes: z.string().optional(),
 });
 
@@ -44,12 +59,13 @@ const defaultValues: FormValues = {
   email: "",
   contactName: "",
   companyName: "",
+  taxNumber: "",
   phone: "",
   projectChoice: "",
   newProjectName: "",
   description: "",
+  city: "",
   nationalAddressCode: "",
-  requestedDeliveryDate: "",
   addressNotes: "",
 };
 
@@ -212,9 +228,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setSubmitError(textByLang(isRtl, "Enter brand names in English only", "اكتب أسماء العلامات التجارية بالإنجليزي فقط"));
       return;
     }
-    const hasLocation = !!data.nationalAddressCode || !!data.addressNotes?.trim();
+    const hasLocation = !!data.nationalAddressCode || !!data.addressNotes?.trim() || !!data.city;
     if (!hasLocation) {
-      setSubmitError(textByLang(isRtl, "Set the delivery location: national address code, or city/district", "حدد موقع التسليم: رمز العنوان الوطني، أو المدينة/الحي"));
+      setSubmitError(textByLang(isRtl, "Set the delivery location: city, national address code, or district", "حدد موقع التسليم: المدينة، رمز العنوان الوطني، أو الحي"));
       return;
     }
     const hasMaterialsInfo = !!data.description?.trim() || validItems.length > 0 || files.length > 0;
@@ -226,6 +242,21 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setSubmitError(textByLang(isRtl, "Please complete the security check below", "يرجى إكمال التحقق الأمني أدناه"));
       return;
     }
+
+    // لا حقل مخصّص للرقم الضريبي/المدينة في أودو لطلبات التوريد — نضمّها كنص واضح
+    // داخل الحقول النصية الموجودة (الوصف وملاحظات العنوان) بدل تغيير عقد الـAPI.
+    const combinedDescription = [
+      data.taxNumber ? `${textByLang(isRtl, "Tax number", "الرقم الضريبي")}: ${data.taxNumber}` : "",
+      data.description?.trim() || "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const combinedAddressNotes = [
+      data.city ? optionLabel(isRtl, saudiCities, data.city) : "",
+      data.addressNotes?.trim() || "",
+    ]
+      .filter(Boolean)
+      .join(" — ");
 
     setSubmitError("");
     setIsLoading(true);
@@ -240,7 +271,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.phone),
           project_name: projectName,
-          description: data.description?.trim() || "",
+          description: combinedDescription,
           items: validItems.map((it) => ({
             itemName: it.itemName.trim(),
             quantity: Number(it.quantity),
@@ -249,8 +280,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             countryOfOrigin: it.countryOfOrigin ? optionLabel(isRtl, supplierCountries, it.countryOfOrigin) : undefined,
           })),
           national_address_code: data.nationalAddressCode || undefined,
-          delivery_address_notes: data.addressNotes?.trim() || undefined,
-          requested_delivery_date: data.requestedDeliveryDate || undefined,
+          delivery_address_notes: combinedAddressNotes || undefined,
           files: files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
           submission_id: submissionId,
           turnstile_token: turnstileToken,
@@ -301,6 +331,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   }
 
   const hasExistingProjects = !!lookup && lookup.projects.length > 0;
+  const showTaxPhone = values.contactName.trim().length >= 2;
+  const phoneDigits = parseVendorPhone(values.phone).localNumber;
+  const showRest = showTaxPhone && phoneDigits.length >= 8;
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-4xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
@@ -320,11 +353,26 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           </VendorField>
         </div>
 
-        <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
-          <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
-          <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
-        </VendorField>
+        <AnimatePresence>
+          {showTaxPhone && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+              <VendorField label={textByLang(isRtl, "Tax Number (optional)", "الرقم الضريبي (اختياري)")}>
+                <Input {...form.register("taxNumber")} className="h-12" dir="ltr" maxLength={15} placeholder="3XXXXXXXXXXXXX3" />
+                {form.formState.errors.taxNumber && (
+                  <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "Enter a valid 15-digit Saudi tax number", "أدخل رقماً ضريبياً سعودياً صحيحاً (15 رقماً)")}</p>
+                )}
+              </VendorField>
 
+              <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
+                <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
+                <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
+              </VendorField>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {showRest && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
         <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
           {hasExistingProjects ? (
             <div className="space-y-3">
@@ -416,27 +464,39 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
               {textByLang(isRtl, "Add an item", "أضف صنفاً")}
             </button>
           </div>
-          <textarea
-            {...form.register("description")}
-            className="mt-3 min-h-[64px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-            placeholder={textByLang(isRtl, "Additional notes (optional)", "ملاحظات إضافية (اختياري)")}
-          />
         </VendorField>
 
-        <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Enter your national short address, or the city/district", "أدخل رمز العنوان الوطني المختصر، أو المدينة/الحي")}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
-              {form.formState.errors.nationalAddressCode && (
-                <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
-              )}
+        <VendorField label={textByLang(isRtl, "Delivery Location", "موقع التسليم")} helper={textByLang(isRtl, "Choose your city, and add the national address code or district if you have it", "اختر مدينتك، وأضف رمز العنوان الوطني أو الحي إن توفر")}>
+          <div className="space-y-3">
+            <select
+              {...form.register("city")}
+              className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            >
+              <option value="">{textByLang(isRtl, "Delivery city", "مدينة التسليم")}</option>
+              {saudiCities.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {optionLabel(isRtl, saudiCities, c.value)}
+                </option>
+              ))}
+            </select>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
+                {form.formState.errors.nationalAddressCode && (
+                  <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
+                )}
+              </div>
+              <Input {...form.register("addressNotes")} className="h-12" placeholder={textByLang(isRtl, "District, building, landmark…", "الحي، المبنى، أقرب معلَم…")} />
             </div>
-            <Input {...form.register("addressNotes")} className="h-12" placeholder={textByLang(isRtl, "City, district, building, landmark…", "المدينة، الحي، المبنى، أقرب معلَم…")} />
           </div>
         </VendorField>
 
-        <VendorField label={textByLang(isRtl, "Preferred Delivery Date (optional)", "تاريخ التسليم المفضّل (اختياري)")}>
-          <Input type="date" {...form.register("requestedDeliveryDate")} className="h-12" />
+        <VendorField label={textByLang(isRtl, "Additional Notes (optional)", "ملاحظات إضافية (اختياري)")}>
+          <textarea
+            {...form.register("description")}
+            className="min-h-[64px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            placeholder={textByLang(isRtl, "Anything else we should know?", "أي شيء إضافي حابب تخبرنا فيه؟")}
+          />
         </VendorField>
 
         {lookup && (
@@ -485,6 +545,8 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
             <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-language={isRtl ? "ar" : "en"} />
           </div>
+        )}
+        </motion.div>
         )}
       </div>
 
