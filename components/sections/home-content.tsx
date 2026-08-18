@@ -21,6 +21,7 @@ import {
 
 import { Container } from "@/components/ui/container";
 import { HowItWorks } from "@/components/sections/how-it-works";
+import { siteConfig } from "@/lib/site";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -58,13 +59,6 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
-    // Action cards
-    card1Title: isRtl ? "أطلب المنتجات" : "Order Products",
-    card1Sub: isRtl ? "أرسل احتياج مشروعك وجدول الكميات" : "Send your project requirements and BOQ",
-    card1Cta: isRtl ? "ابدأ الآن" : "Get Started",
-    card2Title: isRtl ? "توصيل لكل المملكة" : "Nationwide Delivery",
-    card2Sub: isRtl ? "نوصّل مواد مشروعك مباشرةً لموقعك في أي منطقة بالمملكة" : "We deliver your materials directly to your site anywhere in Saudi Arabia",
-    card2Cta: isRtl ? "اطلب الآن" : "Order Now",
     // Sections
     catalogLabel: isRtl ? "الكتالوج" : "Catalog",
     catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
@@ -222,13 +216,18 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                   {t.catalogLabel}
                 </span>
               </div>
-              <h2
-                ref={catalogTitleRef}
-                className="type-section-title text-brand-dark"
-                style={{ opacity: 0 }}
-              >
-                {t.catalogTitle}
-              </h2>
+              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+                <h2
+                  ref={catalogTitleRef}
+                  className="type-section-title text-brand-dark"
+                  style={{ opacity: 0 }}
+                >
+                  {t.catalogTitle}
+                </h2>
+                <span className="pb-1 text-sm font-bold text-brand-dark/40">
+                  {isRtl ? `${catalog.length} فئات رئيسية` : `${catalog.length} core categories`}
+                </span>
+              </div>
               <p
                 ref={catalogSubRef}
                 className="type-body mt-3 text-brand-dark/60"
@@ -239,20 +238,21 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             </div>
           </div>
 
-          <div
-            className={`mt-12 grid grid-cols-1 divide-y divide-brand-dark/10 border border-brand-dark/10 bg-white sm:grid-cols-2 sm:divide-x lg:grid-cols-4 ${isRtl ? "sm:divide-x-reverse" : ""}`}
-          >
+          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {catalog.map((item, index) => {
               const Icon = item.icon;
               return (
                 <div
                   key={item.en}
                   ref={(el) => { catalogCardRefs.current[index] = el; }}
-                  className="group relative flex flex-col p-7 transition-colors duration-300 hover:bg-brand-light/70"
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-brand-dark/8 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary/25 hover:shadow-[0_20px_40px_rgba(29,63,31,.12)]"
                 >
+                  <span className="absolute end-5 top-5 font-mono text-xs font-bold text-brand-dark/15">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
                   <div
                     ref={(el) => { catalogIconRefs.current[index] = el; }}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-dark/15 text-brand-dark transition-colors group-hover:border-brand-primary group-hover:text-brand-primary"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary transition-colors duration-300 group-hover:bg-brand-primary group-hover:text-white"
                   >
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </div>
@@ -269,8 +269,18 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <HowItWorks isRtl={isRtl} />
 
       {/* ── Final CTA ───────────────────────────────── */}
-      <section className="bg-gradient-to-br from-[#3db44a] to-[#224224] py-16 md:py-24">
-        <Container>
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#3db44a] to-[#183619] py-16 md:py-24">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,.9) 1.5px, transparent 1.5px)",
+            backgroundSize: "24px 24px",
+          }}
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -end-24 -top-24 h-72 w-72 rounded-full bg-brand-accent/25 blur-3xl" aria-hidden="true" />
+
+        <Container className="relative">
           <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
             <div className="max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-accent">
@@ -283,12 +293,21 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 {t.ctaBody}
               </p>
             </div>
-            <Link
-              href={isRtl ? "/ar/get-quote" : "/get-quote"}
-              className="inline-flex h-14 items-center justify-center rounded-full bg-brand-accent px-8 text-base font-bold text-brand-dark transition hover:bg-white"
-            >
-              {t.primary}
-            </Link>
+            <div className="flex flex-col items-start gap-4 md:items-end">
+              <Link
+                href={isRtl ? "/ar/get-quote" : "/get-quote"}
+                className="inline-flex h-14 items-center justify-center rounded-full bg-brand-accent px-8 text-base font-bold text-brand-dark transition hover:bg-white"
+              >
+                {t.primary}
+              </Link>
+              <a
+                href={`mailto:${siteConfig.salesEmail}`}
+                dir="ltr"
+                className="text-sm font-semibold text-white/65 transition hover:text-white hover:underline underline-offset-4"
+              >
+                {isRtl ? `أو راسلنا: ${siteConfig.salesEmail}` : `Or email us: ${siteConfig.salesEmail}`}
+              </a>
+            </div>
           </div>
         </Container>
       </section>

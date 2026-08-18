@@ -105,27 +105,36 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-px overflow-hidden border border-brand-dark/10 bg-brand-dark/10 md:grid-cols-3">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <div
-                key={step.en}
-                ref={(el) => { stepRefs.current[i] = el; }}
-                className="flex flex-col bg-white p-8"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-dark/15 text-brand-dark">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
+        <div className="relative mt-16">
+          <div className="pointer-events-none absolute top-7 hidden h-px w-full bg-brand-dark/12 md:block" aria-hidden="true" />
+
+          <div className="grid gap-10 md:grid-cols-3 md:gap-8">
+            {steps.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.en}
+                  ref={(el) => { stepRefs.current[i] = el; }}
+                  className="relative flex gap-5 md:flex-col md:gap-0"
+                >
+                  <div className="relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-dark text-lg font-bold text-white">
+                    {String(i + 1).padStart(2, "0")}
+                    <span className="absolute -bottom-1.5 -end-1.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <div className="md:mt-7">
+                    <h3 className="text-lg font-bold text-brand-dark">
+                      {isRtl ? step.ar : step.en}
+                    </h3>
+                    <p className="mt-2 max-w-xs text-sm leading-relaxed text-brand-dark/55">
+                      {isRtl ? step.descAr : step.descEn}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="mt-6 text-lg font-bold text-brand-dark">
-                  {isRtl ? step.ar : step.en}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-brand-dark/55">
-                  {isRtl ? step.descAr : step.descEn}
-                </p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </Container>
     </section>

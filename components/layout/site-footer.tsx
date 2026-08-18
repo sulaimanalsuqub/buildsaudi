@@ -51,7 +51,9 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer className="border-t border-brand-dark/8 bg-[#f7f9f6]">
+    <footer className="relative border-t border-brand-dark/8 bg-[#f7f9f6]">
+      <div className="h-[3px] bg-gradient-to-r from-brand-primary via-brand-accent to-brand-primary" aria-hidden="true" />
+
       <Container className="py-12 md:py-16">
         <div className="grid gap-10 md:grid-cols-[minmax(0,1.6fr)_minmax(140px,0.7fr)_minmax(180px,0.8fr)]">
           {/* Brand column */}
@@ -84,7 +86,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 bg-white text-brand-dark/60 transition hover:border-brand-primary/40 hover:text-brand-primary"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 bg-white text-brand-dark/60 transition hover:-translate-y-0.5 hover:border-brand-primary/40 hover:text-brand-primary"
                 >
                   <Icon className="h-4 w-4" />
                 </a>
@@ -96,8 +98,11 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
           <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
         </div>
 
-        <div className="mt-10 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45">
+        <div className="mt-10 flex flex-col-reverse items-start justify-between gap-4 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45 sm:flex-row sm:items-center">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
+          <p className="font-semibold text-brand-dark/35">
+            {isRtl ? "مورد مواد بناء وتشطيب — المملكة العربية السعودية" : "Building materials & finishes supplier — Saudi Arabia"}
+          </p>
         </div>
       </Container>
     </footer>
