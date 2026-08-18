@@ -148,7 +148,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero — "The Manifest" ───────────────────── */}
-      <section className="relative -mt-[72px] flex min-h-[clamp(560px,88svh,860px)] items-end overflow-hidden bg-white pb-[var(--space-compact)] pt-[calc(72px+var(--space-compact))]">
+      <section className="relative -mt-[72px] overflow-hidden bg-white pb-[var(--space-compact)] pt-[calc(72px+var(--space-compact))]">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -160,7 +160,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
         />
 
         <Grid className="relative w-full">
-          <div className="col-span-4 sm:col-span-8 lg:col-span-8">
+          <div className="col-span-4 sm:col-span-8 lg:col-span-9">
             <div className="relative overflow-hidden">
               <h1 className="type-display text-brand-dark">
                 {isRtl ? (
@@ -179,12 +179,10 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 style={{ transformOrigin: isRtl ? "left" : "right" }}
               />
             </div>
-          </div>
 
-          <div className="col-span-4 sm:col-span-8 lg:col-span-4 lg:col-start-9 mt-10 flex flex-col justify-end lg:mt-0">
             <Link
               href={quoteHref}
-              className="inline-flex h-14 w-fit items-center justify-center rounded-md bg-brand-dark px-9 text-base font-bold text-white transition hover:bg-brand-primary"
+              className="mt-8 inline-flex h-14 w-fit items-center justify-center rounded-md bg-brand-dark px-9 text-base font-bold text-white transition hover:bg-brand-primary md:mt-10"
             >
               {t.primary}
             </Link>
