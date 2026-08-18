@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Loader2, Paperclip, Plus, ShieldCheck, Trash2, X } from "lucide-react";
-import { EmailVerify } from "@/components/ui/email-verify";
+import { CheckCircle2, Loader2, Paperclip, Plus, ShieldCheck, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   isEnglishBrandName,
@@ -21,15 +21,12 @@ import {
   supplierCountries,
   textByLang,
 } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorOptionCard, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
+import { VendorErrorText, VendorField, VendorPhoneInput } from "@/components/forms/vendor-form-shared";
 
 type PickedFile = { name: string; mimeType: string; base64Data: string; sizeLabel: string };
-type CustomerProject = { id: number; name: string };
-type CustomerLookup = { contactName: string; companyName: string; phone: string; projects: CustomerProject[] };
 type ItemRow = { itemName: string; quantity: string; unit: string; brand: string; countryOfOrigin: string };
 
 const MAX_FILES = 5;
-const NEW_PROJECT = "__new__";
 const NATIONAL_ADDRESS_PATTERN = /^[A-Za-z]{4}\d{4}$/;
 
 const formSchema = z.object({
@@ -37,7 +34,6 @@ const formSchema = z.object({
   contactName: z.string().min(2, "required"),
   companyName: z.string().optional(),
   phone: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
-  projectChoice: z.string().optional(),
   newProjectName: z.string().optional(),
   description: z.string().optional(),
   city: z.string().optional(),
@@ -45,6 +41,7 @@ const formSchema = z.object({
     .string()
     .optional()
     .refine((v) => !v || NATIONAL_ADDRESS_PATTERN.test(v), { message: "invalidNationalAddress" }),
+  privacyAccepted: z.literal(true, { message: "required" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,11 +51,11 @@ const defaultValues: FormValues = {
   contactName: "",
   companyName: "",
   phone: "",
-  projectChoice: "",
   newProjectName: "",
   description: "",
   city: "",
   nationalAddressCode: "",
+  privacyAccepted: false as unknown as true,
 };
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -86,10 +83,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [trackingToken, setTrackingToken] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [verifiedEmail, setVerifiedEmail] = useState("");
-  const [emailToken, setEmailToken] = useState("");
-  const [lookup, setLookup] = useState<CustomerLookup | null>(null);
-  const [lookupChecked, setLookupChecked] = useState(false);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [fileError, setFileError] = useState("");
@@ -105,71 +98,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
 
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
-  const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
-
-  const handleEmailVerified = async (token: string) => {
-    const email = form.getValues("email").trim().toLowerCase();
-    setVerifiedEmail(email);
-    setEmailToken(token);
-    form.clearErrors("email");
-
-    // حفظ صامت لجهة الاتصال بمجرد التحقق من البريد — حتى لو ما أكمل الفورم، بيلد يقدر يتابع معه.
-    // فشل هذا الطلب لا يظهر للمستخدم أبداً؛ لا يؤثر على تكملة النموذج.
-    fetch("/api/quotes/save-lead", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contact_name: form.getValues("contactName").trim(),
-        company_name: form.getValues("companyName")?.trim() || undefined,
-        email,
-        email_verified_token: token,
-        phone: form.getValues("phone"),
-      }),
-    }).catch(() => undefined);
-
-    try {
-      const res = await fetch("/api/quotes/lookup-customer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, email_verified_token: token }),
-      });
-      const body = (await res.json().catch(() => null)) as ({ ok?: boolean; found?: boolean } & Partial<CustomerLookup>) | null;
-      if (body?.ok && body.found) {
-        const data: CustomerLookup = { contactName: body.contactName || "", companyName: body.companyName || "", phone: body.phone || "", projects: body.projects || [] };
-        setLookup(data);
-        // بما أن التحقق صار آخر خطوة، الحقول غالباً معبّاة يدوياً مسبقاً — لا نستبدل إلا الفارغ منها
-        const current = form.getValues();
-        if (!current.contactName.trim()) form.setValue("contactName", data.contactName);
-        if (!current.companyName?.trim()) form.setValue("companyName", data.companyName);
-        if (!current.phone.trim()) form.setValue("phone", data.phone);
-        if (data.projects.length && !current.projectChoice && !current.newProjectName?.trim()) {
-          form.setValue("projectChoice", String(data.projects[0].id));
-        }
-      }
-    } catch {
-      // فشل البحث لا يوقف الفورم — تكملة الإدخال يدوياً
-    } finally {
-      setLookupChecked(true);
-    }
-  };
-
-  const deleteProject = async (projectId: number) => {
-    if (!lookup) return;
-    try {
-      await fetch("/api/quotes/delete-project", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project_id: projectId, email: verifiedEmail, email_verified_token: emailToken }),
-      });
-      const nextProjects = lookup.projects.filter((p) => p.id !== projectId);
-      setLookup({ ...lookup, projects: nextProjects });
-      if (values.projectChoice === String(projectId)) {
-        form.setValue("projectChoice", nextProjects.length ? String(nextProjects[0].id) : NEW_PROJECT);
-      }
-    } catch {
-      setSubmitError(textByLang(isRtl, "Could not delete the project. Try again.", "تعذر حذف المشروع. حاول مجدداً."));
-    }
-  };
 
   const addItemRow = () => setItems((prev) => [...prev, { itemName: "", quantity: "", unit: "", brand: "", countryOfOrigin: "" }]);
   const updateItemRow = (index: number, patch: Partial<ItemRow>) => setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
@@ -210,18 +138,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!emailVerified) {
-      form.setError("email", { message: "required" });
-      setSubmitError(textByLang(isRtl, "Please verify your email first", "يجب التحقق من البريد الإلكتروني أولاً"));
-      return;
-    }
-
-    const hasExistingProjects = !!lookup && lookup.projects.length > 0;
-    const projectName = hasExistingProjects
-      ? data.projectChoice === NEW_PROJECT
-        ? data.newProjectName?.trim() || ""
-        : lookup!.projects.find((p) => String(p.id) === data.projectChoice)?.name || ""
-      : data.newProjectName?.trim() || "";
+    const projectName = data.newProjectName?.trim() || "";
     if (!projectName) {
       form.setError("newProjectName", { message: "required" });
       setSubmitError(textByLang(isRtl, "Please name your project", "يرجى كتابة اسم المشروع"));
@@ -264,7 +181,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           contact_name: data.contactName.trim(),
           company_name: data.companyName?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
-          email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.phone),
           project_name: projectName,
           description: combinedDescription,
@@ -326,14 +242,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     );
   }
 
-  const hasExistingProjects = !!lookup && lookup.projects.length > 0;
   const showPhone = values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.phone).localNumber;
   const showEmail = showPhone && phoneDigits.length >= 8;
-  const showProject = showEmail && emailVerified;
-  const hasProjectSet = hasExistingProjects
-    ? !!values.projectChoice
-    : (values.newProjectName?.trim().length ?? 0) >= 2;
+  const showProject = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim());
+  const hasProjectSet = (values.newProjectName?.trim().length ?? 0) >= 2;
   const showRest = showProject && hasProjectSet;
 
   return (
@@ -367,47 +280,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
 
         <AnimatePresence>
           {showEmail && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-              <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "We verify your email before continuing", "نتحقق من بريدك قبل ما نكمل")}>
-                <Input
-                  type="email"
-                  {...form.register("email", {
-                    onChange: () => {
-                      if (emailVerified) {
-                        setVerifiedEmail("");
-                        setEmailToken("");
-                        setLookup(null);
-                        setLookupChecked(false);
-                      }
-                    },
-                  })}
-                  className="h-12"
-                  dir="ltr"
-                />
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")}>
+                <Input type="email" {...form.register("email")} className="h-12" dir="ltr" />
                 <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
               </VendorField>
-
-              {emailVerified ? (
-                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                  {textByLang(isRtl, "Email verified ✓", "تم التحقق من البريد ✓")}
-                </div>
-              ) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
-                <EmailVerify email={values.email.trim()} isRtl={isRtl} onVerified={handleEmailVerified} />
-              ) : null}
-
-              {emailVerified && !lookupChecked && (
-                <div className="flex items-center gap-2 text-sm text-brand-dark/50">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {textByLang(isRtl, "Checking your account…", "جاري التحقق من حسابكم…")}
-                </div>
-              )}
-
-              {lookup && (
-                <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
-                  {textByLang(isRtl, `Welcome back, ${lookup.contactName}!`, `مرحباً بعودتك، ${lookup.contactName}!`)}
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -416,32 +293,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           {showProject && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
-          {hasExistingProjects ? (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {lookup!.projects.map((p) => (
-                  <div key={p.id} className="flex items-center gap-1">
-                    <VendorOptionCard checked={values.projectChoice === String(p.id)}>
-                      <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === String(p.id)} onChange={() => form.setValue("projectChoice", String(p.id), { shouldValidate: true })} />
-                      {p.name}
-                    </VendorOptionCard>
-                    <button type="button" onClick={() => deleteProject(p.id)} className="shrink-0 text-brand-dark/35 hover:text-red-600" title={textByLang(isRtl, "Delete project", "حذف المشروع")}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                <VendorOptionCard checked={values.projectChoice === NEW_PROJECT}>
-                  <input type="radio" className="h-4 w-4 accent-brand-primary" checked={values.projectChoice === NEW_PROJECT} onChange={() => form.setValue("projectChoice", NEW_PROJECT, { shouldValidate: true })} />
-                  {textByLang(isRtl, "New project", "مشروع جديد")}
-                </VendorOptionCard>
-              </div>
-              {values.projectChoice === NEW_PROJECT && (
-                <Input {...form.register("newProjectName")} className="h-12" placeholder={textByLang(isRtl, "New project name", "اسم المشروع الجديد")} />
-              )}
-            </div>
-          ) : (
-            <Input {...form.register("newProjectName")} className="h-12" />
-          )}
+          <Input {...form.register("newProjectName")} className="h-12" />
           <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
         </VendorField>
         </motion.div>
@@ -543,7 +395,23 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           />
         </VendorField>
 
-        {emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+        <div className="rounded-xl bg-brand-light/40 p-4">
+          <label className="flex items-start gap-3 text-sm text-brand-dark/85">
+            <Checkbox
+              checked={values.privacyAccepted}
+              onCheckedChange={(v) => form.setValue("privacyAccepted", (v === true) as true, { shouldValidate: true })}
+            />
+            <span>
+              {isRtl ? "أوافق على " : "I agree to the "}
+              <a href={isRtl ? "/ar/privacy-policy" : "/privacy-policy"} target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-primary">
+                {textByLang(isRtl, "Privacy Policy", "سياسة الخصوصية")}
+              </a>
+            </span>
+          </label>
+          <VendorErrorText text={form.formState.errors.privacyAccepted?.message} isRtl={isRtl} />
+        </div>
+
+        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
           <div>
             <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
             <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-language={isRtl ? "ar" : "en"} />
@@ -554,7 +422,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       </div>
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : textByLang(isRtl, "Submit Request", "إرسال الطلب")}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

@@ -28,7 +28,6 @@ import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/li
 import { rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { checkSharedRateLimit } from "@/lib/shared-store";
 import { validateSafeUpload } from "@/lib/file-validation";
-import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
 import { extractRequestItems } from "@/lib/material-extraction";
@@ -91,7 +90,6 @@ const registerSchema = z
     contact_name: z.string().trim().min(2, "اسم المسؤول مطلوب"),
     company_name: z.string().trim().optional().or(z.literal("")),
     email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
-    email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
     phone: z
       .string()
       .trim()
@@ -116,10 +114,6 @@ const registerSchema = z
     files: z.array(fileSchema).max(MAX_FILES, "يمكن رفع 5 ملفات كحد أقصى").optional().default([]),
     submission_id: z.string().uuid("معرف الإرسال غير صحيح"),
     turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
-  })
-  .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
-    path: ["email"],
-    message: "انتهت صلاحية التحقق من البريد — أعد إرسال رمز OTP والتحقق مرة أخرى",
   })
   .refine((data) => data.description.trim().length >= 5 || data.items.length > 0 || data.files.length > 0, {
     path: ["description"],
