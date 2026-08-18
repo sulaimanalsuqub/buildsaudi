@@ -269,41 +269,36 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <HowItWorks isRtl={isRtl} />
 
       {/* ── Final CTA ───────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#3db44a] to-[#183619] py-16 md:py-24">
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-brand-light/60 to-white py-16 md:py-24">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,.9) 1.5px, transparent 1.5px)",
-            backgroundSize: "24px 24px",
-          }}
+          className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_88%_0%,rgba(5,176,76,.16),transparent_28rem)]"
           aria-hidden="true"
         />
-        <div className="pointer-events-none absolute -end-24 -top-24 h-72 w-72 rounded-full bg-brand-accent/25 blur-3xl" aria-hidden="true" />
 
         <Container className="relative">
-          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+          <div className="grid items-center gap-8 border-t border-brand-dark/10 pt-14 md:grid-cols-[1fr_auto]">
             <div className="max-w-2xl">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-accent">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-primary">
                 {isRtl ? "ابدأ مشروعك" : "Start your project"}
               </p>
-              <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-white md:text-5xl">
+              <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-brand-dark md:text-5xl">
                 {t.ctaTitle}
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-white/70 md:text-lg">
+              <p className="mt-4 max-w-xl text-base leading-8 text-brand-dark/60 md:text-lg">
                 {t.ctaBody}
               </p>
             </div>
             <div className="flex flex-col items-start gap-4 md:items-end">
               <Link
                 href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-14 items-center justify-center rounded-full bg-brand-accent px-8 text-base font-bold text-brand-dark transition hover:bg-white"
+                className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-white transition hover:bg-brand-dark"
               >
                 {t.primary}
               </Link>
               <a
                 href={`mailto:${siteConfig.salesEmail}`}
                 dir="ltr"
-                className="text-sm font-semibold text-white/65 transition hover:text-white hover:underline underline-offset-4"
+                className="text-sm font-semibold text-brand-dark/45 transition hover:text-brand-primary hover:underline underline-offset-4"
               >
                 {isRtl ? `أو راسلنا: ${siteConfig.salesEmail}` : `Or email us: ${siteConfig.salesEmail}`}
               </a>
