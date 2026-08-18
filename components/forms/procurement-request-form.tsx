@@ -16,7 +16,6 @@ import {
   isValidVendorPhone,
   normalizeVendorPhone,
   optionLabel,
-  parseVendorPhone,
   saudiCities,
   supplierCountries,
   textByLang,
@@ -242,12 +241,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     );
   }
 
-  const showPhone = values.contactName.trim().length >= 2;
-  const phoneDigits = parseVendorPhone(values.phone).localNumber;
-  const showEmail = showPhone && phoneDigits.length >= 8;
-  const showProject = showEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim());
-  const hasProjectSet = (values.newProjectName?.trim().length ?? 0) >= 2;
-  const showRest = showProject && hasProjectSet;
+  const showRest = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim());
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-4xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
@@ -257,9 +251,16 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       </div>
 
       <div className="space-y-5">
+        <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "Start with your email", "ابدأ بإيميلك")}>
+          <Input type="email" {...form.register("email")} className="h-12" dir="ltr" autoFocus />
+          <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
+        </VendorField>
+
+        {showRest && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <VendorField label={textByLang(isRtl, "Your Name", "اسمك")}>
-            <Input {...form.register("contactName")} className="h-12" autoFocus />
+            <Input {...form.register("contactName")} className="h-12" />
             <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
           </VendorField>
           <VendorField label={textByLang(isRtl, "Company Name", "اسم المنشأة")}>
@@ -267,41 +268,15 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           </VendorField>
         </div>
 
-        <AnimatePresence>
-          {showPhone && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
-                <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
-                <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
-              </VendorField>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
+          <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
+          <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
+        </VendorField>
 
-        <AnimatePresence>
-          {showEmail && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")}>
-                <Input type="email" {...form.register("email")} className="h-12" dir="ltr" />
-                <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-              </VendorField>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showProject && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <VendorField label={textByLang(isRtl, "Project", "المشروع")} helper={textByLang(isRtl, "Every request must belong to a project", "كل طلب يجب أن يكون مرتبطاً بمشروع")}>
           <Input {...form.register("newProjectName")} className="h-12" />
           <VendorErrorText text={form.formState.errors.newProjectName?.message} isRtl={isRtl} />
         </VendorField>
-        </motion.div>
-          )}
-        </AnimatePresence>
-
-        {showRest && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
         <VendorField label={textByLang(isRtl, "Materials Needed", "المواد المطلوبة")} helper={textByLang(isRtl, "Attach your order as an Excel or PDF file — fastest way. Or list items below.", "أرفق طلبك كملف إكسل أو PDF — أسرع طريقة. أو عدّد الأصناف أدناه.")}>
           <label
             onDragOver={handleFilesDragOver}
