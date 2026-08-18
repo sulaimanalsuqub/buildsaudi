@@ -113,6 +113,20 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
     setEmailToken(token);
     form.clearErrors("email");
 
+    // حفظ صامت لجهة الاتصال بمجرد التحقق من البريد — حتى لو ما أكمل الفورم، بيلد يقدر يتابع معه.
+    // فشل هذا الطلب لا يظهر للمستخدم أبداً؛ لا يؤثر على تكملة النموذج.
+    fetch("/api/quotes/save-lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contact_name: form.getValues("contactName").trim(),
+        company_name: form.getValues("companyName")?.trim() || undefined,
+        email,
+        email_verified_token: token,
+        phone: form.getValues("phone"),
+      }),
+    }).catch(() => undefined);
+
     try {
       const res = await fetch("/api/quotes/lookup-customer", {
         method: "POST",
@@ -315,7 +329,8 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const hasExistingProjects = !!lookup && lookup.projects.length > 0;
   const showPhone = values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.phone).localNumber;
-  const showProject = showPhone && phoneDigits.length >= 8;
+  const showEmail = showPhone && phoneDigits.length >= 8;
+  const showProject = showEmail && emailVerified;
   const hasProjectSet = hasExistingProjects
     ? !!values.projectChoice
     : (values.newProjectName?.trim().length ?? 0) >= 2;
@@ -346,6 +361,53 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
                 <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
                 <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
               </VendorField>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showEmail && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+              <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "We verify your email before continuing", "نتحقق من بريدك قبل ما نكمل")}>
+                <Input
+                  type="email"
+                  {...form.register("email", {
+                    onChange: () => {
+                      if (emailVerified) {
+                        setVerifiedEmail("");
+                        setEmailToken("");
+                        setLookup(null);
+                        setLookupChecked(false);
+                      }
+                    },
+                  })}
+                  className="h-12"
+                  dir="ltr"
+                />
+                <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
+              </VendorField>
+
+              {emailVerified ? (
+                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {textByLang(isRtl, "Email verified ✓", "تم التحقق من البريد ✓")}
+                </div>
+              ) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
+                <EmailVerify email={values.email.trim()} isRtl={isRtl} onVerified={handleEmailVerified} />
+              ) : null}
+
+              {emailVerified && !lookupChecked && (
+                <div className="flex items-center gap-2 text-sm text-brand-dark/50">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {textByLang(isRtl, "Checking your account…", "جاري التحقق من حسابكم…")}
+                </div>
+              )}
+
+              {lookup && (
+                <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
+                  {textByLang(isRtl, `Welcome back, ${lookup.contactName}!`, `مرحباً بعودتك، ${lookup.contactName}!`)}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -480,47 +542,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             placeholder={textByLang(isRtl, "Anything else we should know?", "أي شيء إضافي حابب تخبرنا فيه؟")}
           />
         </VendorField>
-
-        {lookup && (
-          <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm text-brand-dark/80">
-            {textByLang(isRtl, `Welcome back, ${lookup.contactName}!`, `مرحباً بعودتك، ${lookup.contactName}!`)}
-          </div>
-        )}
-
-        <VendorField label={textByLang(isRtl, "Email", "البريد الإلكتروني")} helper={textByLang(isRtl, "Last step — we verify your email to submit the request", "آخر خطوة — نتحقق من بريدك لإرسال الطلب")}>
-          <Input
-            type="email"
-            {...form.register("email", {
-              onChange: () => {
-                if (emailVerified) {
-                  setVerifiedEmail("");
-                  setEmailToken("");
-                  setLookup(null);
-                  setLookupChecked(false);
-                }
-              },
-            })}
-            className="h-12"
-            dir="ltr"
-          />
-          <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-        </VendorField>
-
-        {emailVerified ? (
-          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            <CheckCircle2 className="h-4 w-4" />
-            {textByLang(isRtl, "Email verified ✓", "تم التحقق من البريد ✓")}
-          </div>
-        ) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
-          <EmailVerify email={values.email.trim()} isRtl={isRtl} onVerified={handleEmailVerified} />
-        ) : null}
-
-        {emailVerified && !lookupChecked && (
-          <div className="flex items-center gap-2 text-sm text-brand-dark/50">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {textByLang(isRtl, "Checking your account…", "جاري التحقق من حسابكم…")}
-          </div>
-        )}
 
         {emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
           <div>
