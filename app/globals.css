@@ -43,7 +43,7 @@ body {
 
   /* ── Homepage display — the biggest statement on the page ── */
   .type-display {
-    font-size: clamp(2.75rem, 1.4rem + 6.3vw, 8.25rem);
+    font-size: clamp(2.5rem, 1.3rem + 5.4vw, 7rem);
     font-weight: 900;
     line-height: 0.92;
     letter-spacing: -0.03em;

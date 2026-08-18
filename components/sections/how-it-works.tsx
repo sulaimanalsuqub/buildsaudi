@@ -98,7 +98,6 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
   }, [isRtl, reducedMotion]);
 
   const t = {
-    label: isRtl ? "٠٢ — العملية" : "02 — Process",
     title: isRtl ? "من الطلب للتسليم" : "From requirement to site",
   };
 
@@ -108,8 +107,7 @@ export function HowItWorks({ isRtl = false }: HowItWorksProps) {
         <div className="w-full">
           <Grid>
             <div className="col-span-4 sm:col-span-8 lg:col-span-12 mb-12 lg:mb-16">
-              <p className="type-micro text-brand-dark/45">{t.label}</p>
-              <h2 className="type-editorial mt-3 text-brand-dark">{t.title}</h2>
+              <h2 className="type-editorial text-brand-dark">{t.title}</h2>
             </div>
           </Grid>
 

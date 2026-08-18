@@ -16,7 +16,6 @@ import {
 
 import { Grid } from "@/components/ui/grid";
 import { HowItWorks } from "@/components/sections/how-it-works";
-import { siteConfig } from "@/lib/site";
 import { ensureScrollTrigger, usePrefersReducedMotion } from "@/lib/motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -102,22 +101,17 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   const active = catalog[activeMaterial];
 
   const t = {
-    eyebrow: isRtl ? "توريد للمشاريع في جميع مناطق المملكة" : "Project supply across Saudi Arabia",
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
-    coverage: isRtl ? "الرياض · جدة · جميع المناطق" : "Riyadh · Jeddah · Nationwide",
     trust: [
       isRtl ? "عرض سعر واضح" : "Clear quotations",
       isRtl ? "توريد للموقع" : "Site delivery",
       isRtl ? "متابعة من البداية" : "End-to-end support",
     ],
-    catalogLabel: isRtl ? "٠١ — الكتالوج" : "01 — Catalog",
     catalogTitle: isRtl ? "المواد اللي نورّدها" : "The materials we move",
-    catalogSub: isRtl
-      ? `${catalog.length} فئات رئيسية لجميع احتياجات مشاريعك`
-      : `${catalog.length} core categories for every project need`,
-    ctaLead: isRtl ? "أرسل جدول الكميات، " : "Send your BOQ. ",
+    catalogSub: isRtl ? "جميع احتياجات مشروعك" : "Everything your project needs",
+    ctaLead: isRtl ? "أرسل طلبك، " : "Send your request. ",
     ctaAction: isRtl ? "وسنرتب التوريد لك." : "We'll coordinate the supply.",
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
   };
@@ -167,9 +161,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
         <Grid className="relative w-full">
           <div className="col-span-4 sm:col-span-8 lg:col-span-8">
-            <p className="type-micro text-brand-primary">{t.eyebrow}</p>
-
-            <div className="relative mt-4 overflow-hidden">
+            <div className="relative overflow-hidden">
               <h1 className="type-display text-brand-dark">
                 {isRtl ? (
                   <>
@@ -199,13 +191,16 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             </Link>
           </div>
 
-          <div className="col-span-4 sm:col-span-8 lg:col-span-12 mt-16 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-brand-dark/10 pt-5 md:mt-24">
-            <span className="type-micro text-brand-dark/45">
-              {catalog.length} {isRtl ? "فئات" : "CATEGORIES"} — {t.coverage}
-            </span>
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {t.trust.map((item) => (
-                <span key={item} className="type-micro text-brand-dark/45">
+          <div className="col-span-4 sm:col-span-8 lg:col-span-12 mt-16 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-brand-dark/10 pt-5 md:mt-24">
+            <span className="type-body text-brand-dark/60">{t.body}</span>
+            <div className="flex flex-wrap gap-2">
+              {t.trust.map((item, i) => (
+                <span
+                  key={item}
+                  className={`type-micro rounded-md px-3 py-1.5 ${
+                    i === 0 ? "bg-brand-dark text-white" : i === 1 ? "bg-brand-primary text-white" : "bg-brand-accent text-brand-dark"
+                  }`}
+                >
                   {item}
                 </span>
               ))}
@@ -218,8 +213,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       <section id="catalog" ref={catalogSectionRef} className="bg-white py-[var(--space-section)] scroll-mt-20">
         <Grid>
           <div className="col-span-4 sm:col-span-8 lg:col-span-12 mb-12 md:mb-16">
-            <p className="type-micro text-brand-dark/45">{t.catalogLabel}</p>
-            <h2 ref={catalogTitleRef} className="type-editorial mt-3 text-brand-dark" style={{ opacity: 0 }}>
+            <h2 ref={catalogTitleRef} className="type-editorial text-brand-dark" style={{ opacity: 0 }}>
               {t.catalogTitle}
             </h2>
             <p className="type-body mt-3 text-brand-dark/55">{t.catalogSub}</p>
@@ -302,20 +296,13 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 {t.ctaAction}
               </Link>
             </p>
-            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <div className="mt-10">
               <Link
                 href={quoteHref}
                 className="inline-flex h-14 items-center justify-center rounded-md bg-white px-9 text-base font-bold text-brand-dark transition hover:bg-brand-accent"
               >
                 {t.primary}
               </Link>
-              <a
-                href={`mailto:${siteConfig.salesEmail}`}
-                dir="ltr"
-                className="type-micro text-white/45 transition hover:text-white"
-              >
-                {isRtl ? `أو راسلنا: ${siteConfig.salesEmail}` : `Or email us: ${siteConfig.salesEmail}`}
-              </a>
             </div>
           </div>
         </Grid>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Instagram, Linkedin, Mail, X as XIcon } from "lucide-react";
 
@@ -53,7 +54,14 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
     <footer className="border-t border-brand-dark/10 bg-white pt-[var(--space-compact)]">
       <Grid>
         <div className="col-span-4 sm:col-span-4 lg:col-span-5">
-          <p className="type-body max-w-xs text-brand-dark/60">
+          <Image
+            src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
+            alt={isRtl ? "شعار بيلد" : "Build logo"}
+            width={4302}
+            height={1500}
+            className="h-8 w-auto"
+          />
+          <p className="type-body mt-5 max-w-xs text-brand-dark/60">
             {isRtl
               ? "المملكة العربية السعودية، جدة، حي الزهراء"
               : "Al Zahra District, Jeddah, Saudi Arabia"}
@@ -92,12 +100,9 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
 
       <div className="mt-16 border-t border-brand-dark/10">
         <Grid>
-          <div className="col-span-4 sm:col-span-8 lg:col-span-12 flex flex-col-reverse items-start justify-between gap-6 py-6 sm:flex-row sm:items-center">
+          <div className="col-span-4 sm:col-span-8 lg:col-span-12 py-6">
             <p className="type-micro text-brand-dark/40">
               {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
-            </p>
-            <p className="type-editorial text-brand-dark/[0.08]" aria-hidden="true">
-              {isRtl ? "بيلد" : "Build"}
             </p>
           </div>
         </Grid>

@@ -1,5 +1,3 @@
-import { Truck } from "lucide-react";
-
 import { CarrierRegistrationForm } from "@/components/forms/carrier-registration-form";
 import { Container } from "@/components/ui/container";
 
@@ -9,7 +7,6 @@ type CarrierRegisterContentProps = {
 
 export function CarrierRegisterContent({ isRtl = false }: CarrierRegisterContentProps) {
   const t = {
-    badge: isRtl ? "تسجيل الناقلين" : "Carrier Registration",
     title: isRtl ? "سجّل منشأتك كناقل" : "Register your company as a carrier",
     body: isRtl
       ? "المرحلة الأولى: أرسل بيانات منشأتك الأساسية ومناطق خدمتك وأسطولك. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف الناقل الكامل."
@@ -20,12 +17,8 @@ export function CarrierRegisterContent({ isRtl = false }: CarrierRegisterContent
     <main dir={isRtl ? "rtl" : "ltr"}>
       <section className="bg-white py-12 md:py-16">
         <Container>
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/25 bg-brand-primary/8 px-4 py-1.5 text-sm font-semibold text-brand-primary">
-              <Truck className="h-4 w-4" />
-              {t.badge}
-            </span>
-            <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
+          <div className="max-w-2xl border-t border-brand-dark/10 pt-6">
+            <h1 className="type-hero text-brand-dark">{t.title}</h1>
             <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
           </div>
         </Container>
