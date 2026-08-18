@@ -239,7 +239,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
 
           <div className="col-span-8 hidden lg:block">
             <div
-              className="relative h-[440px] overflow-hidden transition-[background-color] duration-500"
+              className="relative min-h-[440px] transition-[background-color] duration-500"
               style={{
                 backgroundColor: active.bg,
                 backgroundImage: active.pattern,
@@ -262,7 +262,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               {catalog.map((item) => (
                 <div
                   key={item.en}
-                  className="relative h-[320px] w-[78%] shrink-0 snap-start overflow-hidden"
+                  className="relative min-h-[320px] w-[78%] shrink-0 snap-start"
                   style={{ backgroundColor: item.bg, backgroundImage: item.pattern, backgroundSize: item.patternSize }}
                 >
                   <item.icon className={`absolute top-6 h-6 w-6 ${isRtl ? "right-6" : "left-6"} ${item.dark ? "text-white/80" : "text-brand-dark/60"}`} aria-hidden="true" />

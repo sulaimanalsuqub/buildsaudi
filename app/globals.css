@@ -37,7 +37,7 @@ body {
   .type-hero {
     font-size: clamp(2.25rem, 1.85rem + 1.8vw, 3.625rem);
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.25;
     letter-spacing: -0.02em;
   }
 
@@ -45,7 +45,7 @@ body {
   .type-display {
     font-size: clamp(2.5rem, 1.3rem + 5.4vw, 7rem);
     font-weight: 900;
-    line-height: 0.92;
+    line-height: 1.2;
     letter-spacing: -0.03em;
   }
 
@@ -53,7 +53,7 @@ body {
   .type-editorial {
     font-size: clamp(2.25rem, 1.5rem + 3.3vw, 6rem);
     font-weight: 800;
-    line-height: 0.98;
+    line-height: 1.2;
     letter-spacing: -0.025em;
   }
 
@@ -69,7 +69,7 @@ body {
   .type-statement {
     font-size: clamp(2rem, 1.5rem + 2.2vw, 4.5rem);
     font-weight: 700;
-    line-height: 1.08;
+    line-height: 1.25;
     letter-spacing: -0.02em;
   }
 

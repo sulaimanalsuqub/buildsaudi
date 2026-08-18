@@ -18,7 +18,6 @@ import {
   optionLabel,
   parseVendorPhone,
   saudiCities,
-  saudiVatRegex,
   supplierCountries,
   textByLang,
 } from "@/lib/vendor-options";
@@ -37,10 +36,6 @@ const formSchema = z.object({
   email: z.string().email("invalidEmail"),
   contactName: z.string().min(2, "required"),
   companyName: z.string().optional(),
-  taxNumber: z
-    .string()
-    .optional()
-    .refine((v) => !v || saudiVatRegex.test(v), { message: "invalidTaxNumber" }),
   phone: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   projectChoice: z.string().optional(),
   newProjectName: z.string().optional(),
@@ -50,7 +45,6 @@ const formSchema = z.object({
     .string()
     .optional()
     .refine((v) => !v || NATIONAL_ADDRESS_PATTERN.test(v), { message: "invalidNationalAddress" }),
-  addressNotes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -59,14 +53,12 @@ const defaultValues: FormValues = {
   email: "",
   contactName: "",
   companyName: "",
-  taxNumber: "",
   phone: "",
   projectChoice: "",
   newProjectName: "",
   description: "",
   city: "",
   nationalAddressCode: "",
-  addressNotes: "",
 };
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -228,9 +220,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setSubmitError(textByLang(isRtl, "Enter brand names in English only", "اكتب أسماء العلامات التجارية بالإنجليزي فقط"));
       return;
     }
-    const hasLocation = !!data.nationalAddressCode || !!data.addressNotes?.trim() || !!data.city;
+    const hasLocation = !!data.nationalAddressCode || !!data.city;
     if (!hasLocation) {
-      setSubmitError(textByLang(isRtl, "Set the delivery location: city, national address code, or district", "حدد موقع التسليم: المدينة، رمز العنوان الوطني، أو الحي"));
+      setSubmitError(textByLang(isRtl, "Set the delivery location: city or national address code", "حدد موقع التسليم: المدينة أو رمز العنوان الوطني"));
       return;
     }
     const hasMaterialsInfo = !!data.description?.trim() || validItems.length > 0 || files.length > 0;
@@ -243,20 +235,10 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       return;
     }
 
-    // لا حقل مخصّص للرقم الضريبي/المدينة في أودو لطلبات التوريد — نضمّها كنص واضح
-    // داخل الحقول النصية الموجودة (الوصف وملاحظات العنوان) بدل تغيير عقد الـAPI.
-    const combinedDescription = [
-      data.taxNumber ? `${textByLang(isRtl, "Tax number", "الرقم الضريبي")}: ${data.taxNumber}` : "",
-      data.description?.trim() || "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    const combinedAddressNotes = [
-      data.city ? optionLabel(isRtl, saudiCities, data.city) : "",
-      data.addressNotes?.trim() || "",
-    ]
-      .filter(Boolean)
-      .join(" — ");
+    // لا حقل مخصّص للمدينة في أودو لطلبات التوريد — نضمّها كنص واضح
+    // داخل حقل ملاحظات العنوان الموجود بدل تغيير عقد الـAPI.
+    const combinedDescription = data.description?.trim() || "";
+    const combinedAddressNotes = data.city ? optionLabel(isRtl, saudiCities, data.city) : "";
 
     setSubmitError("");
     setIsLoading(true);
@@ -331,9 +313,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   }
 
   const hasExistingProjects = !!lookup && lookup.projects.length > 0;
-  const showTaxPhone = values.contactName.trim().length >= 2;
+  const showPhone = values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.phone).localNumber;
-  const showRest = showTaxPhone && phoneDigits.length >= 8;
+  const showRest = showPhone && phoneDigits.length >= 8;
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-4xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
@@ -348,21 +330,14 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             <Input {...form.register("contactName")} className="h-12" autoFocus />
             <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
           </VendorField>
-          <VendorField label={textByLang(isRtl, "Company (optional)", "المنشأة (اختياري)")}>
+          <VendorField label={textByLang(isRtl, "Company Name", "اسم المنشأة")}>
             <Input {...form.register("companyName")} className="h-12" />
           </VendorField>
         </div>
 
         <AnimatePresence>
-          {showTaxPhone && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-              <VendorField label={textByLang(isRtl, "Tax Number (optional)", "الرقم الضريبي (اختياري)")}>
-                <Input {...form.register("taxNumber")} className="h-12" dir="ltr" maxLength={15} placeholder="3XXXXXXXXXXXXX3" />
-                {form.formState.errors.taxNumber && (
-                  <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "Enter a valid 15-digit Saudi tax number", "أدخل رقماً ضريبياً سعودياً صحيحاً (15 رقماً)")}</p>
-                )}
-              </VendorField>
-
+          {showPhone && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
               <VendorField label={textByLang(isRtl, "Mobile Number", "رقم الجوال")}>
                 <VendorPhoneInput value={values.phone} onChange={(v) => form.setValue("phone", v, { shouldValidate: true })} isRtl={isRtl} hasError={!!form.formState.errors.phone} />
                 <VendorErrorText text={form.formState.errors.phone?.message} isRtl={isRtl} />
@@ -479,14 +454,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
                 </option>
               ))}
             </select>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
-                {form.formState.errors.nationalAddressCode && (
-                  <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
-                )}
-              </div>
-              <Input {...form.register("addressNotes")} className="h-12" placeholder={textByLang(isRtl, "District, building, landmark…", "الحي، المبنى، أقرب معلَم…")} />
+            <div>
+              <Input {...form.register("nationalAddressCode")} className="h-12 uppercase" dir="ltr" maxLength={8} placeholder={textByLang(isRtl, "National Address Code (e.g. RRRD2929)", "الرمز المختصر (مثال RRRD2929)")} />
+              {form.formState.errors.nationalAddressCode && (
+                <p className="mt-1 text-sm text-red-600">{textByLang(isRtl, "4 letters followed by 4 digits", "4 أحرف ثم 4 أرقام")}</p>
+              )}
             </div>
           </div>
         </VendorField>
