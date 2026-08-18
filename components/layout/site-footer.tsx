@@ -51,7 +51,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer className="relative border-t border-brand-dark/8 bg-[#f7f9f6]">
+    <footer className="relative border-t border-brand-dark/8 bg-white">
       <div className="h-[3px] bg-gradient-to-r from-brand-primary via-brand-accent to-brand-primary" aria-hidden="true" />
 
       <Container className="py-12 md:py-16">

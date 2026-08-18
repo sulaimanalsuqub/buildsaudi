@@ -206,7 +206,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       </section>
 
       {/* ── Catalog ──────────────────────────────────── */}
-      <section id="catalog" ref={catalogSectionRef} className="bg-brand-light py-20 md:py-28 scroll-mt-20">
+      <section id="catalog" ref={catalogSectionRef} className="bg-white py-20 md:py-28 scroll-mt-20">
         <Container>
           <div className="flex flex-col items-start text-start">
             <div className="max-w-2xl">
@@ -245,7 +245,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
                 <div
                   key={item.en}
                   ref={(el) => { catalogCardRefs.current[index] = el; }}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-brand-dark/8 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary/25 hover:shadow-[0_20px_40px_rgba(29,63,31,.12)]"
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-brand-dark/12 bg-white p-6 shadow-[0_1px_3px_rgba(29,63,31,.05)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary/25 hover:shadow-[0_20px_40px_rgba(29,63,31,.12)]"
                 >
                   <span className="absolute end-5 top-5 font-mono text-xs font-bold text-brand-dark/15">
                     {String(index + 1).padStart(2, "0")}
