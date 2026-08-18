@@ -148,7 +148,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
     <main dir={isRtl ? "rtl" : "ltr"}>
 
       {/* ── Hero — "The Manifest" ───────────────────── */}
-      <section className="relative -mt-[72px] flex min-h-[100svh] items-end overflow-hidden bg-white pb-[var(--space-compact)] pt-[calc(72px+var(--space-compact))]">
+      <section className="relative -mt-[72px] flex min-h-[clamp(560px,88svh,860px)] items-end overflow-hidden bg-white pb-[var(--space-compact)] pt-[calc(72px+var(--space-compact))]">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
