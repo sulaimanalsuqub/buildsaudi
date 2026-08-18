@@ -1,8 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Instagram, Linkedin, Mail, X as XIcon } from "lucide-react";
 
-import { Container } from "@/components/ui/container";
+import { Grid } from "@/components/ui/grid";
 
 const SUPPORT_EMAIL = "cs@build.sa";
 
@@ -51,60 +50,58 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer className="relative border-t border-brand-dark/8 bg-white">
-      <div className="h-[3px] bg-gradient-to-r from-brand-primary via-brand-accent to-brand-primary" aria-hidden="true" />
-
-      <Container className="py-12 md:py-16">
-        <div className="grid gap-10 md:grid-cols-[minmax(0,1.6fr)_minmax(140px,0.7fr)_minmax(180px,0.8fr)]">
-          {/* Brand column */}
-          <div className="max-w-xs">
-            <Image
-              src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
-              alt={isRtl ? "شعار بيلد" : "Build logo"}
-              width={4302}
-              height={1500}
-              className="h-8 w-auto"
-            />
-            <p className="mt-4 text-sm leading-[1.8] text-brand-dark/58">
-              {isRtl
-                ? "المملكة العربية السعودية، جدة، حي الزهراء"
-                : "Al Zahra District, Jeddah, Saudi Arabia"}
-            </p>
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-primary/20 bg-white px-4 py-2 text-sm font-semibold text-brand-dark transition hover:border-brand-primary/40 hover:text-brand-primary"
-              dir="ltr"
-            >
-              <Mail className="h-4 w-4 text-brand-primary" />
-              {SUPPORT_EMAIL}
-            </a>
-            <div className="mt-5 flex items-center gap-3">
-              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 bg-white text-brand-dark/60 transition hover:-translate-y-0.5 hover:border-brand-primary/40 hover:text-brand-primary"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
-            </div>
+    <footer className="border-t border-brand-dark/10 bg-white pt-[var(--space-compact)]">
+      <Grid>
+        <div className="col-span-4 sm:col-span-4 lg:col-span-5">
+          <p className="type-body max-w-xs text-brand-dark/60">
+            {isRtl
+              ? "المملكة العربية السعودية، جدة، حي الزهراء"
+              : "Al Zahra District, Jeddah, Saudi Arabia"}
+          </p>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="type-body mt-4 inline-flex items-center gap-2 text-brand-dark transition hover:text-brand-primary"
+            dir="ltr"
+          >
+            <Mail className="h-4 w-4 text-brand-primary" aria-hidden="true" />
+            {SUPPORT_EMAIL}
+          </a>
+          <div className="mt-6 flex items-center gap-3">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 text-brand-dark/55 transition hover:border-brand-primary/40 hover:text-brand-primary"
+              >
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
           </div>
+        </div>
 
+        <div className="col-span-2 sm:col-span-2 lg:col-span-3 lg:col-start-7">
           <FooterColumn title={isRtl ? "الموقع" : "Site"} links={links.main} />
+        </div>
+        <div className="col-span-2 sm:col-span-2 lg:col-span-3">
           <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
         </div>
+      </Grid>
 
-        <div className="mt-10 flex flex-col-reverse items-start justify-between gap-4 border-t border-brand-dark/8 pt-6 text-xs text-brand-dark/45 sm:flex-row sm:items-center">
-          <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <p className="font-semibold text-brand-dark/35">
-            {isRtl ? "مورد مواد بناء وتشطيب — المملكة العربية السعودية" : "Building materials & finishes supplier — Saudi Arabia"}
-          </p>
-        </div>
-      </Container>
+      <div className="mt-16 border-t border-brand-dark/10">
+        <Grid>
+          <div className="col-span-4 sm:col-span-8 lg:col-span-12 flex flex-col-reverse items-start justify-between gap-6 py-6 sm:flex-row sm:items-center">
+            <p className="type-micro text-brand-dark/40">
+              {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
+            </p>
+            <p className="type-editorial text-brand-dark/[0.08]" aria-hidden="true">
+              {isRtl ? "بيلد" : "Build"}
+            </p>
+          </div>
+        </Grid>
+      </div>
     </footer>
   );
 }
@@ -118,10 +115,10 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-bold text-brand-dark">{title}</h2>
-      <div className="mt-4 grid gap-3 text-sm font-medium text-brand-dark/62">
+      <p className="type-micro text-brand-dark/40">{title}</p>
+      <div className="mt-4 grid gap-3">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="transition hover:text-brand-primary">
+          <Link key={link.href} href={link.href} className="type-body text-brand-dark/70 transition hover:text-brand-primary">
             {link.label}
           </Link>
         ))}

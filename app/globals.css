@@ -4,6 +4,11 @@
 
 :root {
   color-scheme: light;
+
+  /* ── Spacing rhythm — deliberately uneven, not one repeated value ── */
+  --space-transition: clamp(6rem, 4rem + 8vw, 15rem);
+  --space-section: clamp(4rem, 2.5rem + 6vw, 10rem);
+  --space-compact: clamp(3.5rem, 3rem + 2vw, 6.25rem);
 }
 
 html,
@@ -28,37 +33,61 @@ body {
     @apply space-y-6 md:space-y-8;
   }
 
-  /* ── Hero heading ── */
+  /* ── Page hero heading (get-quote, register, legal pages…) ── */
   .type-hero {
-    font-size: 36px;
+    font-size: clamp(2.25rem, 1.85rem + 1.8vw, 3.625rem);
     font-weight: 800;
-    line-height: 1.12;
+    line-height: 1.1;
     letter-spacing: -0.02em;
+  }
+
+  /* ── Homepage display — the biggest statement on the page ── */
+  .type-display {
+    font-size: clamp(2.75rem, 1.4rem + 6.3vw, 8.25rem);
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+  }
+
+  /* ── Major editorial headings (process, materials index) ── */
+  .type-editorial {
+    font-size: clamp(2.25rem, 1.5rem + 3.3vw, 6rem);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
   }
 
   /* ── Section titles ── */
   .type-section-title {
-    font-size: 26px;
+    font-size: clamp(1.625rem, 1.4rem + 1vw, 2.125rem);
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.2;
     letter-spacing: -0.015em;
+  }
+
+  /* ── Mid-page statement / pull quote ── */
+  .type-statement {
+    font-size: clamp(2rem, 1.5rem + 2.2vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
   }
 
   /* ── Lead / subheadings ── */
   .type-subheading {
-    font-size: 17px;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.125rem);
     font-weight: 400;
     line-height: 1.75;
   }
 
   .type-body {
-    font-size: 16px;
+    font-size: clamp(1rem, 0.95rem + 0.2vw, 1.0625rem);
     font-weight: 400;
     line-height: 1.75;
   }
 
   .type-card-title {
-    font-size: 16px;
+    font-size: clamp(1rem, 0.95rem + 0.2vw, 1.0625rem);
     font-weight: 700;
     line-height: 1.4;
   }
@@ -73,37 +102,12 @@ body {
     font-size: 13px;
     line-height: 1.7;
   }
-}
 
-/* ── Responsive type scale ── */
-@media (min-width: 640px) {
-  .type-hero {
-    font-size: 48px;
-    line-height: 1.1;
-  }
-}
-
-@media (min-width: 768px) {
-  .type-hero {
-    font-size: 58px;
-    line-height: 1.08;
-    letter-spacing: -0.025em;
-  }
-
-  .type-section-title {
-    font-size: 34px;
-    line-height: 1.2;
-  }
-
-  .type-subheading {
-    font-size: 18px;
-  }
-
-  .type-body {
-    font-size: 17px;
-  }
-
-  .type-card-title {
-    font-size: 17px;
+  /* ── Manifest-style annotations: reference marks, coordinates, counts ── */
+  .type-micro {
+    font-size: clamp(0.6875rem, 0.65rem + 0.15vw, 0.8125rem);
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
   }
 }

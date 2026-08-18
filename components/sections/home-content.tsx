@@ -1,29 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Bath,
   Box,
   Droplet,
   Droplets,
   Fan,
-  Check,
   LampCeiling,
   Layers,
   LayoutGrid,
   Paintbrush,
 } from "lucide-react";
 
-import { Container } from "@/components/ui/container";
+import { Grid } from "@/components/ui/grid";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { siteConfig } from "@/lib/site";
+import { ensureScrollTrigger, usePrefersReducedMotion } from "@/lib/motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
+ensureScrollTrigger();
 
 type HomeContentProps = {
   isRtl?: boolean;
@@ -35,74 +33,118 @@ type CatalogItem = {
   descEn: string;
   descAr: string;
   icon: typeof Box;
+  bg: string;
+  pattern?: string;
+  patternSize?: string;
+  dark: boolean;
 };
 
 export function HomeContent({ isRtl = false }: HomeContentProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const [heroRevealed, setHeroRevealed] = useState(false);
+  const [activeMaterial, setActiveMaterial] = useState(0);
+
   const catalogSectionRef = useRef<HTMLElement>(null);
   const catalogTitleRef = useRef<HTMLHeadingElement>(null);
-  const catalogSubRef = useRef<HTMLParagraphElement>(null);
-  const catalogCardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const catalogIconRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const catalog: CatalogItem[] = [
-    { en: "Sanitaryware & Bath Fittings", ar: "الأدوات الصحية", descEn: "Fixtures, faucets & bathroom sets", descAr: "تركيبات ومجموعات الحمام", icon: Bath },
-    { en: "Electrical & Lighting", ar: "الكهرباء والإنارة", descEn: "Wiring, fixtures & LED systems", descAr: "أسلاك وتركيبات وأنظمة LED", icon: LampCeiling },
-    { en: "Plumbing & Piping Systems", ar: "السباكة وأنظمة الأنابيب", descEn: "Pipes, fittings & valves", descAr: "أنابيب وتركيبات وصمامات", icon: Droplets },
-    { en: "HVAC", ar: "التكييف والتهوية", descEn: "AC units, ventilation & ducting", descAr: "وحدات تكييف وتهوية وقنوات", icon: Fan },
-    { en: "Tiles & Flooring", ar: "الأرضيات", descEn: "Ceramic, porcelain & stone flooring", descAr: "سيراميك وبورسلين وأرضيات حجرية", icon: LayoutGrid },
-    { en: "Wall Finishes & Coverings", ar: "الجداريات", descEn: "Cladding, panels & wall coverings", descAr: "تكسيات وألواح وتغطيات جدارية", icon: Layers },
-    { en: "Paints & Coatings", ar: "الدهانات الداخلية والخارجية", descEn: "Interior, exterior & specialty paints", descAr: "دهانات داخلية وخارجية ومتخصصة", icon: Paintbrush },
-    { en: "Adhesives, Grouts & Sealants", ar: "اللواصق والمواد المساعدة", descEn: "Adhesives, grouts & sealing solutions", descAr: "لواصق ومواد حشو وعزل", icon: Droplet },
+    {
+      en: "Sanitaryware & Bath Fittings", ar: "الأدوات الصحية",
+      descEn: "Fixtures, faucets & bathroom sets", descAr: "تركيبات ومجموعات الحمام",
+      icon: Bath, bg: "#F4F3EB", dark: false,
+    },
+    {
+      en: "Electrical & Lighting", ar: "الكهرباء والإنارة",
+      descEn: "Wiring, fixtures & LED systems", descAr: "أسلاك وتركيبات وأنظمة LED",
+      icon: LampCeiling, bg: "#0F1F13", dark: true,
+      pattern: "repeating-linear-gradient(135deg, rgba(197,217,45,.2) 0 2px, transparent 2px 14px)",
+    },
+    {
+      en: "Plumbing & Piping Systems", ar: "السباكة وأنظمة الأنابيب",
+      descEn: "Pipes, fittings & valves", descAr: "أنابيب وتركيبات وصمامات",
+      icon: Droplets, bg: "#1D3F1F", dark: true,
+      pattern: "radial-gradient(circle at 50% 50%, transparent 0 14px, rgba(255,255,255,.14) 14px 16px, transparent 16px)",
+      patternSize: "40px 40px",
+    },
+    {
+      en: "HVAC", ar: "التكييف والتهوية",
+      descEn: "AC units, ventilation & ducting", descAr: "وحدات تكييف وتهوية وقنوات",
+      icon: Fan, bg: "#DCE3DC", dark: false,
+      pattern: "radial-gradient(rgba(29,63,31,.28) 1.5px, transparent 1.5px)",
+      patternSize: "16px 16px",
+    },
+    {
+      en: "Tiles & Flooring", ar: "الأرضيات",
+      descEn: "Ceramic, porcelain & stone flooring", descAr: "سيراميك وبورسلين وأرضيات حجرية",
+      icon: LayoutGrid, bg: "#DCD6C4", dark: false,
+      pattern: "linear-gradient(rgba(29,63,31,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(29,63,31,.14) 1px, transparent 1px)",
+      patternSize: "26px 26px",
+    },
+    {
+      en: "Wall Finishes & Coverings", ar: "الجداريات",
+      descEn: "Cladding, panels & wall coverings", descAr: "تكسيات وألواح وتغطيات جدارية",
+      icon: Layers, bg: "#F4F3EB", dark: false,
+      pattern: "repeating-linear-gradient(-45deg, rgba(29,63,31,.09) 0 8px, transparent 8px 16px)",
+    },
+    {
+      en: "Paints & Coatings", ar: "الدهانات الداخلية والخارجية",
+      descEn: "Interior, exterior & specialty paints", descAr: "دهانات داخلية وخارجية ومتخصصة",
+      icon: Paintbrush, bg: "#05B04C", dark: true,
+    },
+    {
+      en: "Adhesives, Grouts & Sealants", ar: "اللواصق والمواد المساعدة",
+      descEn: "Adhesives, grouts & sealing solutions", descAr: "لواصق ومواد حشو وعزل",
+      icon: Droplet, bg: "#EDEAE0", dark: false,
+      pattern: "repeating-linear-gradient(45deg, rgba(29,63,31,.12) 0 1px, transparent 1px 10px), repeating-linear-gradient(-45deg, rgba(29,63,31,.12) 0 1px, transparent 1px 10px)",
+    },
   ];
 
+  const active = catalog[activeMaterial];
+
   const t = {
+    eyebrow: isRtl ? "توريد للمشاريع في جميع مناطق المملكة" : "Project supply across Saudi Arabia",
     body: isRtl
       ? "توريد مواد البناء والتشطيب للمقاولين والمطورين"
       : "Supply of building materials and finishes for contractors and developers",
-    // Sections
-    catalogLabel: isRtl ? "الكتالوج" : "Catalog",
-    catalogTitle: isRtl ? "الفئات المتوفرة" : "Available Categories",
+    coverage: isRtl ? "الرياض · جدة · جميع المناطق" : "Riyadh · Jeddah · Nationwide",
+    trust: [
+      isRtl ? "عرض سعر واضح" : "Clear quotations",
+      isRtl ? "توريد للموقع" : "Site delivery",
+      isRtl ? "متابعة من البداية" : "End-to-end support",
+    ],
+    catalogLabel: isRtl ? "٠١ — الكتالوج" : "01 — Catalog",
+    catalogTitle: isRtl ? "المواد اللي نورّدها" : "The materials we move",
     catalogSub: isRtl
-      ? "فئات رئيسية لجميع احتياجات مشاريعك"
-      : "We supply construction materials across eight major categories for all your project needs",
-    processLabel: isRtl ? "العملية" : "Process",
-    howTitle: isRtl ? "كيف نشتغل؟" : "How We Work",
-    howSub: isRtl
-      ? "ثلاث خطوات بسيطة لتأمين مواد مشروعك"
-      : "Three simple steps to secure your project materials",
-    ctaTitle: isRtl ? "جاهز لتوريد مشروعك؟" : "Ready to supply your project?",
-    ctaBody: isRtl
-      ? "أرسل احتياجاتك اليوم وسنتولى ترتيب التوريد."
-      : "Submit your requirements today and we'll coordinate supply.",
+      ? `${catalog.length} فئات رئيسية لجميع احتياجات مشاريعك`
+      : `${catalog.length} core categories for every project need`,
+    ctaLead: isRtl ? "أرسل جدول الكميات، " : "Send your BOQ. ",
+    ctaAction: isRtl ? "وسنرتب التوريد لك." : "We'll coordinate the supply.",
     primary: isRtl ? "أطلب المنتجات" : "Order Products",
   };
+
+  const quoteHref = isRtl ? "/ar/get-quote" : "/get-quote";
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setHeroRevealed(true);
+      return;
+    }
+    const id = window.setTimeout(() => setHeroRevealed(true), 120);
+    return () => window.clearTimeout(id);
+  }, [reducedMotion]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(
-        [catalogTitleRef.current, catalogSubRef.current],
-        { y: 32, opacity: 0 },
+        catalogTitleRef.current,
+        { y: 24, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.9, ease: "power3.out", stagger: 0.12,
-          scrollTrigger: { trigger: catalogTitleRef.current, start: "top 82%", toggleActions: "play none none reverse" },
+          y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
+          scrollTrigger: { trigger: catalogTitleRef.current, start: "top 85%", toggleActions: "play none none reverse" },
         }
       );
-
-      const cards = catalogCardRefs.current.filter(Boolean);
-      if (cards.length) {
-        gsap.fromTo(
-          cards,
-          { y: 16, opacity: 0 },
-          {
-            y: 0, opacity: 1, duration: 0.5, ease: "power2.out", stagger: 0.05,
-            scrollTrigger: { trigger: cards[0], start: "top 92%", toggleActions: "play none none reverse" },
-          }
-        );
-      }
     }, catalogSectionRef);
 
-    // Arabic webfont loads after mount (font-display: swap) and shifts text
-    // height, which can leave ScrollTrigger's start/end offsets stale.
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
     return () => ctx.revert();
@@ -111,200 +153,172 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
 
-      {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative -mt-[72px] overflow-hidden bg-gradient-to-b from-[#DCF1E1] via-white to-white pb-20 pt-24 md:pb-32 md:pt-40">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_92%_8%,rgba(197,217,45,.35),transparent_26rem)]" />
+      {/* ── Hero — "The Manifest" ───────────────────── */}
+      <section className="relative -mt-[72px] flex min-h-[100svh] items-end overflow-hidden bg-white pb-[var(--space-compact)] pt-[calc(72px+var(--space-compact))]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "linear-gradient(#1D3F1F 1px, transparent 1px), linear-gradient(90deg, #1D3F1F 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+          }}
+          aria-hidden="true"
+        />
 
-        <Container className="relative">
-          <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+        <Grid className="relative w-full">
+          <div className="col-span-4 sm:col-span-8 lg:col-span-8">
+            <p className="type-micro text-brand-primary">{t.eyebrow}</p>
 
-            {/* Text Section (Right side in RTL) */}
-            <div className="flex flex-col items-center md:items-start text-center md:text-start">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-dark/10 bg-brand-light/70 px-3 py-1.5 text-xs font-bold text-brand-dark/70">
-                  <span className="h-2 w-2 rounded-full bg-brand-primary" />
-                  {isRtl ? "توريد للمشاريع في جميع مناطق المملكة" : "Project supply across Saudi Arabia"}
-                </div>
-                <h1 className="type-hero text-brand-dark leading-[1.15]">
-                  {isRtl ? (
-                    <>
-                      رحلة توريد المواد{" "}
-                      <span className="text-brand-primary">أسرع</span>
-                    </>
-                  ) : (
-                    <>
-                      Materials Supply,{" "}
-                      <span className="text-brand-primary">Faster</span>
-                    </>
-                  )}
-                </h1>
-                <p className="type-subheading mt-6 max-w-xl text-brand-dark/70">
-                  {t.body}
-                </p>
-
-                <div className="mt-10">
-                  <Link
-                    href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                    className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-white transition hover:bg-brand-dark"
-                  >
-                    {t.primary}
-                  </Link>
-                </div>
-                <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm font-medium text-brand-dark/65 md:justify-start">
-                  {[isRtl ? "عرض سعر واضح" : "Clear quotations", isRtl ? "توريد للموقع" : "Site delivery", isRtl ? "متابعة من البداية" : "End-to-end support"].map((item) => (
-                    <span key={item} className="inline-flex items-center gap-1.5">
-                      <Check className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </motion.div>
+            <div className="relative mt-4 overflow-hidden">
+              <h1 className="type-display text-brand-dark">
+                {isRtl ? (
+                  <>
+                    رحلة توريد المواد <span className="text-brand-primary">أسرع</span>
+                  </>
+                ) : (
+                  <>
+                    Materials Supply, <span className="text-brand-primary">Faster</span>
+                  </>
+                )}
+              </h1>
+              <span
+                aria-hidden="true"
+                className={`absolute inset-0 bg-white transition-transform duration-[900ms] ease-[cubic-bezier(.65,0,.35,1)] ${heroRevealed ? "scale-x-0" : "scale-x-100"}`}
+                style={{ transformOrigin: isRtl ? "left" : "right" }}
+              />
             </div>
-
-            {/* Image Section (Left side in RTL) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-brand-light shadow-[0_24px_70px_rgba(29,63,31,.13)] md:aspect-square md:rounded-[3rem]">
-                <Image
-                  src="/images/buildman.png"
-                  alt={isRtl ? "توريد مواد البناء" : "Construction supply"}
-                  width={800}
-                  height={800}
-                  className="w-full h-auto object-cover object-center md:h-full"
-                  priority
-                />
-              </div>
-
-              {/* Floating Stat Card — مخفي على الجوال لتفادي الـ overflow */}
-              <div className="absolute -bottom-6 -start-6 hidden rounded-2xl border border-brand-dark/10 bg-white p-6 md:flex">
-                <div className="flex items-center gap-4">
-                  <Image
-                    src="/images/build-icon.png"
-                    alt={isRtl ? "أيقونة بيلد" : "Build icon"}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 shrink-0"
-                  />
-                  <div>
-                    <p className="text-sm font-bold text-brand-dark">{isRtl ? "موثوقية كاملة" : "Full Reliability"}</p>
-                    <p className="text-xs text-brand-dark/60">{isRtl ? "توصيل آمن للمواقع" : "Secure Site Delivery"}</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
           </div>
-        </Container>
+
+          <div className="col-span-4 sm:col-span-8 lg:col-span-4 lg:col-start-9 mt-10 flex flex-col justify-end gap-8 lg:mt-0">
+            <p className="type-subheading max-w-sm text-brand-dark/65">{t.body}</p>
+            <Link
+              href={quoteHref}
+              className="inline-flex h-14 w-fit items-center justify-center rounded-md bg-brand-dark px-9 text-base font-bold text-white transition hover:bg-brand-primary"
+            >
+              {t.primary}
+            </Link>
+          </div>
+
+          <div className="col-span-4 sm:col-span-8 lg:col-span-12 mt-16 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-brand-dark/10 pt-5 md:mt-24">
+            <span className="type-micro text-brand-dark/45">
+              {catalog.length} {isRtl ? "فئات" : "CATEGORIES"} — {t.coverage}
+            </span>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {t.trust.map((item) => (
+                <span key={item} className="type-micro text-brand-dark/45">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        </Grid>
       </section>
 
-      {/* ── Catalog ──────────────────────────────────── */}
-      <section id="catalog" ref={catalogSectionRef} className="bg-white py-20 md:py-28 scroll-mt-20">
-        <Container>
-          <div className="flex flex-col items-start text-start">
-            <div className="max-w-2xl">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="h-[2px] w-8 bg-brand-primary" />
-                <span className="text-xs font-bold uppercase tracking-[0.14em] text-brand-dark/55">
-                  {t.catalogLabel}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-                <h2
-                  ref={catalogTitleRef}
-                  className="type-section-title text-brand-dark"
-                  style={{ opacity: 0 }}
-                >
-                  {t.catalogTitle}
-                </h2>
-                <span className="pb-1 text-sm font-bold text-brand-dark/40">
-                  {isRtl ? `${catalog.length} فئات رئيسية` : `${catalog.length} core categories`}
-                </span>
-              </div>
-              <p
-                ref={catalogSubRef}
-                className="type-body mt-3 text-brand-dark/60"
-                style={{ opacity: 0 }}
-              >
-                {t.catalogSub}
+      {/* ── Materials index ─────────────────────────── */}
+      <section id="catalog" ref={catalogSectionRef} className="bg-white py-[var(--space-section)] scroll-mt-20">
+        <Grid>
+          <div className="col-span-4 sm:col-span-8 lg:col-span-12 mb-12 md:mb-16">
+            <p className="type-micro text-brand-dark/45">{t.catalogLabel}</p>
+            <h2 ref={catalogTitleRef} className="type-editorial mt-3 text-brand-dark" style={{ opacity: 0 }}>
+              {t.catalogTitle}
+            </h2>
+            <p className="type-body mt-3 text-brand-dark/55">{t.catalogSub}</p>
+          </div>
+
+          {/* Desktop: sticky index + active detail panel */}
+          <div className="col-span-4 hidden lg:col-span-4 lg:block">
+            <ul className="sticky top-[96px] border-t border-brand-dark/10">
+              {catalog.map((item, i) => (
+                <li key={item.en} className="border-b border-brand-dark/10">
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveMaterial(i)}
+                    onFocus={() => setActiveMaterial(i)}
+                    className={`flex w-full items-baseline justify-between gap-4 py-4 text-start transition-colors ${
+                      activeMaterial === i ? "text-brand-primary" : "text-brand-dark/45 hover:text-brand-dark"
+                    }`}
+                  >
+                    <span className="type-section-title">{isRtl ? item.ar : item.en}</span>
+                    <span className="type-micro shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="col-span-8 hidden lg:block">
+            <div
+              className="relative h-[440px] overflow-hidden transition-[background-color] duration-500"
+              style={{
+                backgroundColor: active.bg,
+                backgroundImage: active.pattern,
+                backgroundSize: active.patternSize,
+              }}
+            >
+              <active.icon
+                className={`absolute top-8 h-8 w-8 ${isRtl ? "right-8" : "left-8"} ${active.dark ? "text-white/80" : "text-brand-dark/60"}`}
+                aria-hidden="true"
+              />
+              <p className={`absolute bottom-8 max-w-md ${isRtl ? "right-8 text-end" : "left-8"} type-statement ${active.dark ? "text-white" : "text-brand-dark"}`}>
+                {isRtl ? active.descAr : active.descEn}
               </p>
             </div>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {catalog.map((item, index) => {
-              const Icon = item.icon;
-              return (
+          {/* Mobile / tablet: horizontal scroll-snap strip */}
+          <div className="col-span-4 sm:col-span-8 lg:hidden">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
+              {catalog.map((item) => (
                 <div
                   key={item.en}
-                  ref={(el) => { catalogCardRefs.current[index] = el; }}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-brand-dark/12 bg-white p-6 shadow-[0_1px_3px_rgba(29,63,31,.05)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary/25 hover:shadow-[0_20px_40px_rgba(29,63,31,.12)]"
+                  className="relative h-[320px] w-[78%] shrink-0 snap-start overflow-hidden"
+                  style={{ backgroundColor: item.bg, backgroundImage: item.pattern, backgroundSize: item.patternSize }}
                 >
-                  <span className="absolute end-5 top-5 font-mono text-xs font-bold text-brand-dark/15">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div
-                    ref={(el) => { catalogIconRefs.current[index] = el; }}
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary transition-colors duration-300 group-hover:bg-brand-primary group-hover:text-white"
-                  >
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  <item.icon className={`absolute top-6 h-6 w-6 ${isRtl ? "right-6" : "left-6"} ${item.dark ? "text-white/80" : "text-brand-dark/60"}`} aria-hidden="true" />
+                  <div className={`absolute bottom-6 ${isRtl ? "right-6 text-end" : "left-6"}`}>
+                    <h3 className={`text-lg font-bold ${item.dark ? "text-white" : "text-brand-dark"}`}>{isRtl ? item.ar : item.en}</h3>
+                    <p className={`mt-1 max-w-[85%] text-sm ${item.dark ? "text-white/75" : "text-brand-dark/55"}`}>{isRtl ? item.descAr : item.descEn}</p>
                   </div>
-                  <h3 className="mt-5 text-base font-bold text-brand-dark">{isRtl ? item.ar : item.en}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-brand-dark/50">{isRtl ? item.descAr : item.descEn}</p>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </Container>
+        </Grid>
       </section>
 
       {/* ── How it works ─────────────────────────────── */}
       <HowItWorks isRtl={isRtl} />
 
-      {/* ── Final CTA ───────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-brand-light/60 to-white py-16 md:py-24">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_88%_0%,rgba(5,176,76,.16),transparent_28rem)]"
-          aria-hidden="true"
-        />
-
-        <Container className="relative">
-          <div className="grid items-center gap-8 border-t border-brand-dark/10 pt-14 md:grid-cols-[1fr_auto]">
-            <div className="max-w-2xl">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-primary">
-                {isRtl ? "ابدأ مشروعك" : "Start your project"}
-              </p>
-              <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-brand-dark md:text-5xl">
-                {t.ctaTitle}
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-brand-dark/60 md:text-lg">
-                {t.ctaBody}
-              </p>
-            </div>
-            <div className="flex flex-col items-start gap-4 md:items-end">
+      {/* ── Final CTA — typographic statement ─────────── */}
+      <section className="bg-brand-dark py-[var(--space-section)]">
+        <Grid>
+          <div className="col-span-4 sm:col-span-8 lg:col-span-10 lg:col-start-2">
+            <p className="type-statement text-white">
+              {t.ctaLead}
               <Link
-                href={isRtl ? "/ar/get-quote" : "/get-quote"}
-                className="inline-flex h-14 items-center justify-center rounded-full bg-brand-primary px-10 text-lg font-bold text-white transition hover:bg-brand-dark"
+                href={quoteHref}
+                className="underline decoration-brand-accent decoration-4 underline-offset-8 transition hover:text-brand-accent"
+              >
+                {t.ctaAction}
+              </Link>
+            </p>
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+              <Link
+                href={quoteHref}
+                className="inline-flex h-14 items-center justify-center rounded-md bg-white px-9 text-base font-bold text-brand-dark transition hover:bg-brand-accent"
               >
                 {t.primary}
               </Link>
               <a
                 href={`mailto:${siteConfig.salesEmail}`}
                 dir="ltr"
-                className="text-sm font-semibold text-brand-dark/45 transition hover:text-brand-primary hover:underline underline-offset-4"
+                className="type-micro text-white/45 transition hover:text-white"
               >
                 {isRtl ? `أو راسلنا: ${siteConfig.salesEmail}` : `Or email us: ${siteConfig.salesEmail}`}
               </a>
             </div>
           </div>
-        </Container>
+        </Grid>
       </section>
 
     </main>
