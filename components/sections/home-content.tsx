@@ -181,8 +181,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             </div>
           </div>
 
-          <div className="col-span-4 sm:col-span-8 lg:col-span-4 lg:col-start-9 mt-10 flex flex-col justify-end gap-8 lg:mt-0">
-            <p className="type-subheading max-w-sm text-brand-dark/65">{t.body}</p>
+          <div className="col-span-4 sm:col-span-8 lg:col-span-4 lg:col-start-9 mt-10 flex flex-col justify-end lg:mt-0">
             <Link
               href={quoteHref}
               className="inline-flex h-14 w-fit items-center justify-center rounded-md bg-brand-dark px-9 text-base font-bold text-white transition hover:bg-brand-primary"
