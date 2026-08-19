@@ -2,6 +2,7 @@ import { Container } from "@/components/ui/container";
 import { ProcurementRequestForm } from "@/components/forms/procurement-request-form";
 
 const WHATSAPP_NUMBER = "966539927827";
+const WHATSAPP_MESSAGE = "السلام عليكم ورحمة الله وبركاته";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -43,7 +44,7 @@ export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
             <p className="type-body text-brand-dark/62">{t.helpLabel}</p>
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t.helpCta}
