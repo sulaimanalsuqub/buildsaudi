@@ -6,6 +6,7 @@ import { siteConfig } from "@/lib/site";
 import { commonMetadata, localeAlternates } from "@/lib/metadata";
 import { gtAmericaArabic } from "@/lib/fonts";
 import { OrganizationSchema, WebsiteSchema } from "@/components/seo/schema-org";
+import { GoogleTag } from "@/components/analytics/google-tag";
 import { GtmNoscript, GtmScript } from "@/components/analytics/gtm";
 import { ConditionalFooter } from "@/components/layout/conditional-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -42,6 +43,7 @@ export default function EnglishRootLayout({ children }: Readonly<{ children: Rea
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
+        <GoogleTag />
         <OrganizationSchema />
         <WebsiteSchema />
       </head>
