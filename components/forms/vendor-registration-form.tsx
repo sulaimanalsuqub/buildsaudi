@@ -32,6 +32,16 @@ type VendorRegistrationFormProps = {
 /** Master Data — تُقرأ من Odoo وقت التحميل، لا تُكتب أو تُنشأ من الموقع إطلاقاً */
 type MaterialCategory = { id: number; nameAr: string; nameEn: string };
 
+// Prototype-only fallback. These values never reach the real registration API while mock mode is enabled.
+const prototypeCategories: MaterialCategory[] = [
+  { id: 1, nameAr: "الأدوات الصحية", nameEn: "Sanitaryware" },
+  { id: 2, nameAr: "الكهرباء والإنارة", nameEn: "Electrical & Lighting" },
+  { id: 3, nameAr: "السباكة وأنظمة الأنابيب", nameEn: "Plumbing & Piping" },
+  { id: 4, nameAr: "التكييف والتهوية", nameEn: "HVAC" },
+  { id: 5, nameAr: "الأرضيات والجداريات", nameEn: "Flooring & Wall Finishes" },
+  { id: 6, nameAr: "الدهانات والمواد المساعدة", nameEn: "Paints & Adhesives" }
+];
+
 const formSchema = z.object({
   country: z.string().min(1, "required"),
   establishmentName: z.string().min(2, "required"),
@@ -71,6 +81,7 @@ const defaultValues: FormValues = {
 };
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
+  const isPrototypeMode = process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_MOCK === "true";
   const t = {
     formEyebrow: textByLang(isRtl, "Supplier qualification", "تأهيل الموردين"),
     formTitle: textByLang(isRtl, "Start your supplier application", "ابدأ طلب الانضمام"),
@@ -131,6 +142,9 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     privacyLabel: textByLang(isRtl, "I agree to the Privacy Policy", "أوافق على سياسة الخصوصية"),
     termsLabel: textByLang(isRtl, "I agree to the Registration Terms", "أوافق على شروط التسجيل"),
     submit: textByLang(isRtl, "Submit Application", "إرسال طلب الانضمام"),
+    prototypeNote: textByLang(isRtl, "Prototype mode: your details are not saved or sent.", "وضع تجريبي: بياناتك لا تُحفظ ولا تُرسل حالياً."),
+    prototypeTitle: textByLang(isRtl, "Prototype submission complete", "تمت التجربة بنجاح"),
+    prototypeBody: textByLang(isRtl, "The form flow is working in preview mode. Nothing was saved.", "تدفق النموذج يعمل في الوضع التجريبي. لم يتم حفظ أي بيانات."),
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -154,6 +168,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
   // الفئات Master Data تُقرأ من Odoo فقط — لا قائمة محلية ثابتة
   useEffect(() => {
+    if (isPrototypeMode) {
+      setCategories(prototypeCategories);
+      return;
+    }
     let cancelled = false;
     fetch("/api/reference/material-categories")
       .then((res) => res.json())
@@ -171,7 +189,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isPrototypeMode]);
 
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
@@ -179,17 +197,24 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!emailVerified) {
+    if (!isPrototypeMode && !emailVerified) {
       form.setError("email", { message: "required" });
       setSubmitError(isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first");
       return;
     }
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+    if (!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
       setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
       return;
     }
     setSubmitError("");
     setIsLoading(true);
+    if (isPrototypeMode) {
+      await Promise.resolve();
+      setResultStatus("registered");
+      setIsSubmitted(true);
+      setIsLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/vendors/register", {
         method: "POST",
@@ -236,8 +261,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
           <CheckCircle2 className="h-7 w-7" />
         </div>
-        <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{title}</h2>
-        <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{body}</p>
+        <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{isPrototypeMode ? t.prototypeTitle : title}</h2>
+        <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{isPrototypeMode ? t.prototypeBody : body}</p>
         <a href={isRtl ? "/ar" : "/"} className="mt-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-sm font-semibold text-white hover:bg-brand-dark">
           {isRtl ? "العودة للرئيسية" : "Back to Home"}
         </a>
@@ -249,7 +274,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const showPhone = showContactName && values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.contactNumber).localNumber;
   const showDetails = showPhone && phoneDigits.length >= 8;
-  const showVerify = showDetails && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
+  const showVerify = !isPrototypeMode && showDetails && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
   // تنبيه لطيف (لا يمنع الإرسال) — تكرار شائع: كتابة الاسم الشخصي في حقل اسم المنشأة
   const establishmentNameMatchesContact =
     showContactName &&
@@ -275,6 +300,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           <ShieldCheck className="h-4 w-4 text-brand-primary" />
           {t.secureNote}
         </div>
+        {isPrototypeMode && (
+          <p className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm font-semibold text-brand-dark/75">
+            {t.prototypeNote}
+          </p>
+        )}
       </div>
 
       <div className="space-y-5">
@@ -480,7 +510,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </AnimatePresence>
       </div>
 
-      {emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+      {!isPrototypeMode && emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
         <div className="mt-6">
           <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
           <div
@@ -493,7 +523,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       )}
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || (!isPrototypeMode && (!emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)))} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

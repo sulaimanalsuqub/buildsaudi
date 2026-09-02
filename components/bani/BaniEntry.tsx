@@ -1,23 +1,7 @@
-"use client";
-
-import dynamic from "next/dynamic";
-import { useState } from "react";
+import Link from "next/link";
 import { ChevronUp, Sparkles } from "lucide-react";
 
-const BaniPanel = dynamic(() => import("@/components/bani/BaniPanel").then((module) => module.BaniPanel), {
-  ssr: false,
-  loading: () => <div className="h-40 animate-pulse border-t border-brand-dark/10 bg-brand-light/35" aria-label="جاري فتح BANI" />
-});
-
 export function BaniEntry() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasOpened, setHasOpened] = useState(false);
-
-  const togglePanel = () => {
-    if (!isOpen) setHasOpened(true);
-    setIsOpen((current) => !current);
-  };
-
   return (
     <section
       className="bani-ai-surface mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-brand-dark/10 shadow-soft"
@@ -38,32 +22,16 @@ export function BaniEntry() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={togglePanel}
-            aria-expanded={isOpen}
-            aria-controls="bani-panel"
+          <Link
+            href="/ar/register/bani"
             className="bani-ai-button group relative min-h-12 w-full overflow-hidden rounded-full px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-brand-dark/10 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 sm:w-auto"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {isOpen ? (
-                <>
-                  إغلاق BANI
-                  <ChevronUp className="h-4 w-4" aria-hidden="true" />
-                </>
-              ) : (
-                <>ابدأ مع BANI ✦</>
-              )}
+              ابدأ مع BANI ✦
             </span>
-          </button>
+          </Link>
         </div>
       </div>
-
-      {hasOpened && (
-        <div id="bani-panel" className={isOpen ? "relative z-10" : "hidden"} aria-hidden={!isOpen}>
-          <BaniPanel />
-        </div>
-      )}
     </section>
   );
 }
