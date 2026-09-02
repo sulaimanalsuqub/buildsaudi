@@ -5,7 +5,14 @@ import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 
 /** صفحات "طلب/تتبع" مركّزة بلا فوتر — نقلل التشتت ونقاط الخروج أثناء تعبئة الطلب */
-const FOCUSED_PATHS = ["/get-quote", "/ar/get-quote", "/track-request", "/ar/track-request"];
+const FOCUSED_PATHS = [
+  "/get-quote",
+  "/ar/get-quote",
+  "/track-request",
+  "/ar/track-request",
+  "/register",
+  "/ar/register",
+];
 
 export function ConditionalFooter({ isRtl }: { isRtl?: boolean }) {
   const pathname = usePathname();
