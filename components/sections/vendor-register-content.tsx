@@ -1,5 +1,4 @@
-import { BaniEntry } from "@/components/bani/BaniEntry";
-import { VendorRegistrationForm } from "@/components/forms/vendor-registration-form";
+import { Mail, Wrench } from "lucide-react";
 import { Container } from "@/components/ui/container";
 
 type VendorRegisterContentProps = {
@@ -8,40 +7,36 @@ type VendorRegisterContentProps = {
 
 export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentProps) {
   const t = {
-    title: isRtl ? "سجّل منشأتك كمورد" : "Register your company as a supplier",
+    badge: isRtl ? "تسجيل الموردين" : "Supplier registration",
+    title: isRtl ? "سنعود بتجربة أسرع" : "We’ll be back with a faster experience",
     body: isRtl
-      ? "المرحلة الأولى: أرسل بيانات منشأتك الأساسية وفئات منتجاتك. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف التوريد الكامل."
-      : "Phase 1: submit your basic company details and product categories. After Build reviews and approves, you'll receive a secure link to complete your full supply profile.",
+      ? "نعمل حاليًا على تحسين تجربة تسجيل الموردين في بيلد. نعتذر عن الإيقاف المؤقت، ونشكركم على تفهمكم."
+      : "We’re currently improving Build’s supplier registration experience. Registration is temporarily paused while we make it faster and easier.",
+    contact: isRtl ? "للاستفسارات والتواصل معنا" : "For questions, contact us",
   };
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
-
-      {/* Page hero */}
-      <section className="bg-white py-12 md:py-16">
+      <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#f7f9f6] py-16 md:py-24">
         <Container>
-          <div className="max-w-2xl border-t border-brand-dark/10 pt-6">
-            <h1 className="type-hero text-brand-dark">{t.title}</h1>
-            <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
+              <Wrench className="h-7 w-7" aria-hidden="true" />
+            </div>
+            <p className="mt-8 text-sm font-bold tracking-[0.16em] text-brand-primary">✦ BUILD</p>
+            <p className="mt-3 text-sm font-semibold text-brand-dark/55">{t.badge}</p>
+            <h1 className="type-hero mt-5 text-brand-dark">{t.title}</h1>
+            <p className="type-subheading mx-auto mt-6 max-w-xl text-brand-dark/65">{t.body}</p>
+            <div className="mx-auto mt-10 inline-flex max-w-full items-center gap-3 rounded-full border border-brand-dark/10 bg-white px-5 py-3 text-sm font-semibold text-brand-dark shadow-soft" dir="ltr">
+              <Mail className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
+              <span className="sr-only">{t.contact}: </span>
+              <a href="mailto:supplier@build.sa" className="hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30">
+                supplier@build.sa
+              </a>
+            </div>
           </div>
         </Container>
       </section>
-
-      {/* Form section */}
-      <section className="bg-[#f7f9f6] py-10 md:py-14">
-        <Container>
-          <BaniEntry />
-          <div className="mx-auto my-6 flex w-full max-w-5xl items-center gap-4" aria-hidden="true">
-            <span className="h-px flex-1 bg-brand-dark/10" />
-            <span className="text-xs font-medium text-brand-dark/50">أو أكمل التسجيل يدويًا</span>
-            <span className="h-px flex-1 bg-brand-dark/10" />
-          </div>
-          <div id="supplier-registration-form" className="scroll-mt-28">
-            <VendorRegistrationForm isRtl={isRtl} />
-          </div>
-        </Container>
-      </section>
-
     </main>
   );
 }
