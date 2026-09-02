@@ -103,6 +103,108 @@ body {
     line-height: 1.7;
   }
 
+  .bani-ai-surface {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(197, 217, 45, 0.18), transparent 34%),
+      radial-gradient(circle at 88% 80%, rgba(9, 177, 75, 0.14), transparent 38%),
+      rgba(255, 255, 255, 0.96);
+  }
+
+  .bani-ai-surface::before,
+  .bani-ai-surface::after {
+    position: absolute;
+    z-index: 0;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 9999px;
+    content: "";
+    pointer-events: none;
+    filter: blur(48px);
+    opacity: 0.28;
+  }
+
+  .bani-ai-surface::before {
+    inset: -9rem auto auto -5rem;
+    background: rgba(197, 217, 45, 0.7);
+    animation: bani-aurora-one 10s ease-in-out infinite;
+  }
+
+  .bani-ai-surface::after {
+    inset: auto -6rem -10rem auto;
+    background: rgba(9, 177, 75, 0.55);
+    animation: bani-aurora-two 12s ease-in-out infinite;
+  }
+
+  .bani-ai-button {
+    isolation: isolate;
+    background: linear-gradient(115deg, #1d3f1f 0%, #087d39 46%, #09b14b 72%, #1d3f1f 100%);
+    background-size: 220% 100%;
+    animation: bani-gradient-wave 9s ease-in-out infinite;
+  }
+
+  .bani-ai-button::before {
+    position: absolute;
+    inset: -50% -25%;
+    z-index: 0;
+    content: "";
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.18) 48%, transparent 66%);
+    transform: translateX(-55%) rotate(4deg);
+    animation: bani-shimmer 8s ease-in-out infinite;
+  }
+}
+
+@keyframes bani-aurora-one {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3rem, 1.5rem, 0) scale(1.08);
+  }
+}
+
+@keyframes bani-aurora-two {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(-3rem, -1rem, 0) scale(0.94);
+  }
+}
+
+@keyframes bani-gradient-wave {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes bani-shimmer {
+  0%,
+  28% {
+    transform: translateX(-65%) rotate(4deg);
+  }
+  68%,
+  100% {
+    transform: translateX(70%) rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bani-ai-surface::before,
+  .bani-ai-surface::after,
+  .bani-ai-button,
+  .bani-ai-button::before {
+    animation: none;
+  }
+}
+
   /* ── Manifest-style annotations: reference marks, coordinates, counts ── */
   .type-micro {
     font-size: clamp(0.6875rem, 0.65rem + 0.15vw, 0.8125rem);
