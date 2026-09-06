@@ -53,7 +53,7 @@ const formSchema = z.object({
   categoryIds: z.array(z.number()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
   brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
-  shortDescription: z.string().min(5, "required"),
+  shortDescription: z.string().optional(),
   website: z.string().optional(),
   catalogLink: z.string().optional(),
   privacyAccepted: z.literal(true, { message: "required" }),
@@ -87,15 +87,15 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     formTitle: textByLang(isRtl, "Start your supplier application", "ابدأ طلب الانضمام"),
     formBody: textByLang(
       isRtl,
-      "Submit your basic company details. After Build reviews and approves your request, you will receive a secure link to complete your full supply profile.",
-      "أرسل بيانات منشأتك الأساسية. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف التوريد الكامل."
+      "Submit your company details and product categories, and our operations team will review your application.",
+      "أرسل بيانات منشأتك وفئات منتجاتك، وسيراجع فريق عمليات بيلد طلبكم."
     ),
     secureNote: textByLang(isRtl, "Reviewed by Build operations", "تتم المراجعة من فريق عمليات بيلد"),
     submitStateTitle: textByLang(isRtl, "Application Received", "تم استلام طلب الانضمام"),
     submitStateBody: textByLang(
       isRtl,
-      "We received your basic details. After our initial review, you will get a link to complete your full supply profile. Final approval comes after we review your complete file and documents.",
-      "استلمنا بياناتكم الأساسية. بعد المراجعة الأولية يصلكم رابط لإكمال ملف التوريد. الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات."
+      "We received your application. Our team will review it and reach out if we need anything else.",
+      "استلمنا طلبكم. سيراجعه فريقنا ويتواصل معكم إذا احتجنا أي معلومات إضافية."
     ),
     needsReviewTitle: textByLang(isRtl, "Under Review", "قيد المراجعة"),
     needsReviewBody: textByLang(
@@ -120,7 +120,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
       other: textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)"),
       brands: textByLang(isRtl, "Represented Brands in English (optional)", "العلامات التجارية بالإنجليزي (اختياري)"),
-      shortDescription: textByLang(isRtl, "Brief description of your products", "وصف مختصر لمنتجاتكم"),
+      shortDescription: textByLang(isRtl, "Brief description of your products (optional)", "وصف مختصر لمنتجاتكم (اختياري)"),
       website: textByLang(isRtl, "Website (optional)", "الموقع الإلكتروني (اختياري)"),
       catalogLink: textByLang(isRtl, "Catalog Link (optional)", "رابط الكتالوج (اختياري)"),
     },
@@ -233,7 +233,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           category_ids: data.categoryIds,
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
           brands: data.brands ?? [],
-          short_description: data.shortDescription.trim(),
+          short_description: data.shortDescription?.trim() || undefined,
           website: data.website?.trim() || undefined,
           catalog_link: data.catalogLink?.trim() || undefined,
           preferred_language: isRtl ? "ar" : "en",
