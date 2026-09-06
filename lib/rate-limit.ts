@@ -16,6 +16,9 @@ const LIMITS = {
   auth:  { requests: 10,  windowMs: 60 * 1000 },
   admin: { requests: 50,  windowMs: 60 * 1000 },
   email: { requests: 100, windowMs: 60 * 60 * 1000 },
+  // محادثة باني: عدد رسائل أعلى من forms (رسائل قصيرة متتالية ضمن محادثة واحدة)،
+  // منفصل عن forms حتى لا تُستهلك حصة تقديم الفورم الفعلي بمجرد الدردشة مع باني.
+  chat:  { requests: 40,  windowMs: 5 * 60 * 1000 },
 };
 
 type LimitType = keyof typeof LIMITS;

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { BaniComposer } from "@/components/bani/BaniComposer";
 import { BaniMessage } from "@/components/bani/BaniMessage";
-import { sendBaniMessage } from "@/lib/bani/mock";
+import { sendBaniMessage } from "@/lib/bani/client";
 import { baniDirections, type BaniLanguage, type BaniMessage as BaniMessageType } from "@/lib/bani/types";
 
 const chatContent: Record<
@@ -58,15 +58,15 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
 
   const handleSend = async (content: string) => {
     const userMessage: BaniMessageType = { id: `user-${nextId.current++}`, role: "user", content };
-    setMessages((current) => [...current, userMessage]);
+    const history = [...messages, userMessage];
+    setMessages(history);
     setIsReplying(true);
 
     try {
-      const turn = messages.filter((message) => message.role === "user").length;
-      const response = await sendBaniMessage(content, language, turn);
+      const { reply } = await sendBaniMessage(history, language);
       setMessages((current) => [
         ...current,
-        { id: `assistant-${nextId.current++}`, role: "assistant", content: response }
+        { id: `assistant-${nextId.current++}`, role: "assistant", content: reply }
       ]);
     } finally {
       setIsReplying(false);
