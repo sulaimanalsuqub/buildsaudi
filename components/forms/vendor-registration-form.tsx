@@ -29,17 +29,18 @@ type VendorRegistrationFormProps = {
   isRtl?: boolean;
 };
 
-/** Master Data — تُقرأ من Odoo وقت التحميل، لا تُكتب أو تُنشأ من الموقع إطلاقاً */
-type MaterialCategory = { id: number; nameAr: string; nameEn: string };
+/** Master Data — تُقرأ من Build-OPT وقت التحميل، لا تُكتب أو تُنشأ من الموقع إطلاقاً. id هو
+ * الاسم العربي نفسه (مطابقة بالاسم لا برقم داخلي — نفس منطق Build-OPT). */
+type MaterialCategory = { id: string; nameAr: string; nameEn: string };
 
 // Prototype-only fallback. These values never reach the real registration API while mock mode is enabled.
 const prototypeCategories: MaterialCategory[] = [
-  { id: 1, nameAr: "الأدوات الصحية", nameEn: "Sanitaryware" },
-  { id: 2, nameAr: "الكهرباء والإنارة", nameEn: "Electrical & Lighting" },
-  { id: 3, nameAr: "السباكة وأنظمة الأنابيب", nameEn: "Plumbing & Piping" },
-  { id: 4, nameAr: "التكييف والتهوية", nameEn: "HVAC" },
-  { id: 5, nameAr: "الأرضيات والجداريات", nameEn: "Flooring & Wall Finishes" },
-  { id: 6, nameAr: "الدهانات والمواد المساعدة", nameEn: "Paints & Adhesives" }
+  { id: "الأدوات الصحية", nameAr: "الأدوات الصحية", nameEn: "Sanitaryware" },
+  { id: "الكهرباء والإنارة", nameAr: "الكهرباء والإنارة", nameEn: "Electrical & Lighting" },
+  { id: "السباكة وأنظمة الأنابيب", nameAr: "السباكة وأنظمة الأنابيب", nameEn: "Plumbing & Piping" },
+  { id: "التكييف والتهوية", nameAr: "التكييف والتهوية", nameEn: "HVAC" },
+  { id: "الأرضيات والجداريات", nameAr: "الأرضيات والجداريات", nameEn: "Flooring & Wall Finishes" },
+  { id: "الدهانات والمواد المساعدة", nameAr: "الدهانات والمواد المساعدة", nameEn: "Paints & Adhesives" }
 ];
 
 const formSchema = z.object({
@@ -50,7 +51,7 @@ const formSchema = z.object({
   contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
   email: z.string().email("invalidEmail"),
   businessType: z.string().min(1, "required"),
-  categoryIds: z.array(z.number()).min(1, "required"),
+  categoryIds: z.array(z.string()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
   brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
   shortDescription: z.string().optional(),
@@ -230,7 +231,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.contactNumber),
-          category_ids: data.categoryIds,
+          category_names: data.categoryIds,
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
           brands: data.brands ?? [],
           short_description: data.shortDescription?.trim() || undefined,
@@ -281,7 +282,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     values.contactName.trim().length >= 2 &&
     values.establishmentName.trim().toLowerCase() === values.contactName.trim().toLowerCase();
 
-  const toggleCategory = (id: number) => {
+  const toggleCategory = (id: string) => {
     const current = values.categoryIds;
     const next = current.includes(id) ? current.filter((c) => c !== id) : [...current, id];
     form.setValue("categoryIds", next, { shouldValidate: true });
