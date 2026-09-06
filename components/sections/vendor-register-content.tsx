@@ -10,8 +10,8 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
   const t = {
     title: isRtl ? "سجّل منشأتك كمورد" : "Register your company as a supplier",
     body: isRtl
-      ? "المرحلة الأولى: أرسل بيانات منشأتك الأساسية وفئات منتجاتك. بعد مراجعة بيلد والموافقة، يصلكم رابط آمن لإكمال ملف التوريد الكامل."
-      : "Phase 1: submit your basic company details and product categories. After Build reviews and approves, you'll receive a secure link to complete your full supply profile.",
+      ? "أرسل بيانات منشأتك وفئات منتجاتك، وسيراجع فريق عمليات بيلد طلبكم ويتواصل معكم."
+      : "Submit your company details and product categories, and our operations team will review your application and reach out.",
   };
 
   return (
