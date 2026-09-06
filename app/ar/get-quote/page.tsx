@@ -1,4 +1,4 @@
-import { QuotePageContent } from "@/components/sections/quote-page-content";
+import { QuotePausedContent } from "@/components/sections/quote-paused-content";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -19,5 +19,5 @@ export const metadata = pageMetadata({
 });
 
 export default function ArabicGetQuotePage() {
-  return <QuotePageContent isRtl />;
+  return <QuotePausedContent />;
 }

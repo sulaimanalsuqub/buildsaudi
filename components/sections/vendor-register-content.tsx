@@ -12,6 +12,7 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
     body: isRtl
       ? "أرسل بيانات منشأتك وفئات منتجاتك، وسيراجع فريق عمليات بيلد طلبكم ويتواصل معكم."
       : "Submit your company details and product categories, and our operations team will review your application and reach out.",
+    orManual: isRtl ? "أو أكمل التسجيل يدويًا" : "Or complete registration manually",
   };
 
   return (
@@ -30,10 +31,10 @@ export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentPr
       {/* Form section */}
       <section className="bg-[#f7f9f6] py-10 md:py-14">
         <Container>
-          <BaniEntry />
+          <BaniEntry isRtl={isRtl} />
           <div className="mx-auto my-6 flex w-full max-w-5xl items-center gap-4" aria-hidden="true">
             <span className="h-px flex-1 bg-brand-dark/10" />
-            <span className="text-xs font-medium text-brand-dark/50">أو أكمل التسجيل يدويًا</span>
+            <span className="text-xs font-medium text-brand-dark/50">{t.orManual}</span>
             <span className="h-px flex-1 bg-brand-dark/10" />
           </div>
           <div id="supplier-registration-form" className="scroll-mt-28">

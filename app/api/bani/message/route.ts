@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "deepseek-v4-flash",
-        max_tokens: 800,
+        max_tokens: 4000,
         messages: [
           { role: "system", content: buildSystemPrompt(LANGUAGE_NAMES[language]) },
           ...messages.map((m) => ({ role: m.role, content: m.content })),
