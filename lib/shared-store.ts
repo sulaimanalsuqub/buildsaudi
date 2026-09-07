@@ -6,11 +6,23 @@
 type RedisReply = unknown;
 type LocalValue = { value: string; expiresAt: number };
 
+let warnedMissingRedis = false;
+
 function config() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
-    if (process.env.NODE_ENV === "production") throw new Error("Shared Redis is required in production");
+    // Upstash was never provisioned in production (confirmed 2026-09-07) - this used to throw
+    // and hard-block every caller (email OTP send/verify came down with it, same as
+    // lib/odoo.ts's outbox claims before that dependency was removed from vendor registration).
+    // Falls back to the in-memory implementation below instead - per-instance only, so rate
+    // limits and idempotency claims aren't truly shared across concurrent Vercel invocations,
+    // but a degraded limiter beats every OTP request failing outright. Provision real Upstash
+    // Redis to close this gap properly.
+    if (process.env.NODE_ENV === "production" && !warnedMissingRedis) {
+      warnedMissingRedis = true;
+      console.warn("[shared-store] UPSTASH_REDIS_REST_URL/TOKEN not configured in production - falling back to in-memory (per-instance) state");
+    }
     return null;
   }
   return { url: url.replace(/\/$/, ""), token };
