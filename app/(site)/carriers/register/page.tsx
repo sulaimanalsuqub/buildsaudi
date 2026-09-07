@@ -1,4 +1,4 @@
-import { CarrierRegisterContent } from "@/components/sections/carrier-register-content";
+import { CarrierRegisterPausedContent } from "@/components/sections/carrier-register-paused-content";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -11,5 +11,5 @@ export const metadata = pageMetadata({
 });
 
 export default function CarrierRegisterPage() {
-  return <CarrierRegisterContent />;
+  return <CarrierRegisterPausedContent />;
 }
