@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { BaniComposer } from "@/components/bani/BaniComposer";
+import { BaniComposer, type BaniPickedFile } from "@/components/bani/BaniComposer";
 import { BaniHandoffForm } from "@/components/bani/BaniHandoffForm";
 import { BaniMessage } from "@/components/bani/BaniMessage";
 import { sendBaniMessage } from "@/lib/bani/client";
@@ -11,31 +11,35 @@ import { baniDirections, type BaniLanguage, type BaniMessage as BaniMessageType 
 
 const chatContent: Record<
   BaniLanguage,
-  { greeting: string; quickActions: string[]; thinking: string; changeLanguage: string }
+  { greeting: string; quickActions: string[]; thinking: string; changeLanguage: string; attachedFile: (name: string) => string }
 > = {
   ar: {
     greeting: "حياك الله، أنا باني ✦\nلاهنت أرسل لي أي شيء يتعلق بشركتك.",
     quickActions: ["اسم المنشأة", "نشاط الشركة", "المنتجات", "العلامات التجارية", "المدينة"],
     thinking: "باني يرتّب المعلومات...",
-    changeLanguage: "تغيير اللغة"
+    changeLanguage: "تغيير اللغة",
+    attachedFile: (name) => `📎 ملف مرفق: ${name}`
   },
   en: {
     greeting: "Welcome, I’m BANI ✦\nSend me anything about your company and I’ll organize it for registration.",
     quickActions: ["Company name", "Business activity", "Products", "Brands", "City"],
     thinking: "BANI is organizing the details...",
-    changeLanguage: "Change language"
+    changeLanguage: "Change language",
+    attachedFile: (name) => `📎 Attached file: ${name}`
   },
   zh: {
     greeting: "您好，我是 BANI ✦\n请发送任何与贵公司有关的信息，我会为您整理注册资料。",
     quickActions: ["公司名称", "主营业务", "产品", "品牌", "城市"],
     thinking: "BANI 正在整理信息……",
-    changeLanguage: "更改语言"
+    changeLanguage: "更改语言",
+    attachedFile: (name) => `📎 附件：${name}`
   },
   ur: {
     greeting: "خوش آمدید، میں BANI ہوں ✦\nاپنی کمپنی کے بارے میں کوئی بھی معلومات بھیجیں، میں رجسٹریشن کے لیے ترتیب دے دوں گا۔",
     quickActions: ["ادارے کا نام", "کاروباری سرگرمی", "مصنوعات", "برانڈز", "شہر"],
     thinking: "BANI معلومات ترتیب دے رہا ہے...",
-    changeLanguage: "زبان تبدیل کریں"
+    changeLanguage: "زبان تبدیل کریں",
+    attachedFile: (name) => `📎 منسلکہ فائل: ${name}`
   }
 };
 
@@ -59,14 +63,17 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, isReplying]);
 
-  const handleSend = async (content: string) => {
-    const userMessage: BaniMessageType = { id: `user-${nextId.current++}`, role: "user", content };
+  const handleSend = async (content: string, attachment?: BaniPickedFile) => {
+    const displayContent = attachment
+      ? [content, t.attachedFile(attachment.name)].filter(Boolean).join("\n")
+      : content;
+    const userMessage: BaniMessageType = { id: `user-${nextId.current++}`, role: "user", content: displayContent };
     const history = [...messages, userMessage];
     setMessages(history);
     setIsReplying(true);
 
     try {
-      const { reply, extraction } = await sendBaniMessage(history, language);
+      const { reply, extraction } = await sendBaniMessage(history, language, attachment);
       setMessages((current) => [
         ...current,
         { id: `assistant-${nextId.current++}`, role: "assistant", content: reply }

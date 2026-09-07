@@ -10,12 +10,6 @@ export type BaniMessage = {
   content: string;
 };
 
-export type BaniAttachment = {
-  name: string;
-  type: string;
-  size: number;
-};
-
 export const baniDirections: Record<BaniLanguage, BaniDirection> = {
   ar: "rtl",
   en: "ltr",

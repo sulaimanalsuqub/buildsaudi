@@ -107,7 +107,7 @@ function csvToText(base64Data: string, fileName: string): string | null {
 }
 
 /** يستخرج النص من PDF — لا يقرأ PDF ممسوح ضوئياً (صورة بلا طبقة نص)، لأن DeepSeek نصي فقط بلا رؤية */
-async function pdfToText(base64Data: string, fileName: string): Promise<string | null> {
+export async function pdfToText(base64Data: string, fileName: string): Promise<string | null> {
   const parser = new PDFParse({ data: Buffer.from(base64Data, "base64") });
   try {
     const result = await parser.getText();
