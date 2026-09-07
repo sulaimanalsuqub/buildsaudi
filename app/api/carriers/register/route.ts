@@ -1,29 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
-import {
-  OdooClientError,
-  createOutboxEvent,
-  createPreliminaryCarrierProfile,
-  createPreliminaryPartner,
-  ensurePartnerContact,
-  syncPartnerAsEstablishment,
-  findCarrierByEmailNameCountry,
-  findCarrierByNameAndCountry,
-  findCarrierProfileByPartner,
-  findPartnerByEmail,
-  findPartnerByPhone,
-  normalizeCompanyName,
-  resolveActiveCarrierCategories,
-  resolveActiveLogisticsServices,
-  resolveActiveServiceAreas,
-  resolveActiveVehicleTypes,
-} from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
 
-/** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية المطابقة لأسماء مناطق الخدمة في أودو — يرمي إن كان الرمز غير معروف */
+/** يحوّل رموز المناطق الداخلية (مثال: "riyadh") إلى أسمائها العربية — يرمي إن كان الرمز غير معروف */
 function translateServiceAreaSlugs(slugs: string[]): string[] | null {
   const names: string[] = [];
   for (const slug of slugs) {
@@ -33,8 +16,6 @@ function translateServiceAreaSlugs(slugs: string[]): string[] | null {
   }
   return names;
 }
-
-const CURRENT_POLICY_VERSION = "2026-07-v1";
 
 const registerSchema = z
   .object({
@@ -76,7 +57,6 @@ export async function POST(req: NextRequest) {
     const firstError = parsed.error.issues[0]?.message || "بيانات الناقل غير مكتملة أو غير صحيحة";
     return NextResponse.json({ error: firstError }, { status: 400 });
   }
-
   const carrier = parsed.data;
 
   const humanVerified = await verifyTurnstileToken(carrier.turnstile_token, clientId);
@@ -84,152 +64,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
-  const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
-
-  // نطاقات مرجعية ثابتة (مناطق/مركبات/فئات) — تُطابَق فقط ضد سجلات نشطة موجودة، لا تُنشأ من مدخلات عامة غير موثوقة
   const serviceAreaNamesAr = translateServiceAreaSlugs(carrier.service_areas);
   if (!serviceAreaNamesAr) {
     return NextResponse.json({ error: "منطقة خدمة غير معروفة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
   }
-  const [serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds] = await Promise.all([
-    resolveActiveServiceAreas(serviceAreaNamesAr),
-    resolveActiveVehicleTypes(carrier.vehicle_types),
-    resolveActiveCarrierCategories(carrier.material_categories ?? []),
-    resolveActiveLogisticsServices(carrier.logistics_services ?? []),
-  ]);
-  if (!serviceAreaIds || !vehicleTypeIds || !materialCategoryIds || !logisticsServiceIds) {
-    return NextResponse.json({ error: "قيمة غير معروفة في مناطق الخدمة أو أنواع المركبات أو الفئات أو الخدمات اللوجستية — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+
+  const baseUrl = process.env.BUILD_OPT_BASE_URL;
+  const secret = process.env.PUBLIC_INTAKE_SERVICE_SECRET;
+  if (!baseUrl || !secret) {
+    console.error("[carriers/register] BUILD_OPT_BASE_URL/PUBLIC_INTAKE_SERVICE_SECRET not configured");
+    return NextResponse.json({ error: "نظام التسجيل غير مهيّأ حالياً — حاول لاحقاً" }, { status: 503 });
   }
+
+  // ملاحظة: فحوصات التكرار السابقة (نفس البريد/الهاتف/الاسم مع أودو) أُسقطت — نفس القرار
+  // المُتَّخذ لتسجيل الموردين (راجع app/api/vendors/register/route.ts)، بنفس السبب: لا مقابل لها
+  // بعد بجسر Build-OPT العام. Build-OPT يحمي فقط من إعادة إرسال نفس الطلب (idempotency).
+  const submissionId = randomUUID();
 
   try {
-    // 1) نفس البريد + نفس اسم المنشأة (بعد التطبيع) + الدولة — نفس التسجيل، لا إنشاء
-    const exactMatch = await findCarrierByEmailNameCountry(carrier.email, carrier.establishment_name, carrier.country);
-    if (exactMatch) {
-      return NextResponse.json({
-        ok: true,
-        id: String(exactMatch.partner.id),
-        status: "already_registered",
-        stage: exactMatch.profile.status,
-      });
-    }
-
-    // 2) نفس البريد، منشأة مختلفة — للمراجعة، لا دمج تلقائي، لا كشف
-    const emailMatch = await findPartnerByEmail(carrier.email);
-    if (emailMatch) {
-      const existingProfile = await findCarrierProfileByPartner(emailMatch.id);
-      if (existingProfile) {
-        const sameName = normalizeCompanyName(emailMatch.name) === normalizeCompanyName(carrier.establishment_name);
-        if (!sameName) {
-          console.warn("[carriers/register] needs_review: email matches existing partner with different establishment name");
-          return NextResponse.json({ ok: true, status: "needs_review" });
-        }
-        return NextResponse.json({
-          ok: true,
-          id: String(emailMatch.id),
-          status: "already_registered",
-          stage: existingProfile.status,
-        });
-      } else {
-        // partner مُعاد استخدامه بلا ملف ناقل سابق — اسمه القديم قد يخص جهة اتصال أخرى، فنستبدله باسم المنشأة الجديد
-        await syncPartnerAsEstablishment(emailMatch.id, carrier.establishment_name);
-        return await finishRegistration(emailMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
-      }
-    }
-
-    // 3) نفس الهاتف فقط
-    if (!emailMatch) {
-      const phoneMatch = await findPartnerByPhone(carrier.phone);
-      if (phoneMatch) {
-        const existingProfile = await findCarrierProfileByPartner(phoneMatch.id);
-        if (existingProfile) {
-          console.warn("[carriers/register] needs_review: phone matches existing partner with a carrier profile");
-          return NextResponse.json({ ok: true, status: "needs_review" });
-        }
-        await syncPartnerAsEstablishment(phoneMatch.id, carrier.establishment_name);
-        return await finishRegistration(phoneMatch.id, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
-      }
-    }
-
-    // 4) نفس اسم المنشأة + الدولة، بيانات اتصال مختلفة
-    const nameMatch = await findCarrierByNameAndCountry(carrier.establishment_name, carrier.country);
-    if (nameMatch) {
-      console.warn("[carriers/register] needs_review: establishment name + country matches an existing carrier");
-      return NextResponse.json({ ok: true, status: "needs_review" });
-    }
-
-    // 5) لا تطابق إطلاقاً — تسجيل جديد كامل
-    const partnerId = await createPreliminaryPartner({
-      establishmentName: carrier.establishment_name,
-      contactName: carrier.contact_name,
-      jobTitle: carrier.job_title || undefined,
-      email: carrier.email,
-      phone: carrier.phone,
-      website: carrier.website || undefined,
+    const res = await fetch(`${baseUrl}/api/public/carrier-registrations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-service-secret": secret },
+      body: JSON.stringify({
+        submissionId,
+        establishmentName: carrier.establishment_name,
+        countryCode: carrier.country.length === 2 ? carrier.country.toUpperCase() : "SA",
+        carrierType: carrier.carrier_type,
+        contactName: carrier.contact_name,
+        contactTitle: carrier.job_title || undefined,
+        contactEmail: carrier.email,
+        contactPhone: carrier.phone,
+        serviceAreas: serviceAreaNamesAr,
+        vehicleTypes: carrier.vehicle_types,
+        logisticsServices: carrier.logistics_services,
+        materialCategories: carrier.material_categories,
+        shortDescription: carrier.short_description,
+        website: carrier.website || undefined,
+        preferredLanguage: carrier.preferred_language,
+      }),
+      signal: AbortSignal.timeout(15_000),
     });
-    return await finishRegistration(partnerId, carrier, consentAt, serviceAreaIds, vehicleTypeIds, materialCategoryIds, logisticsServiceIds);
+
+    if (!res.ok) throw new Error(`build-opt returned ${res.status}`);
+    const body = (await res.json()) as { carrierId?: string };
+    return NextResponse.json({ ok: true, id: body.carrierId ?? submissionId, status: "registered" });
   } catch (error) {
-    if (error instanceof OdooClientError) {
-      console.error(`[carriers/register][${error.correlationId}] ${error.kind}: ${error.message}`);
-      const status = error.kind === "validation" ? 400 : error.kind === "conflict" ? 409 : 500;
-      return NextResponse.json({ error: error.publicMessage }, { status });
-    }
-    console.error("Carrier registration failed (unexpected):", error);
+    console.error("[carriers/register] failed to reach build-opt:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "تعذر حفظ بيانات الناقل في نظام العمليات" }, { status: 500 });
   }
-}
-
-type CarrierInput = z.infer<typeof registerSchema>;
-
-async function finishRegistration(
-  partnerId: number,
-  carrier: CarrierInput,
-  consentAt: string,
-  serviceAreaIds: number[],
-  vehicleTypeIds: number[],
-  materialCategoryIds: number[],
-  logisticsServiceIds: number[]
-) {
-  await ensurePartnerContact(partnerId, {
-    contactName: carrier.contact_name,
-    jobTitle: carrier.job_title || undefined,
-    email: carrier.email,
-    phone: carrier.phone,
-  });
-
-  const profileId = await createPreliminaryCarrierProfile(
-    partnerId,
-    {
-      establishmentName: carrier.establishment_name,
-      country: carrier.country,
-      carrierType: carrier.carrier_type,
-      contactName: carrier.contact_name,
-      jobTitle: carrier.job_title || undefined,
-      email: carrier.email,
-      phone: carrier.phone,
-      serviceAreas: carrier.service_areas,
-      vehicleTypes: carrier.vehicle_types,
-      materialCategories: carrier.material_categories ?? [],
-      shortDescription: carrier.short_description,
-      website: carrier.website || undefined,
-      preferredLanguage: carrier.preferred_language,
-      policyVersion: CURRENT_POLICY_VERSION,
-      consentAt,
-    },
-    serviceAreaIds,
-    vehicleTypeIds,
-    materialCategoryIds,
-    logisticsServiceIds
-  );
-
-  const idempotencyKey = `carrier.pre_registered:partner-${partnerId}`;
-  await createOutboxEvent({
-    eventType: "carrier.pre_registered",
-    resourceModel: "x_build_carrier_profile",
-    resourceId: profileId,
-    carrierProfileId: profileId,
-    idempotencyKey,
-    payload: { partner_id: partnerId, profile_id: profileId },
-  });
-
-  return NextResponse.json({ ok: true, id: String(partnerId), status: "registered" });
 }
