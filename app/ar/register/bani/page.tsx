@@ -21,7 +21,10 @@ export default function BaniRegistrationPage() {
           </Link>
           <div className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-white shadow-soft">
             <div className="border-b border-brand-dark/10 px-5 py-5 sm:px-8">
-              <p className="text-sm font-bold tracking-[0.14em] text-brand-primary">✦ BANI</p>
+              <p className="flex items-center gap-2 text-sm font-bold tracking-[0.14em] text-brand-primary">
+                ✦ BANI
+                <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-brand-primary">BETA</span>
+              </p>
               <h1 className="mt-2 text-2xl font-bold text-brand-dark sm:text-3xl">سجّل أسرع مع باني</h1>
               <p className="mt-2 text-sm leading-7 text-brand-dark/65">
                 محادثة قصيرة تساعدك في ترتيب بيانات منشأتك.

@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { BaniComposer } from "@/components/bani/BaniComposer";
+import { BaniHandoffForm } from "@/components/bani/BaniHandoffForm";
 import { BaniMessage } from "@/components/bani/BaniMessage";
 import { sendBaniMessage } from "@/lib/bani/client";
+import type { BaniExtraction } from "@/lib/bani/extraction";
 import { baniDirections, type BaniLanguage, type BaniMessage as BaniMessageType } from "@/lib/bani/types";
 
 const chatContent: Record<
@@ -51,6 +53,7 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
     { id: "assistant-initial", role: "assistant", content: t.greeting }
   ]);
   const [isReplying, setIsReplying] = useState(false);
+  const [readyExtraction, setReadyExtraction] = useState<BaniExtraction | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -63,11 +66,14 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
     setIsReplying(true);
 
     try {
-      const { reply } = await sendBaniMessage(history, language);
+      const { reply, extraction } = await sendBaniMessage(history, language);
       setMessages((current) => [
         ...current,
         { id: `assistant-${nextId.current++}`, role: "assistant", content: reply }
       ]);
+      if (extraction?.readyToHandOff && extraction.establishmentName) {
+        setReadyExtraction(extraction);
+      }
     } finally {
       setIsReplying(false);
     }
@@ -77,7 +83,10 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
     <div className="flex min-h-0 flex-1 flex-col" dir={direction} lang={language}>
       <div className="flex items-center justify-between gap-3 border-b border-brand-dark/10 bg-white/70 px-4 py-3 sm:px-5">
         <div>
-          <p className="text-sm font-bold tracking-[0.12em] text-brand-primary">✦ BANI</p>
+          <p className="flex items-center gap-2 text-sm font-bold tracking-[0.12em] text-brand-primary">
+            ✦ BANI
+            <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-brand-primary">BETA</span>
+          </p>
         </div>
         <button
           type="button"
@@ -113,7 +122,11 @@ export function BaniChat({ language, onChangeLanguage }: BaniChatProps) {
         </div>
       </div>
 
-      <BaniComposer language={language} direction={direction} disabled={isReplying} onSend={handleSend} />
+      {readyExtraction ? (
+        <BaniHandoffForm extraction={readyExtraction} language={language} />
+      ) : (
+        <BaniComposer language={language} direction={direction} disabled={isReplying} onSend={handleSend} />
+      )}
     </div>
   );
 }

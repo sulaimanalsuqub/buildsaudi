@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-import { verifyEmailToken } from "@/lib/otp";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
@@ -28,37 +27,31 @@ function resolveCountryCode(countryDisplay: string): string | undefined {
   return match.value.toUpperCase();
 }
 
-const registerSchema = z
-  .object({
-    establishment_name: z.string().trim().min(2, "اسم المنشأة مطلوب"),
-    country: z.string().trim().min(2, "الدولة مطلوبة"),
-    supplier_type: z.enum(["local", "international"]),
-    business_type: z.enum(BUSINESS_TYPES),
-    contact_name: z.string().trim().min(2, "اسم المسؤول مطلوب"),
-    job_title: z.string().trim().optional().or(z.literal("")),
-    email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
-    email_verified_token: z.string().min(10, "يجب التحقق من البريد الإلكتروني أولاً"),
-    phone: z
-      .string()
-      .trim()
-      .transform((v) => normalizeVendorPhone(v))
-      .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
-    // أسماء فئات حقيقية (Build-OPT يطابقها بالاسم) — لا معرّفات رقمية داخلية بعد الآن
-    category_names: z.array(z.string().trim().min(1)).min(1, "اختر فئة واحدة على الأقل"),
-    other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
-    brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
-    short_description: z.string().trim().optional().or(z.literal("")),
-    website: z.string().trim().optional().or(z.literal("")),
-    catalog_link: z.string().trim().optional().or(z.literal("")),
-    preferred_language: z.enum(["ar", "en"]),
-    privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
-    terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
-    turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
-  })
-  .refine((data) => verifyEmailToken(data.email, data.email_verified_token), {
-    path: ["email"],
-    message: "انتهت صلاحية التحقق من البريد — أعد إرسال رمز OTP والتحقق مرة أخرى",
-  });
+const registerSchema = z.object({
+  establishment_name: z.string().trim().min(2, "اسم المنشأة مطلوب"),
+  country: z.string().trim().min(2, "الدولة مطلوبة"),
+  supplier_type: z.enum(["local", "international"]),
+  business_type: z.enum(BUSINESS_TYPES),
+  contact_name: z.string().trim().min(2, "اسم المسؤول مطلوب"),
+  job_title: z.string().trim().optional().or(z.literal("")),
+  email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
+  phone: z
+    .string()
+    .trim()
+    .transform((v) => normalizeVendorPhone(v))
+    .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
+  // أسماء فئات حقيقية (Build-OPT يطابقها بالاسم) — لا معرّفات رقمية داخلية بعد الآن
+  category_names: z.array(z.string().trim().min(1)).min(1, "اختر فئة واحدة على الأقل"),
+  other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
+  brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
+  short_description: z.string().trim().optional().or(z.literal("")),
+  website: z.string().trim().optional().or(z.literal("")),
+  catalog_link: z.string().trim().optional().or(z.literal("")),
+  preferred_language: z.enum(["ar", "en"]),
+  privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
+  terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
+  turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
+});
 
 export async function POST(req: NextRequest) {
   const clientId = getClientIdentifier(req);

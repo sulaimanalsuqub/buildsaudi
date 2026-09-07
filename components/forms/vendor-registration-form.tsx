@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
-import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -152,8 +151,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review">("registered");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [verifiedEmail, setVerifiedEmail] = useState("");
-  const [emailToken, setEmailToken] = useState("");
   const [categories, setCategories] = useState<MaterialCategory[] | null>(null);
   const [categoriesFailed, setCategoriesFailed] = useState(false);
   const [showOther, setShowOther] = useState(false);
@@ -195,14 +192,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
   const values = form.watch();
   const isSaudi = isSaudiSupplierCountry(values.country);
-  const emailVerified = !!verifiedEmail && verifiedEmail === values.email.trim().toLowerCase() && !!emailToken;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!isPrototypeMode && !emailVerified) {
-      form.setError("email", { message: "required" });
-      setSubmitError(isRtl ? "يجب التحقق من البريد الإلكتروني أولاً" : "Please verify your email first");
-      return;
-    }
     if (!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
       setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
       return;
@@ -229,7 +220,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           contact_name: data.contactName.trim(),
           job_title: data.jobTitle?.trim() || undefined,
           email: data.email.trim().toLowerCase(),
-          email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.contactNumber),
           category_names: data.categoryIds,
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
@@ -275,7 +265,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   const showPhone = showContactName && values.contactName.trim().length >= 2;
   const phoneDigits = parseVendorPhone(values.contactNumber).localNumber;
   const showDetails = showPhone && phoneDigits.length >= 8;
-  const showVerify = !isPrototypeMode && showDetails && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) && !emailVerified;
   // تنبيه لطيف (لا يمنع الإرسال) — تكرار شائع: كتابة الاسم الشخصي في حقل اسم المنشأة
   const establishmentNameMatchesContact =
     showContactName &&
@@ -457,37 +446,9 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
 
               <div className="space-y-3">
                 <VendorField label={t.labels.email}>
-                  <Input
-                    type="email"
-                    {...form.register("email", {
-                      onChange: () => {
-                        if (emailVerified) {
-                          setVerifiedEmail("");
-                          setEmailToken("");
-                        }
-                      },
-                    })}
-                    className="h-12 text-base"
-                    dir="ltr"
-                  />
+                  <Input type="email" {...form.register("email")} className="h-12 text-base" dir="ltr" />
                   <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
                 </VendorField>
-                {emailVerified ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {isRtl ? "تم التحقق من البريد ✓" : "Email verified ✓"}
-                  </div>
-                ) : showVerify ? (
-                  <EmailVerify
-                    email={values.email.trim()}
-                    isRtl={isRtl}
-                    onVerified={(token) => {
-                      setVerifiedEmail(values.email.trim().toLowerCase());
-                      setEmailToken(token);
-                      form.clearErrors("email");
-                    }}
-                  />
-                ) : null}
               </div>
 
               <div className="space-y-3 rounded-xl bg-brand-light/40 p-4">
@@ -511,7 +472,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         </AnimatePresence>
       </div>
 
-      {!isPrototypeMode && emailVerified && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+      {!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
         <div className="mt-6">
           <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
           <div
@@ -524,7 +485,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       )}
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || (!isPrototypeMode && (!emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)))} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || (!isPrototypeMode && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
