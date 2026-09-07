@@ -1,74 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import {
-  OdooClientError,
-  attachProcurementRequestFiles,
-  createCustomerRequestLines,
-  createExtractedRequestLines,
-  createAiRecommendationWorkflow,
-  createOutboxEvent,
-  createProcurementRequest,
-  findMatchingCarriers,
-  findMatchingSuppliers,
-  findOrCreateCustomerPartner,
-  findOrCreateCustomerProject,
-  findProcurementRequestBySubmissionKey,
-  generateProcurementTracking,
-  listActiveMaterialCategories,
-  listCatalogProductNames,
-  listProductCategories,
-  postProcurementRequestNote,
-  resolveActiveLogisticsServices,
-  resolveActiveServiceAreas,
-  resolveExistingBrandIds,
-  updateProcurementRequestCategories,
-} from "@/lib/odoo";
-import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
+import { claimSubmission, saveSubmissionState, checkSharedRateLimit, type SubmissionState } from "@/lib/shared-store";
 import { rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
-import { checkSharedRateLimit } from "@/lib/shared-store";
 import { validateSafeUpload } from "@/lib/file-validation";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, regions } from "@/lib/vendor-options";
+import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, supplierCountries } from "@/lib/vendor-options";
 import { extractRequestItems } from "@/lib/material-extraction";
 
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
 const MAX_ITEMS = 50;
 
-const SAUDI_ORIGIN_NAMES = ["السعودية", "المملكة العربية السعودية", "saudi arabia", "saudi", "ksa", "sa"];
-
-/** يحدّد إن كان بند مصدره خارج السعودية (نص حر غير موحّد) — فارغ/غير محدد يُعامَل محلياً افتراضياً لتفادي تشديد المطابقة بلا داعٍ */
-function isInternationalOrigin(countryOfOrigin: string | undefined): boolean {
-  const normalized = (countryOfOrigin || "").trim().toLowerCase();
-  if (!normalized) return false;
-  return !SAUDI_ORIGIN_NAMES.includes(normalized);
-}
-
-function inferServiceAreaNames(text: string): string[] {
-  const normalized = text.trim().toLowerCase();
-  if (!normalized) return [];
-  return regions
-    .filter((region) =>
-      [region.ar, region.en, region.value]
-        .map((value) => value.toLowerCase())
-        .some((value) => normalized.includes(value))
-    )
-    .map((region) => region.ar);
-}
-
-function supplierMatchLine(supplier: { name: string; matchedCategoryCount: number; matchedBrandCount: number }): string {
-  const parts = [];
-  if (supplier.matchedBrandCount) parts.push(`${supplier.matchedBrandCount} علامة`);
-  if (supplier.matchedCategoryCount) parts.push(`${supplier.matchedCategoryCount} فئة`);
-  return `- ${supplier.name}${parts.length ? ` (${parts.join(" + ")})` : ""}`;
-}
-
-function carrierMatchLine(carrier: { name: string; matchedServiceAreaCount: number; matchedCategoryCount: number }): string {
-  const parts = [];
-  if (carrier.matchedServiceAreaCount) parts.push(`${carrier.matchedServiceAreaCount} منطقة خدمة`);
-  if (carrier.matchedCategoryCount) parts.push(`${carrier.matchedCategoryCount} فئة مواد`);
-  return `- ${carrier.name}${parts.length ? ` (${parts.join(" + ")})` : ""}`;
+/** يحاول استرجاع رمز ISO من الاسم المعروض (بالعربي أو الإنجليزي) — يرجع undefined لو غير معروف؛
+ * أصل المنتج نص حر أوسع من قائمة دول التسجيل التسع، فعدم التطابق متوقع وليس خطأ */
+function resolveCountryCode(display: string | undefined): string | undefined {
+  if (!display) return undefined;
+  const match = supplierCountries.find((c) => c.ar === display || c.en === display);
+  if (!match || match.value === "other" || match.value.length !== 2) return undefined;
+  return match.value.toUpperCase();
 }
 
 const fileSchema = z.object({
@@ -95,11 +45,9 @@ const registerSchema = z
       .trim()
       .transform((v) => normalizeVendorPhone(v))
       .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
-    // المشروع أهم بيانات الطلب — إلزامي
     project_name: z.string().trim().min(2, "اسم المشروع مطلوب"),
     delivery_latitude: z.number().min(-90).max(90).optional(),
     delivery_longitude: z.number().min(-180).max(180).optional(),
-    // الرمز المختصر للعنوان الوطني: 4 أحرف + 4 أرقام (مثال: RRRD2929)
     national_address_code: z
       .string()
       .trim()
@@ -113,6 +61,7 @@ const registerSchema = z
     items: z.array(itemSchema).max(MAX_ITEMS, "الحد الأقصى 50 صنفاً").optional().default([]),
     files: z.array(fileSchema).max(MAX_FILES, "يمكن رفع 5 ملفات كحد أقصى").optional().default([]),
     submission_id: z.string().uuid("معرف الإرسال غير صحيح"),
+    privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
     turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
   })
   .refine((data) => data.description.trim().length >= 5 || data.items.length > 0 || data.files.length > 0, {
@@ -152,6 +101,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
+  const baseUrl = process.env.BUILD_OPT_BASE_URL;
+  const secret = process.env.PUBLIC_INTAKE_SERVICE_SECRET;
+  if (!baseUrl || !secret) {
+    console.error("[quotes/register] BUILD_OPT_BASE_URL/PUBLIC_INTAKE_SERVICE_SECRET not configured");
+    return NextResponse.json({ error: "نظام استقبال الطلبات غير مهيّأ حالياً — حاول لاحقاً" }, { status: 503 });
+  }
+
   const submissionKey = `procurement-submission:${data.submission_id}`;
   const correlationId = randomUUID();
   const initialState: SubmissionState = { status: "processing", operation: "customer_submission", submissionId: data.submission_id, correlationId, stage: "validated" };
@@ -160,10 +116,9 @@ export async function POST(req: NextRequest) {
     const reservation = await claimSubmission(submissionKey, initialState);
     submissionState = reservation.state;
     if (!reservation.claimed) {
-      if (submissionState.status === "completed" && submissionState.trackingNumber && submissionState.trackingToken) {
-        return NextResponse.json({ ok: true, replayed: true, tracking_number: submissionState.trackingNumber, tracking_token: submissionState.trackingToken });
+      if (submissionState.status === "completed" && submissionState.trackingNumber) {
+        return NextResponse.json({ ok: true, replayed: true, tracking_number: submissionState.trackingNumber });
       }
-      // A concurrent invocation owns this submission. Do not start a second Odoo workflow.
       return NextResponse.json({ error: "طلبكم قيد المعالجة بالفعل؛ أعد المحاولة بعد لحظات", correlation_id: submissionState.correlationId }, { status: 202 });
     }
   } catch (error) {
@@ -171,209 +126,77 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر تأمين طلبكم بشكل موثوق؛ حاول لاحقاً" }, { status: 503 });
   }
 
-  let createdRequestId: number | null = null;
   try {
-    const customerId = await findOrCreateCustomerPartner({
-      contactName: data.contact_name,
-      companyName: data.company_name || undefined,
-      email: data.email,
-      phone: data.phone,
-    });
-
-    const projectId = await findOrCreateCustomerProject(customerId, data.project_name);
-
-    // Odoo Studio stores this key for reconciliation. Redis is the authoritative
-    // atomic claim, and retries reconcile against the stored business key.
-    const prior = await findProcurementRequestBySubmissionKey(data.submission_id);
-    if (prior && (!prior.trackingNumber || !prior.trackingToken)) {
-      // A prior invocation committed part of the request but not a safe completion. Do not guess
-      // which child writes ran; reconciliation owns it and this retry must not duplicate lines/files.
-      submissionState = { ...submissionState, status: "failed", requestId: prior.id, stage: "reconciliation_required", error: "Existing incomplete Odoo submission" };
-      await saveSubmissionState(submissionKey, submissionState);
-      await postProcurementRequestNote(prior.id, `طلب الموقع ذو مفتاح الإرسال ${data.submission_id} يحتاج reconciliation: سجل موجود بلا tracking مكتمل. لا تُنشأ بنود/مرفقات مكررة تلقائياً.`).catch(() => undefined);
-      return NextResponse.json({ error: "طلب سابق يحتاج مراجعة تشغيلية قبل استئناف المعالجة", correlation_id: correlationId }, { status: 409 });
-    }
-    if (prior?.trackingNumber && prior.trackingToken) {
-      // A prior invocation can have committed tracking then timed out before its
-      // notification outbox write. Reconcile that idempotently before acknowledging
-      // the replay as complete.
-      await createOutboxEvent({
-        eventType: "procurement.request_received",
-        resourceModel: "x_build_procurement_request",
-        resourceId: prior.id,
-        procurementRequestId: prior.id,
-        idempotencyKey: `procurement.request_received:${prior.id}`,
-        payload: { request_id: prior.id, tracking_token: prior.trackingToken },
-      });
-      submissionState = { ...submissionState, status: "completed", requestId: prior.id, trackingNumber: prior.trackingNumber, trackingToken: prior.trackingToken, stage: "recovered_completed" };
-      await saveSubmissionState(submissionKey, submissionState);
-      return NextResponse.json({ ok: true, replayed: true, tracking_number: prior.trackingNumber, tracking_token: prior.trackingToken, correlation_id: correlationId });
-    }
-    const requestId = await createProcurementRequest(
-      {
-        contactName: data.contact_name,
-        companyName: data.company_name || undefined,
-        email: data.email,
-        phone: data.phone,
-        projectName: data.project_name,
-        deliveryLatitude: data.delivery_latitude,
-        deliveryLongitude: data.delivery_longitude,
-        nationalAddressCode: data.national_address_code || undefined,
-        deliveryAddressNotes: data.delivery_address_notes || undefined,
-        requestedDeliveryDate: data.requested_delivery_date || undefined,
-        description: data.description,
-      },
-      [],
-      customerId,
-      projectId,
-      data.submission_id
-    );
-    createdRequestId = requestId;
-    submissionState = { ...submissionState, requestId, stage: "request_created" };
-    await saveSubmissionState(submissionKey, submissionState);
-
-    let matchedCategoryIds: number[] = [];
-    let requestedBrandNames: string[] = [];
-    let requiresInternationalFreight = false;
-
-    if (data.items.length) {
-      requestedBrandNames = data.items.map((i) => i.brand || "").filter(Boolean);
-      requiresInternationalFreight = data.items.some((i) => isInternationalOrigin(i.countryOfOrigin));
-      await createCustomerRequestLines(
-        requestId,
-        data.items.map((i) => ({
-          itemName: i.itemName,
-          quantity: i.quantity,
-          unit: i.unit || undefined,
-          brand: i.brand || undefined,
-          countryOfOrigin: i.countryOfOrigin || undefined,
-        }))
-      );
-    } else if (data.description.trim().length >= 5 || data.files.length) {
-      const [activeCategories, productCategories, catalogProductNames] = await Promise.all([
-        listActiveMaterialCategories().catch(() => []),
-        listProductCategories().catch(() => []),
-        listCatalogProductNames().catch(() => []),
-      ]);
-      const extractedItems = await extractRequestItems(
+    // بنود مباشرة إن أدخلها العميل يدوياً، وإلا استخلاص عبر DeepSeek من الوصف/الملفات المرفقة —
+    // هذا الاستخلاص لا يعتمد على أودو إطلاقاً (lib/material-extraction.ts مستقل تماماً).
+    let items = data.items;
+    if (!items.length && (data.description.trim().length >= 5 || data.files.length)) {
+      const extracted = await extractRequestItems(
         data.description,
         data.files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
-        activeCategories.map((c) => c.nameAr),
-        catalogProductNames
+        [],
+        []
       );
-      if (extractedItems.length) {
-        const productCategoryNameToId = new Map(productCategories.map((c) => [c.name, c.id]));
-        await createExtractedRequestLines(requestId, extractedItems, productCategoryNameToId);
-
-        const nameToId = new Map(activeCategories.map((c) => [c.nameAr, c.id]));
-        matchedCategoryIds = [
-          ...new Set(extractedItems.map((i) => i.category && nameToId.get(i.category)).filter((id): id is number => typeof id === "number")),
-        ];
-        requestedBrandNames = extractedItems.map((i) => i.brand || "").filter(Boolean);
-        requiresInternationalFreight = extractedItems.some((i) => isInternationalOrigin(i.countryOfOrigin || undefined));
-      }
+      items = extracted.map((i) => ({ itemName: i.itemName, quantity: i.quantity, unit: i.unit || "", brand: i.brand || "", countryOfOrigin: i.countryOfOrigin || "" }));
     }
 
-    // توصيات داخلية فقط — لا إرسال RFQ تلقائي. الفئات توسّع نطاق البحث، والعلامة التجارية ترفع أولوية المورد.
-    try {
-      const categoryIds = [...new Set(matchedCategoryIds)];
-      const brandIds = await resolveExistingBrandIds(requestedBrandNames);
-      if (categoryIds.length) {
-        await updateProcurementRequestCategories(requestId, categoryIds);
-      }
+    // لا عمود مخصّص بعد بـBuild-OPT لموقع التسليم التفصيلي (عنوان وطني/إحداثيات) — يُضاف كنص
+    // واضح داخل notes بدل توسيع سكيمة procurement_requests الآن (docs: PROGRESS.md).
+    const deliveryParts = [
+      data.national_address_code ? `الرمز الوطني: ${data.national_address_code}` : null,
+      data.delivery_latitude !== undefined && data.delivery_longitude !== undefined
+        ? `الإحداثيات: ${data.delivery_latitude}, ${data.delivery_longitude}`
+        : null,
+      data.delivery_address_notes || null,
+    ].filter(Boolean);
+    const notes = [data.description.trim(), deliveryParts.length ? `موقع التسليم — ${deliveryParts.join(" | ")}` : null]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 5000);
 
-      const serviceAreaNames = inferServiceAreaNames(`${data.delivery_address_notes || ""} ${data.project_name}`);
-      const serviceAreaIds = serviceAreaNames.length ? await resolveActiveServiceAreas(serviceAreaNames) : [];
-      // بند مصدره خارج السعودية يستوجب ناقلاً يقدّم شحناً دولياً وتخليصاً جمركياً فعلياً — شرط إلزامي لا اقتراحي
-      const requiredLogisticsServiceIds = requiresInternationalFreight
-        ? (await resolveActiveLogisticsServices(["شحن من الخارج", "تخليص جمركي"])) || []
-        : [];
-      const [suppliers, carriers] = await Promise.all([
-        findMatchingSuppliers(categoryIds, brandIds),
-        categoryIds.length || serviceAreaIds?.length || requiredLogisticsServiceIds.length
-          ? findMatchingCarriers(categoryIds, serviceAreaIds || [], requiredLogisticsServiceIds)
-          : Promise.resolve([]),
-      ]);
-
-      const noteParts: string[] = [];
-      const aiWorkflows: Promise<unknown>[] = [];
-      if (suppliers.length) {
-        const supplierResult = `الموردون المقترحون بناءً على الفئات/العلامات التجارية:\n${suppliers.slice(0, 10).map(supplierMatchLine).join("\n")}`;
-        noteParts.push(supplierResult);
-        aiWorkflows.push(
-          createAiRecommendationWorkflow({
-            agentName: "Supplier Matching Agent",
-            requestId,
-            decisionType: "supplier_rfq",
-            taskType: "supplier_matching_recommendation",
-            recommendation: supplierResult,
-            recipientPartnerIds: suppliers.slice(0, 10).map((supplier) => supplier.partnerId),
-            confidenceScore: suppliers[0]?.score ? Math.min(0.95, suppliers[0].score / 100) : 0.5,
-          })
-        );
-      }
-      if (carriers.length) {
-        const carrierResult = `وكلاء الشحن المقترحون عند الحاجة لشحن مستقل:\n${carriers.slice(0, 10).map(carrierMatchLine).join("\n")}`;
-        noteParts.push(carrierResult);
-        aiWorkflows.push(
-          createAiRecommendationWorkflow({
-            agentName: "Freight Planning Agent",
-            requestId,
-            decisionType: "freight_rfq",
-            taskType: "freight_planning_recommendation",
-            recommendation: carrierResult,
-            recipientPartnerIds: carriers.slice(0, 10).map((carrier) => carrier.partnerId),
-            confidenceScore: carriers[0]?.score ? Math.min(0.95, carriers[0].score / 100) : 0.5,
-          })
-        );
-      }
-      if (noteParts.length) {
-        await postProcurementRequestNote(requestId, noteParts.join("\n\n"));
-      }
-      if (aiWorkflows.length) {
-        await Promise.all(aiWorkflows);
-      }
-    } catch (matchError) {
-      console.error("[quotes/register] recommendation matching failed (non-blocking):", matchError instanceof Error ? matchError.message : matchError);
-    }
-
-    if (data.files.length) {
-      await attachProcurementRequestFiles(requestId, data.files);
-    }
-
-    const { trackingNumber, trackingToken } = await generateProcurementTracking(requestId);
-
-    const idempotencyKey = `procurement.request_received:${requestId}`;
-    await createOutboxEvent({
-      eventType: "procurement.request_received",
-      resourceModel: "x_build_procurement_request",
-      resourceId: requestId,
-      procurementRequestId: requestId,
-      idempotencyKey,
-      payload: { request_id: requestId, tracking_token: trackingToken },
+    const res = await fetch(`${baseUrl}/api/public/procurement-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-service-secret": secret },
+      body: JSON.stringify({
+        submissionId: data.submission_id,
+        legalName: data.company_name || undefined,
+        contactName: data.contact_name,
+        contactEmail: data.email,
+        contactPhone: data.phone,
+        countryCode: "SA",
+        projectName: data.project_name,
+        notes: notes || undefined,
+        requestedDeliveryDate: data.requested_delivery_date || undefined,
+        lines: items.map((i) => ({
+          itemName: i.itemName,
+          quantity: i.quantity,
+          uom: i.unit || "قطعة",
+          brandFreeText: i.brand || undefined,
+          countryOfOrigin: resolveCountryCode(i.countryOfOrigin),
+        })),
+      }),
+      signal: AbortSignal.timeout(20_000),
     });
 
-    submissionState = { ...submissionState, status: "completed", trackingNumber, trackingToken, stage: "completed" };
+    if (!res.ok) throw new Error(`build-opt returned ${res.status}`);
+    const body = (await res.json()) as { requestNumber?: string };
+    const trackingNumber = body.requestNumber ?? data.submission_id;
+
+    submissionState = { ...submissionState, status: "completed", trackingNumber, stage: "completed" };
     await saveSubmissionState(submissionKey, submissionState);
-    return NextResponse.json({ ok: true, tracking_number: trackingNumber, tracking_token: trackingToken, correlation_id: correlationId });
+    return NextResponse.json({ ok: true, tracking_number: trackingNumber, correlation_id: correlationId });
   } catch (error) {
     try {
       await saveSubmissionState(submissionKey, {
         ...submissionState,
         status: "failed",
-        requestId: createdRequestId ?? submissionState.requestId,
         stage: submissionState.stage ?? "unknown",
         error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
       });
     } catch (stateError) {
       console.error("[quotes/register] unable to record failed submission:", stateError);
     }
-    if (error instanceof OdooClientError) {
-      console.error(`[quotes/register][${error.correlationId}] ${error.kind}: ${error.message}`);
-      const status = error.kind === "validation" ? 400 : error.kind === "conflict" ? 409 : 500;
-      return NextResponse.json({ error: error.publicMessage }, { status });
-    }
-    console.error("Procurement request submission failed (unexpected):", error);
+    console.error("[quotes/register] failed to reach build-opt:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "تعذر حفظ طلبكم في نظام العمليات" }, { status: 500 });
   }
 }

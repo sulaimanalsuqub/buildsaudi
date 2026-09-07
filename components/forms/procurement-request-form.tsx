@@ -79,7 +79,6 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   const [submissionId] = useState(() => crypto.randomUUID());
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [trackingToken, setTrackingToken] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
@@ -197,10 +196,9 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           turnstile_token: turnstileToken,
         }),
       });
-      const result = (await res.json().catch(() => null)) as { error?: string; tracking_number?: string; tracking_token?: string } | null;
+      const result = (await res.json().catch(() => null)) as { error?: string; tracking_number?: string } | null;
       if (!res.ok) throw new Error(result?.error ?? "تعذر إرسال الطلب");
       setTrackingNumber(result?.tracking_number || "");
-      setTrackingToken(result?.tracking_token || "");
       setIsSubmitted(true);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ."));
@@ -227,14 +225,8 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
         </p>
         {trackingNumber && (
           <div className="mx-auto mt-6 max-w-sm rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-4">
-            <p className="text-xs font-semibold text-brand-dark/50">{textByLang(isRtl, "Tracking Number", "رقم التتبع")}</p>
+            <p className="text-xs font-semibold text-brand-dark/50">{textByLang(isRtl, "Reference Number", "الرقم المرجعي")}</p>
             <p className="mt-1 text-lg font-bold tracking-wide text-brand-primary" dir="ltr">{trackingNumber}</p>
-            <a
-              href={`${isRtl ? "/ar" : ""}/track-request?token=${trackingToken}`}
-              className="mt-4 inline-block rounded-full bg-brand-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark"
-            >
-              {textByLang(isRtl, "Track Your Request", "تتبع طلبكم")}
-            </a>
           </div>
         )}
       </section>
