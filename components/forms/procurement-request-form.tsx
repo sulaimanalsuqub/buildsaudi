@@ -279,7 +279,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
   ];
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]" dir={isRtl ? "rtl" : "ltr"}>
+    <div className="mx-auto w-full max-w-4xl" dir={isRtl ? "rtl" : "ltr"}>
       <form noValidate onSubmit={(e) => { if (step === 0) { e.preventDefault(); void continueToContact(); } else { void onSubmit(e); } }} className="min-w-0 overflow-hidden rounded-xl border border-brand-dark/10 bg-white">
         <nav aria-label={t("Request steps", "خطوات الطلب")} className="grid grid-cols-2 border-b border-brand-dark/10">
           {[t("Your project needs", "احتياجات مشروعك"), t("Contact & send", "التواصل والإرسال")].map((label, i) => (
@@ -391,15 +391,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
         </fieldset>
       </form>
 
-      <aside aria-label={t("Your request at a glance", "طلبك باختصار")} className="hidden space-y-4 lg:sticky lg:top-28 lg:block">
-        <div className="overflow-hidden rounded-xl bg-brand-dark p-6 text-white">
-          <span className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/20"><FileText className="h-5 w-5 text-brand-accent" aria-hidden="true" /></span>
-          <h2 className="text-lg font-bold">{t("One request. A clear next step.", "طلب واحد، وخطوة واضحة.")}</h2>
-          <p className="mt-3 text-sm leading-7 text-white/70">{t("Share what you need. We’ll review the materials and quantities, then follow up with your quote.", "أرسل احتياجاتك. نراجع المواد والكميات، ونتابع معك لتجهيز عرض السعر.")}</p>
-          <ol className="mt-6 space-y-4 border-t border-white/15 pt-5">{[t("Share your requirements", "أضف احتياجاتك"), t("We review the details", "نراجع التفاصيل"), t("Receive your quote", "يصلك عرض السعر")].map((label, i) => <li key={label} className="flex items-center gap-3 text-sm"><span className="text-xs tabular-nums text-brand-accent">0{i + 1}</span><span className="text-white/85">{label}</span></li>)}</ol>
-        </div>
 
-      </aside>
     </div>
   );
 }
