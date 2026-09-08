@@ -4,9 +4,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/cookies-policy",
-  title: "Cookies Policy | Build Saudi",
-  description:
-    "The types of cookies used on the Build website, their purpose, and how to manage your preferences, in line with Saudi data protection requirements.",
+  title: "Cookie Policy & Settings | Build",
+  description: "Learn how Build uses cookies to operate and protect the website and analyse usage. Explore cookie types and how to manage your settings.",
 });
 
 function H2({ children }: { children: React.ReactNode }) {

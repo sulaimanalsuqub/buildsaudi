@@ -7,8 +7,21 @@ import "../globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
-  title: "تحت الصيانة | بيلد",
+  title: { absolute: "نحدّث تجربة بيلد | نعود قريبًا" },
+  description: "نعمل على تحديث بيلد لتسهيل طلب مواد البناء والتشطيبات لمشروعك. للتواصل خلال الصيانة، راسل فريقنا على sales@build.sa.",
   robots: "noindex, nofollow",
+  openGraph: {
+    title: "نحدّث تجربة بيلد | نعود قريبًا",
+    description: "نعمل على تحديث بيلد لتسهيل طلب مواد البناء والتشطيبات لمشروعك. للتواصل خلال الصيانة، راسل فريقنا على sales@build.sa.",
+    url: `${siteConfig.url}/maintenance`,
+    images: [{ url: `${siteConfig.url}/opengraph-image`, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "نحدّث تجربة بيلد | نعود قريبًا",
+    description: "نعمل على تحديث بيلد لتسهيل طلب مواد البناء والتشطيبات لمشروعك. للتواصل خلال الصيانة، راسل فريقنا على sales@build.sa.",
+    images: [`${siteConfig.url}/opengraph-image`],
+  },
 };
 
 export default function MaintenanceLayout({

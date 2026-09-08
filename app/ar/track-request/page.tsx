@@ -6,8 +6,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar/track-request",
-  title: "تتبع طلبكم | بيلد",
-  description: "تتبع حالة طلب توريد المواد الخاص بكم.",
+  title: "تابع حالة طلب التوريد لمشروعك | بيلد",
+  description: "اعرف أين وصل طلبك لدى بيلد. اطّلع على حالة طلب توريد مواد البناء والتشطيبات وآخر تحديثاته من صفحة تتبع الطلب.",
   noindex: true,
 });
 

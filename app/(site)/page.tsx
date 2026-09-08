@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/",
-  title: "Building Materials & Finishes Supplier | Build Saudi",
+  title: "Building Materials & Finishes Supply in Saudi Arabia | Build",
   description: siteConfig.description,
   keywords: siteConfig.keywords,
 });

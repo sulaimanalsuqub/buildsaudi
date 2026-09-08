@@ -4,9 +4,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/privacy-policy",
-  title: "Privacy Policy | Build Saudi",
-  description:
-    "Build's privacy policy, aligned with Saudi Arabia's Personal Data Protection Law (PDPL) and SDAIA guidance, covering what data we collect from suppliers, carriers, and customers, why, and your rights.",
+  title: "Your Data & Privacy Rights | Build",
+  description: "Learn what data Build collects when you request materials or register your business, how it is used and shared, and how to contact us about your data rights.",
 });
 
 function H2({ children }: { children: React.ReactNode }) {

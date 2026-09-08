@@ -4,9 +4,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar/terms-conditions",
-  title: "الشروط والأحكام | بيلد",
-  description:
-    "الشروط والأحكام الناظمة لاستخدام خدمات بيلد لتوريد مواد البناء وتسجيل الموردين والناقلين في المملكة العربية السعودية.",
+  title: "شروط استخدام الموقع وخدمات التوريد | بيلد",
+  description: "تعرّف على شروط طلب التوريد والتسجيل كمورد أو ناقل لدى بيلد، وآلية مراجعة الطلبات وتأكيد العروض، ومسؤوليات المستخدم وحدود الخدمة.",
 });
 
 function H2({ children }: { children: React.ReactNode }) {

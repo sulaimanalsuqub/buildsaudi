@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { siteConfig } from "@/lib/site";
 import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
-  title: "BANI | قريباً",
-  robots: { index: false, follow: true },
+  title: { absolute: "باني من بيلد | قريبًا" },
+  description: "نعمل على تجهيز باني من بيلد. لتسجيل منشأتك الآن، انتقل إلى نموذج تسجيل الموردين وأضف بياناتك والمواد التي توفرها.",
+  robots: { index: false, follow: true, googleBot: { index: false, follow: true } },
+  alternates: { canonical: `${siteConfig.url}/ar/register/bani`, languages: {} },
+  openGraph: {
+    title: "باني من بيلد | قريبًا",
+    description: "نعمل على تجهيز باني من بيلد. لتسجيل منشأتك الآن، انتقل إلى نموذج تسجيل الموردين وأضف بياناتك والمواد التي توفرها.",
+    url: `${siteConfig.url}/ar/register/bani`,
+    images: [{ url: `${siteConfig.url}/opengraph-image`, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "باني من بيلد | قريبًا",
+    description: "نعمل على تجهيز باني من بيلد. لتسجيل منشأتك الآن، انتقل إلى نموذج تسجيل الموردين وأضف بياناتك والمواد التي توفرها.",
+    images: [`${siteConfig.url}/opengraph-image`],
+  },
 };
 
 export default function BaniRegistrationPage() {

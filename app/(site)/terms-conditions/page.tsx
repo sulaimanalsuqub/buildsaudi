@@ -4,9 +4,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   lang: "en",
   path: "/terms-conditions",
-  title: "Terms & Conditions | Build Saudi",
-  description:
-    "Terms governing the use of Build's platform for building material supply requests and supplier/carrier registration across Saudi Arabia.",
+  title: "Website & Supply Service Terms | Build",
+  description: "Review the terms for using Build, requesting materials and registering as a supplier or carrier, including request reviews, quote confirmation and responsibilities.",
 });
 
 function H2({ children }: { children: React.ReactNode }) {
