@@ -17,44 +17,27 @@ type QuotePageContentProps = {
 };
 
 export function QuotePageContent({ isRtl = false }: QuotePageContentProps) {
-  const t = {
-    title: isRtl ? "رحلة الشراء أسرع و أسهل" : "A Faster, Easier Buying Journey",
-    body: isRtl
-      ? "أدخل تفاصيل طلبك وموقع التسليم"
-      : "Enter your request details and delivery location",
-    helpLabel: isRtl ? "بحاجة مساعدة في طلبك؟" : "Need help with your request?",
-    helpCta: isRtl ? "راسلنا على واتساب" : "Message us on WhatsApp",
-  };
-
   return (
-    <main dir={isRtl ? "rtl" : "ltr"}>
-      <section className="bg-white py-12 md:py-16">
-        <Container>
-          <div className="max-w-2xl border-t border-brand-dark/10 pt-6">
-            <h1 className="type-hero text-brand-dark">{t.title}</h1>
-            <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
-          </div>
-        </Container>
-      </section>
-
-      <section className="bg-[#f7f9f6] py-10 md:py-14">
-        <Container>
-          <ProcurementRequestForm isRtl={isRtl} />
-
-          <div className="mt-8 flex flex-col items-center gap-3 text-center">
-            <p className="type-body text-brand-dark/62">{t.helpLabel}</p>
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t.helpCta}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition hover:opacity-90"
-            >
-              <WhatsAppIcon className="h-6 w-6" />
+    <main dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-brand-light pb-16">
+      <Container>
+        <header className="pb-8 pt-10 md:pb-10 md:pt-14">
+          <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-brand-dark/60">
+            <span className="h-2 w-2 bg-brand-primary" aria-hidden="true" />
+            {isRtl ? "طلب عرض سعر" : "Request a quote"}
+          </p>
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+            <div>
+              <h1 className="type-hero text-brand-dark">{isRtl ? "وش يحتاج مشروعك؟" : "What does your project need?"}</h1>
+              <p className="type-body mt-3 max-w-xl text-brand-dark/65">{isRtl ? "أرفق طلبك أو اكتب احتياجاتك. نراجع التفاصيل ونجهّز لك عرض السعر." : "Attach your request or tell us what you need. We’ll review the details and prepare your quote."}</p>
+            </div>
+            <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-brand-dark/15 px-4 py-3 text-sm font-semibold text-brand-dark transition hover:border-brand-primary hover:bg-white md:self-auto">
+              <WhatsAppIcon className="h-5 w-5 text-brand-primary" />
+              {isRtl ? "نساعدك على واتساب" : "Get help on WhatsApp"}
             </a>
           </div>
-        </Container>
-      </section>
+        </header>
+        <ProcurementRequestForm isRtl={isRtl} />
+      </Container>
     </main>
   );
 }

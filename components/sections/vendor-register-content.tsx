@@ -1,48 +1,17 @@
-import { BaniEntry } from "@/components/bani/BaniEntry";
 import { VendorRegistrationForm } from "@/components/forms/vendor-registration-form";
 import { Container } from "@/components/ui/container";
 
-type VendorRegisterContentProps = {
-  isRtl?: boolean;
-};
-
-export function VendorRegisterContent({ isRtl = false }: VendorRegisterContentProps) {
-  const t = {
-    title: isRtl ? "سجّل منشأتك كمورد" : "Register your company as a supplier",
-    body: isRtl
-      ? "أرسل بيانات منشأتك وفئات منتجاتك، وسيراجع فريق عمليات بيلد طلبكم ويتواصل معكم."
-      : "Submit your company details and product categories, and our operations team will review your application and reach out.",
-    orManual: isRtl ? "أو أكمل التسجيل يدويًا" : "Or complete registration manually",
-  };
-
+export function VendorRegisterContent({ isRtl = false }: { isRtl?: boolean }) {
   return (
-    <main dir={isRtl ? "rtl" : "ltr"}>
-
-      {/* Page hero */}
-      <section className="bg-white py-12 md:py-16">
-        <Container>
-          <div className="max-w-2xl border-t border-brand-dark/10 pt-6">
-            <h1 className="type-hero text-brand-dark">{t.title}</h1>
-            <p className="type-subheading mt-4 max-w-lg text-brand-dark/62">{t.body}</p>
-          </div>
-        </Container>
-      </section>
-
-      {/* Form section */}
-      <section className="bg-[#f7f9f6] py-10 md:py-14">
-        <Container>
-          <BaniEntry isRtl={isRtl} />
-          <div className="mx-auto my-6 flex w-full max-w-5xl items-center gap-4" aria-hidden="true">
-            <span className="h-px flex-1 bg-brand-dark/10" />
-            <span className="text-xs font-medium text-brand-dark/50">{t.orManual}</span>
-            <span className="h-px flex-1 bg-brand-dark/10" />
-          </div>
-          <div id="supplier-registration-form" className="scroll-mt-28">
-            <VendorRegistrationForm isRtl={isRtl} />
-          </div>
-        </Container>
-      </section>
-
+    <main dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-brand-light pb-16">
+      <Container>
+        <header className="pb-8 pt-10 md:pb-10 md:pt-14">
+          <p className="mb-4 flex items-center gap-2 text-sm font-semibold text-brand-dark/60"><span className="h-2 w-2 bg-brand-primary" aria-hidden="true" />{isRtl ? "شبكة موردي بيلد" : "Build supplier network"}</p>
+          <h1 className="type-hero text-brand-dark">{isRtl ? "منتجاتك، لمشاريع أكثر." : "Your products. More projects."}</h1>
+          <p className="type-body mt-3 max-w-2xl text-brand-dark/65">{isRtl ? "عرّفنا بمنشأتك والمنتجات التي تورّدها. نراجع طلب الانضمام ونتواصل معك لاستكمال الخطوات." : "Tell us about your company and the products you supply. We’ll review your application and contact you about the next steps."}</p>
+        </header>
+        <div id="supplier-registration-form" className="scroll-mt-28"><VendorRegistrationForm isRtl={isRtl} /></div>
+      </Container>
     </main>
   );
 }

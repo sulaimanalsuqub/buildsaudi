@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { ArrowLeft, ArrowRight, Building2, Check, CheckCircle2, Loader2, Search, Sparkles } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -18,11 +17,10 @@ import {
   isValidVendorPhone,
   normalizeVendorPhone,
   optionLabel,
-  parseVendorPhone,
   supplierCountries,
   textByLang,
 } from "@/lib/vendor-options";
-import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput, VendorTagInput } from "@/components/forms/vendor-form-shared";
+import { VendorErrorText, VendorTagInput } from "@/components/forms/vendor-form-shared";
 
 type VendorRegistrationFormProps = {
   isRtl?: boolean;
@@ -44,14 +42,14 @@ const prototypeCategories: MaterialCategory[] = [
 
 const formSchema = z.object({
   country: z.string().min(1, "required"),
-  establishmentName: z.string().min(2, "required"),
-  contactName: z.string().min(2, "required"),
+  establishmentName: z.string().trim().min(2, "required"),
+  contactName: z.string().trim().min(2, "required"),
   jobTitle: z.string().optional(),
   contactNumber: z.string().min(1, "required").refine(isValidVendorPhone, { message: "invalidPhone" }),
-  email: z.string().email("invalidEmail"),
+  email: z.string().trim().email("invalidEmail"),
   businessType: z.string().min(1, "required"),
   categoryIds: z.array(z.string()).min(1, "required"),
-  otherCategorySuggestion: z.string().optional(),
+  otherCategorySuggestion: z.string().max(200).optional(),
   brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
   shortDescription: z.string().optional(),
   website: z.string().optional(),
@@ -147,6 +145,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     prototypeBody: textByLang(isRtl, "The form flow is working in preview mode. Nothing was saved.", "تدفق النموذج يعمل في الوضع التجريبي. لم يتم حفظ أي بيانات."),
   };
 
+  const [step, setStep] = useState(0);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryAttempt, setCategoryAttempt] = useState(0);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review">("registered");
   const [isLoading, setIsLoading] = useState(false);
@@ -159,23 +161,27 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   // ربط الرد من ويدجت Turnstile بحالة الفورم عبر callback عام (النمط المتوافق مع سكربت Cloudflare)
   useEffect(() => {
     (window as unknown as Record<string, unknown>).onVendorTurnstileVerified = (token: string) => setTurnstileToken(token);
+    (window as unknown as Record<string, unknown>).onVendorTurnstileExpired = () => setTurnstileToken("");
     return () => {
+      delete (window as unknown as Record<string, unknown>).onVendorTurnstileExpired;
       delete (window as unknown as Record<string, unknown>).onVendorTurnstileVerified;
     };
   }, []);
 
-  // الفئات Master Data تُقرأ من Odoo فقط — لا قائمة محلية ثابتة
+  // Fetch the live category catalog; the prototype fixture is never used for real submissions.
   useEffect(() => {
     if (isPrototypeMode) {
       setCategories(prototypeCategories);
       return;
     }
+    setCategoriesFailed(false);
+    setCategories(null);
     let cancelled = false;
     fetch("/api/reference/material-categories")
       .then((res) => res.json())
       .then((body) => {
         if (cancelled) return;
-        if (body?.ok && Array.isArray(body.categories)) {
+        if (body?.ok && Array.isArray(body.categories) && body.categories.length > 0) {
           setCategories(body.categories);
         } else {
           setCategoriesFailed(true);
@@ -187,13 +193,28 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     return () => {
       cancelled = true;
     };
-  }, [isPrototypeMode]);
+  }, [isPrototypeMode, categoryAttempt]);
 
-  const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onBlur" });
-  const values = form.watch();
-  const isSaudi = isSaudiSupplierCountry(values.country);
+  const form = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues, mode: "onChange" });
+  const values = useWatch({ control: form.control, defaultValue: defaultValues });
+  const isSaudi = isSaudiSupplierCountry(values.country || "sa");
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const focusStep = (next: number) => {
+    setStep(next);
+    requestAnimationFrame(() => {
+      headingRef.current?.focus({ preventScroll: true });
+      headingRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  };
+  const stepFields: (keyof FormValues)[][] = [["establishmentName", "country", "businessType"], ["categoryIds", "brands", "otherCategorySuggestion", "shortDescription", "website", "catalogLink"]];
+  const nextStep = async () => {
+    if (step === 1 && (!categories || categoriesFailed)) return;
+    if (await form.trigger(stepFields[step], { shouldFocus: true })) focusStep(step + 1);
+  };
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => form.handleSubmit(async (data) => {
+    if (isLoading) return;
+    if (!categories || categoriesFailed) { focusStep(1); return; }
     if (!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
       setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
       return;
@@ -242,7 +263,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     } finally {
       setIsLoading(false);
     }
-  });
+  }, (errors) => {
+    const invalidStep = stepFields.findIndex((fields) => fields.some((field) => errors[field]));
+    if (invalidStep >= 0) focusStep(invalidStep);
+  })(event);
 
   if (isSubmitted) {
     const title = resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
@@ -261,235 +285,89 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     );
   }
 
-  const showContactName = values.establishmentName.trim().length >= 2;
-  const showPhone = showContactName && values.contactName.trim().length >= 2;
-  const phoneDigits = parseVendorPhone(values.contactNumber).localNumber;
-  const showDetails = showPhone && phoneDigits.length >= 8;
-  // تنبيه لطيف (لا يمنع الإرسال) — تكرار شائع: كتابة الاسم الشخصي في حقل اسم المنشأة
-  const establishmentNameMatchesContact =
-    showContactName &&
-    values.contactName.trim().length >= 2 &&
-    values.establishmentName.trim().toLowerCase() === values.contactName.trim().toLowerCase();
-
-  const toggleCategory = (id: string) => {
-    const current = values.categoryIds;
-    const next = current.includes(id) ? current.filter((c) => c !== id) : [...current, id];
-    form.setValue("categoryIds", next, { shouldValidate: true });
-  };
+  const tr = (en: string, ar: string) => textByLang(isRtl, en, ar);
+  const Forward = isRtl ? ArrowLeft : ArrowRight;
+  const Back = isRtl ? ArrowRight : ArrowLeft;
+  const inputClass = "h-12 rounded-lg text-base";
+  const selectClass = "h-12 w-full rounded-lg border border-brand-dark/20 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-brand-primary/20";
+  const stepLabels = [tr("Company", "المنشأة"), tr("Products", "المنتجات"), tr("Contact", "التواصل")];
+  const stepTitles = [tr("Tell us about your company", "نبدأ بالتعرّف على منشأتك"), tr("What do you supply?", "وش المنتجات اللي تورّدها؟"), tr("Who should we contact?", "مع مين نتواصل؟")];
+  const selectedCategories = values.categoryIds || [];
+  const visibleCategories = (categories || []).filter((cat) => `${cat.nameAr} ${cat.nameEn}`.toLowerCase().includes(categorySearch.trim().toLowerCase()));
+  const toggleCategory = (id: string) => form.setValue("categoryIds", selectedCategories.includes(id) ? selectedCategories.filter((c) => c !== id) : [...selectedCategories, id], { shouldValidate: true });
+  const establishmentNameMatchesContact = !!values.contactName?.trim() && values.establishmentName?.trim().toLowerCase() === values.contactName.trim().toLowerCase();
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="mb-8 space-y-4 border-b border-brand-dark/10 pb-6">
-        <p className="inline-flex items-center gap-2 text-sm font-bold text-brand-primary">
-          <ClipboardCheck className="h-4 w-4" />
-          {t.formEyebrow}
-        </p>
-        <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">{t.formTitle}</h2>
-        <p className="max-w-2xl text-sm leading-7 text-brand-dark/65">{t.formBody}</p>
-        <div className="inline-flex items-center gap-2 rounded-full bg-brand-light px-4 py-2 text-sm font-semibold text-brand-dark/70">
-          <ShieldCheck className="h-4 w-4 text-brand-primary" />
-          {t.secureNote}
-        </div>
-        {isPrototypeMode && (
-          <p className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm font-semibold text-brand-dark/75">
-            {t.prototypeNote}
-          </p>
-        )}
-      </div>
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]" dir={isRtl ? "rtl" : "ltr"}>
+      <form noValidate onSubmit={(event) => { if (step < 2) { event.preventDefault(); void nextStep(); } else { void onSubmit(event); } }} className="min-w-0 overflow-hidden rounded-xl border border-brand-dark/10 bg-white">
+        <nav aria-label={tr("Registration steps", "خطوات التسجيل")} className="grid grid-cols-3 border-b border-brand-dark/10">
+          {stepLabels.map((label, i) => <button key={label} type="button" disabled={isLoading || i > step} onClick={() => focusStep(i)} aria-current={step === i ? "step" : undefined} className={`flex min-h-20 items-center justify-center gap-2 border-b-2 px-2 py-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-brand-primary ${step === i ? "border-brand-primary bg-brand-primary/[.04] text-brand-dark" : "border-transparent text-brand-dark/50"}`}><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs ${step >= i ? "bg-brand-dark text-white" : "border border-brand-dark/20"}`}>{step > i ? <Check className="h-4 w-4" aria-hidden="true" /> : `0${i + 1}`}</span>{label}</button>)}
+        </nav>
+        <fieldset disabled={isLoading} className="min-w-0 p-5 sm:p-8">
+          <legend className="sr-only">{tr("Supplier application", "طلب انضمام مورد")}</legend>
+          <div className="mb-7"><p className="mb-2 text-xs font-semibold text-brand-primary">{tr(`STEP 0${step + 1} OF 03`, `الخطوة 0${step + 1} من 03`)}</p><h2 ref={headingRef} tabIndex={-1} className="scroll-mt-28 text-2xl font-bold text-brand-dark outline-none">{stepTitles[step]}</h2><p className="mt-2 text-sm leading-6 text-brand-dark/60">{[tr("Your company name, location and business activity.", "اسم منشأتك، بلدها ونوع نشاطها."), tr("Select one or more categories that match your products.", "اختر فئة أو أكثر تناسب منتجات منشأتك."), tr("Add the responsible person’s details and review your application.", "أضف بيانات المسؤول وراجع طلبك قبل الإرسال.")][step]}</p></div>
+          {isPrototypeMode && <p role="status" className="mb-5 rounded-lg bg-brand-light p-3 text-sm">{t.prototypeNote}</p>}
 
-      <div className="space-y-5">
-        <VendorField label={t.labels.country}>
-          <select
-            value={values.country}
-            onChange={(e) => form.setValue("country", e.target.value, { shouldValidate: true })}
-            className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-          >
-            {supplierCountries.map((c) => (
-              <option key={c.value} value={c.value}>
-                {optionLabel(isRtl, supplierCountries, c.value)}
-              </option>
-            ))}
-          </select>
-        </VendorField>
+          <div hidden={step !== 0} className="space-y-5">
+            <SupplierField id="vendor-company" label={t.labels.establishmentName}><Input id="vendor-company" {...form.register("establishmentName")} autoComplete="organization" className={inputClass} placeholder={tr("Legal name as shown on registration", "الاسم المسجل في السجل التجاري")} aria-invalid={!!form.formState.errors.establishmentName} /><VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} /></SupplierField>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SupplierField id="vendor-country" label={t.labels.country}><select id="vendor-country" {...form.register("country")} className={selectClass}>{supplierCountries.map((c) => <option key={c.value} value={c.value}>{optionLabel(isRtl, supplierCountries, c.value)}</option>)}</select><VendorErrorText text={form.formState.errors.country?.message} isRtl={isRtl} /></SupplierField>
+              <SupplierField id="vendor-business" label={t.labels.businessType}><select id="vendor-business" {...form.register("businessType")} aria-invalid={!!form.formState.errors.businessType} className={selectClass}><option value="">{tr("Choose business type", "اختر نوع النشاط")}</option>{businessTypes.map((b) => <option key={b.value} value={b.value}>{optionLabel(isRtl, businessTypes, b.value)}</option>)}</select><VendorErrorText text={form.formState.errors.businessType?.message} isRtl={isRtl} /></SupplierField>
+            </div>
+          </div>
 
-        <VendorField label={t.labels.establishmentName} helper={t.helpers.establishmentName}>
-          <Input
-            {...form.register("establishmentName")}
-            autoComplete="organization"
-            className="h-12 text-base"
-            autoFocus
-            placeholder={isRtl ? "اكتب الاسم المسجل في السجل التجاري" : "Legal name as shown on registration"}
-          />
-          <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
-          {establishmentNameMatchesContact && (
-            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              {t.helpers.establishmentNameMatchesContact}
-            </p>
-          )}
-        </VendorField>
-
-        <AnimatePresence>
-          {showContactName && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid gap-5 sm:grid-cols-2">
-              <VendorField label={t.labels.contactName}>
-                <Input {...form.register("contactName")} className="h-12 text-base" />
-                <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
-              </VendorField>
-              <VendorField label={t.labels.jobTitle}>
-                <Input {...form.register("jobTitle")} className="h-12 text-base" />
-              </VendorField>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showPhone && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <VendorField label={t.labels.contactNumber}>
-                <VendorPhoneInput
-                  value={values.contactNumber}
-                  onChange={(v) => form.setValue("contactNumber", v, { shouldValidate: true })}
-                  isRtl={isRtl}
-                  hasError={!!form.formState.errors.contactNumber}
-                />
-                <VendorErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} />
-              </VendorField>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showDetails && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-              <VendorField label={t.labels.businessType}>
-                <select
-                  value={values.businessType}
-                  onChange={(e) => form.setValue("businessType", e.target.value, { shouldValidate: true })}
-                  className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                >
-                  <option value="">{isRtl ? "اختر نوع النشاط" : "Select business type"}</option>
-                  {businessTypes.map((b) => (
-                    <option key={b.value} value={b.value}>
-                      {optionLabel(isRtl, businessTypes, b.value)}
-                    </option>
-                  ))}
-                </select>
-                <VendorErrorText text={form.formState.errors.businessType?.message} isRtl={isRtl} />
-              </VendorField>
-
-              <VendorField label={t.labels.categories}>
-                {categoriesFailed ? (
-                  <p className="text-sm text-red-600">{t.helpers.categoriesError}</p>
-                ) : !categories ? (
-                  <p className="text-sm text-brand-dark/50">{t.helpers.categoriesLoading}</p>
-                ) : (
-                  <>
-                    <VendorOptionGrid>
-                      {categories.map((cat) => (
-                        <VendorOptionCard key={cat.id} checked={values.categoryIds.includes(cat.id)}>
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 accent-brand-primary"
-                            checked={values.categoryIds.includes(cat.id)}
-                            onChange={() => toggleCategory(cat.id)}
-                          />
-                          {isRtl ? cat.nameAr : cat.nameEn}
-                        </VendorOptionCard>
-                      ))}
-                      <VendorOptionCard checked={showOther}>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 accent-brand-primary"
-                          checked={showOther}
-                          onChange={() => setShowOther((s) => !s)}
-                        />
-                        {t.labels.other}
-                      </VendorOptionCard>
-                    </VendorOptionGrid>
-                    {showOther && (
-                      <Input
-                        {...form.register("otherCategorySuggestion")}
-                        className="mt-3 h-12 text-base"
-                        placeholder={t.labels.other}
-                      />
-                    )}
-                  </>
-                )}
-                <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
-              </VendorField>
-
-              <VendorField label={t.labels.brands} helper={t.helpers.brands}>
-                <VendorTagInput
-                  values={values.brands ?? []}
-                  onChange={(next) => form.setValue("brands", next, { shouldValidate: true })}
-                  placeholder="Grohe"
-                />
-                <VendorErrorText text={form.formState.errors.brands?.message} isRtl={isRtl} />
-              </VendorField>
-
-              <VendorField label={t.labels.shortDescription}>
-                <textarea
-                  {...form.register("shortDescription")}
-                  className="min-h-[96px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                />
-                <VendorErrorText text={form.formState.errors.shortDescription?.message} isRtl={isRtl} />
-              </VendorField>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <VendorField label={t.labels.website}>
-                  <Input {...form.register("website")} dir="ltr" className="h-12 text-base" />
-                </VendorField>
-                <VendorField label={t.labels.catalogLink}>
-                  <Input {...form.register("catalogLink")} dir="ltr" className="h-12 text-base" />
-                </VendorField>
+          <div hidden={step !== 1} className="space-y-5">
+            {categoriesFailed ? <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"><p>{tr("Could not load product categories. Your entered details are still here.", "تعذّر تحميل فئات المنتجات. بياناتك التي أدخلتها ما زالت محفوظة في النموذج.")}</p><button type="button" onClick={() => setCategoryAttempt((n) => n + 1)} className="mt-2 font-semibold underline">{tr("Try again", "إعادة المحاولة")}</button></div> : !categories ? <p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-dark/60"><Loader2 className="h-4 w-4 animate-spin" />{t.helpers.categoriesLoading}</p> : <>
+              <div className="relative"><Search className="pointer-events-none absolute start-3 top-4 h-4 w-4 text-brand-dark/45" aria-hidden="true" /><Input aria-label={tr("Search product categories", "البحث في فئات المنتجات")} value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} placeholder={tr("Search for a category…", "ابحث عن فئة منتجات…")} className={`${inputClass} ps-10`} /></div>
+              <div className="flex items-center justify-between text-xs"><p className="font-semibold">{t.labels.categories}</p><p className="text-brand-primary" aria-live="polite">{tr(`${selectedCategories.length} selected`, `${selectedCategories.length} فئة محددة`)}</p></div>
+              <div className="grid max-h-[340px] gap-2 overflow-y-auto p-1 sm:grid-cols-2">
+                {visibleCategories.map((cat) => <label key={cat.id} className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm transition ${selectedCategories.includes(cat.id) ? "border-brand-primary bg-brand-primary/5 font-semibold text-brand-dark" : "border-brand-dark/15 text-brand-dark/75 hover:border-brand-primary/50"}`}><input type="checkbox" className="h-4 w-4 shrink-0 accent-brand-primary" checked={selectedCategories.includes(cat.id)} onChange={() => toggleCategory(cat.id)} />{isRtl ? cat.nameAr : cat.nameEn}</label>)}
               </div>
+              {visibleCategories.length === 0 && <p className="text-sm text-brand-dark/60">{tr("No matching categories. Try a different search.", "لا توجد فئات مطابقة. جرّب كلمة أخرى.")}</p>}
+              <VendorErrorText text={form.formState.errors.categoryIds?.message} isRtl={isRtl} />
+              <details><summary className="cursor-pointer text-sm font-medium text-brand-dark/65">{tr("Suggest another category (optional)", "اقتراح فئة إضافية (اختياري)")}</summary><div className="mt-3"><SupplierField id="vendor-other" label={tr("Suggested category", "الفئة المقترحة")}><Input id="vendor-other" maxLength={200} {...form.register("otherCategorySuggestion", { onChange: (event) => setShowOther(!!event.target.value.trim()) })} className={inputClass} /><p className="mt-2 text-xs leading-6 text-brand-dark/55">{tr("Also select at least one existing category that best fits your products.", "اختر أيضاً فئة واحدة على الأقل من القائمة الأقرب لمنتجاتك.")}</p></SupplierField></div></details>
+            </>}
+            <details className="border-t border-brand-dark/10 pt-5" open={form.formState.errors.brands ? true : undefined}><summary className="cursor-pointer text-sm font-semibold text-brand-dark">{tr("Brands, catalog & more (optional)", "العلامات والكتالوج وتفاصيل إضافية (اختياري)")}</summary><div className="mt-5 space-y-5">
+              <div className="space-y-2"><p className="text-sm font-semibold">{t.labels.brands}</p><p className="text-xs text-brand-dark/55">{t.helpers.brands}</p><VendorTagInput values={values.brands || []} onChange={(next) => form.setValue("brands", next, { shouldValidate: true })} placeholder="Grohe" /><VendorErrorText text={form.formState.errors.brands?.message} isRtl={isRtl} /></div>
+              <SupplierField id="vendor-description" label={t.labels.shortDescription}><textarea id="vendor-description" {...form.register("shortDescription")} className="min-h-24 w-full rounded-lg border border-brand-dark/20 p-3 text-base outline-none focus:ring-2 focus:ring-brand-primary/20" placeholder={tr("Tell us more about what you supply", "عرّفنا أكثر بالمنتجات التي تورّدها")} /></SupplierField>
+              <SupplierField id="vendor-catalog" label={t.labels.catalogLink}><Input id="vendor-catalog" {...form.register("catalogLink")} dir="ltr" className={inputClass} placeholder="https://" /></SupplierField>
+              <SupplierField id="vendor-website" label={t.labels.website}><Input id="vendor-website" {...form.register("website")} dir="ltr" className={inputClass} placeholder="https://" /></SupplierField>
+            </div></details>
+          </div>
 
-              <div className="space-y-3">
-                <VendorField label={t.labels.email}>
-                  <Input type="email" {...form.register("email")} className="h-12 text-base" dir="ltr" />
-                  <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
-                </VendorField>
-              </div>
-
-              <div className="space-y-3 rounded-xl bg-brand-light/40 p-4">
-                <label className="flex items-start gap-3 text-sm text-brand-dark/85">
-                  <Checkbox
-                    checked={values.privacyAccepted}
-                    onCheckedChange={(v) => form.setValue("privacyAccepted", (v === true) as true, { shouldValidate: true })}
-                  />
-                  {t.privacyLabel}
-                </label>
-                <label className="flex items-start gap-3 text-sm text-brand-dark/85">
-                  <Checkbox
-                    checked={values.termsAccepted}
-                    onCheckedChange={(v) => form.setValue("termsAccepted", (v === true) as true, { shouldValidate: true })}
-                  />
-                  {t.termsLabel}
-                </label>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-        <div className="mt-6">
-          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
-          <div
-            className="cf-turnstile"
-            data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            data-callback="onVendorTurnstileVerified"
-            data-language={isRtl ? "ar" : "en"}
-          />
-        </div>
-      )}
-
-      <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || (!isPrototypeMode && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
-        </Button>
-        {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
-      </div>
-    </form>
+          <div hidden={step !== 2} className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SupplierField id="vendor-name" label={t.labels.contactName}><Input id="vendor-name" {...form.register("contactName")} autoComplete="name" aria-invalid={!!form.formState.errors.contactName} className={inputClass} placeholder={tr("Full name", "الاسم الكامل")} /><VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} /></SupplierField>
+              <SupplierField id="vendor-phone" label={t.labels.contactNumber}><Input id="vendor-phone" {...form.register("contactNumber")} type="tel" autoComplete="tel" dir="ltr" aria-invalid={!!form.formState.errors.contactNumber} className={inputClass} placeholder={isSaudi ? "05XXXXXXXX" : "+971…"} /><VendorErrorText text={form.formState.errors.contactNumber?.message} isRtl={isRtl} /></SupplierField>
+            </div>
+            {establishmentNameMatchesContact && <p className="rounded-lg bg-amber-50 p-3 text-xs leading-6 text-amber-800">{t.helpers.establishmentNameMatchesContact}</p>}
+            <SupplierField id="vendor-email" label={t.labels.email}><Input id="vendor-email" {...form.register("email")} type="email" autoComplete="email" dir="ltr" aria-invalid={!!form.formState.errors.email} className={inputClass} placeholder="name@company.com" /><VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} /></SupplierField>
+            <SupplierField id="vendor-title" label={t.labels.jobTitle}><Input id="vendor-title" {...form.register("jobTitle")} autoComplete="organization-title" className={inputClass} /></SupplierField>
+            <div className="rounded-lg bg-brand-light/70 p-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold">{tr("Review your application", "مراجعة طلب الانضمام")}</h3><button type="button" onClick={() => focusStep(0)} className="text-xs font-semibold underline">{tr("Edit", "تعديل")}</button></div><p className="break-words text-sm font-semibold">{values.establishmentName}</p><p className="mt-1 text-sm leading-7 text-brand-dark/65">{optionLabel(isRtl, supplierCountries, values.country || "sa")} · {optionLabel(isRtl, businessTypes, values.businessType || "")}</p><div className="mt-3 flex flex-wrap gap-2">{selectedCategories.map((id) => <span key={id} className="rounded-md border border-brand-dark/10 bg-white px-2 py-1 text-xs">{isRtl ? categories?.find((cat) => cat.id === id)?.nameAr || id : categories?.find((cat) => cat.id === id)?.nameEn || id}</span>)}</div></div>
+            <div className="space-y-3">
+              <div><label className="flex cursor-pointer items-center gap-3 py-1 text-sm leading-6"><Checkbox checked={values.privacyAccepted} onCheckedChange={(v) => form.setValue("privacyAccepted", (v === true) as true, { shouldValidate: true })} /><span>{tr("I agree to the ", "أوافق على ")}<a href={isRtl ? "/ar/privacy-policy" : "/privacy-policy"} target="_blank" rel="noopener noreferrer" className="font-semibold underline">{tr("Privacy Policy", "سياسة الخصوصية")}</a></span></label><VendorErrorText text={form.formState.errors.privacyAccepted?.message} isRtl={isRtl} /></div>
+              <div><label className="flex cursor-pointer items-center gap-3 py-1 text-sm leading-6"><Checkbox checked={values.termsAccepted} onCheckedChange={(v) => form.setValue("termsAccepted", (v === true) as true, { shouldValidate: true })} /><span>{tr("I agree to the ", "أوافق على ")}<a href={isRtl ? "/ar/terms-conditions" : "/terms-conditions"} target="_blank" rel="noopener noreferrer" className="font-semibold underline">{tr("Registration Terms", "شروط التسجيل")}</a></span></label><VendorErrorText text={form.formState.errors.termsAccepted?.message} isRtl={isRtl} /></div>
+            </div>
+          </div>
+          {!isPrototypeMode && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && <div hidden={step !== 2} className="mt-5"><Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" /><div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onVendorTurnstileVerified" data-expired-callback="onVendorTurnstileExpired" data-error-callback="onVendorTurnstileExpired" data-language={isRtl ? "ar" : "en"} data-size="flexible" /></div>}
+          <div className="mt-7 border-t border-brand-dark/10 pt-6">
+            {submitError && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{submitError}</p>}
+            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {step > 0 ? <button type="button" onClick={() => focusStep(step - 1)} className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-semibold"><Back className="h-4 w-4" />{tr("Back", "رجوع")}</button> : <p className="text-center text-xs text-brand-dark/55 sm:text-start">{tr("Next: your products", "التالي: منتجات منشأتك")}</p>}
+              <Button type="submit" disabled={isLoading || (step === 1 && (!categories || categoriesFailed))} className="h-12 gap-3 rounded-lg px-7 text-sm sm:min-w-48">{isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />{tr("Sending…", "جارٍ الإرسال…")}</> : <>{step === 2 ? t.submit : tr("Continue", "متابعة")}<Forward className="h-4 w-4" /></>}</Button>
+            </div>
+            {step === 2 && <p className="mt-4 text-center text-xs leading-6 text-brand-dark/55">{tr("Your application will be reviewed before joining the supplier network.", "يراجع فريقنا طلبك قبل الانضمام إلى شبكة الموردين.")}</p>}
+          </div>
+        </fieldset>
+      </form>
+      <aside className="space-y-4 lg:sticky lg:top-28">
+        <div className="hidden rounded-xl bg-brand-dark p-6 text-white lg:block"><span className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/20"><Building2 className="h-5 w-5 text-brand-accent" aria-hidden="true" /></span><h2 className="text-lg font-bold">{tr("A place for your products", "مكان لمنتجاتك في شبكة بيلد")}</h2><p className="mt-3 text-sm leading-7 text-white/70">{tr("Start by introducing your company. We review your products and contact details to assess your application.", "البداية بالتعرّف على منشأتك. نراجع منتجاتك وبيانات التواصل لتقييم طلب الانضمام.")}</p><ol className="mt-6 space-y-4 border-t border-white/15 pt-5">{[tr("Submit your application", "ترسل طلب الانضمام"), tr("We review your details", "نراجع بيانات منشأتك"), tr("We contact you", "نتواصل معك للخطوة التالية")].map((label, i) => <li key={label} className="flex items-center gap-3 text-sm"><span className="text-xs text-brand-accent">0{i + 1}</span><span className="text-white/85">{label}</span></li>)}</ol></div>
+        <div className="rounded-xl border border-brand-dark/10 bg-white/70 p-5"><div className="flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-bold text-brand-dark"><Sparkles className="h-4 w-4 text-brand-primary" />BANI</p><button type="button" disabled className="cursor-not-allowed rounded-full bg-brand-accent/25 px-3 py-1 text-xs font-semibold text-brand-dark">{tr("Coming soon", "قريباً")}</button></div><p className="mt-3 text-sm font-semibold">{tr("Registration with BANI", "التسجيل بمساعدة باني")}</p><p className="mt-2 text-xs leading-6 text-brand-dark/60">{tr("A guided chat experience is on its way. You can register now using this form.", "تجربة تسجيل بالمحادثة نعمل على تجهيزها. تقدر تسجّل الآن من خلال النموذج.")}</p></div>
+      </aside>
+    </div>
   );
+}
+
+function SupplierField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  return <div className="min-w-0 space-y-2"><label htmlFor={id} className="block text-sm font-semibold text-brand-dark/85">{label}</label>{children}</div>;
 }
