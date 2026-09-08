@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/container";
 import { ProcurementRequestForm } from "@/components/forms/procurement-request-form";
 
-const WHATSAPP_NUMBER = "966539927827";
+const WHATSAPP_NUMBER = "966553771777";
 const WHATSAPP_MESSAGE = "السلام عليكم ورحمة الله وبركاته";
 
 function WhatsAppIcon({ className }: { className?: string }) {

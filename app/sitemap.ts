@@ -41,7 +41,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...pair("/", "/ar", 1.0, "weekly"),
     ...pair("/get-quote", "/ar/get-quote", 0.9, "weekly"),
-    ...pair("/register", "/ar/register", 0.7, "monthly"),
     ...pair("/carriers/register", "/ar/carriers/register", 0.7, "monthly"),
     ...pair("/privacy-policy", "/ar/privacy-policy", 0.3, "yearly"),
     ...pair("/terms-conditions", "/ar/terms-conditions", 0.3, "yearly"),
