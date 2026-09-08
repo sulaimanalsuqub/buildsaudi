@@ -1,8 +1,7 @@
 import { VendorRegisterContent } from "@/components/sections/vendor-register-content";
 import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  ...pageMetadata({
+export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar/register",
   title: "انضم كمورد مواد بناء | شبكة توريد بيلد",
@@ -14,9 +13,7 @@ export const metadata = {
     "توريد مواد بناء للمشاريع",
     "تأهيل موردين مواد بناء",
   ],
-  }),
-  robots: { index: false, follow: true },
-};
+});
 
 export default function ArabicRegisterPage() {
   return <VendorRegisterContent isRtl />;
