@@ -1,27 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  OdooClientError,
-  createOutboxEvent,
-  createPreliminaryPartner,
-  createPreliminarySupplierProfile,
-  findPartnerByEmail,
-  findPartnerByPhone,
-  findSupplierByEmailNameCountry,
-  findSupplierByNameAndCountry,
-  findSupplierProfileByPartner,
-  ensurePartnerContact,
-  syncPartnerAsEstablishment,
-  normalizeCompanyName,
-  resolveOrCreateBrands,
-  validateActiveCategoryIds,
-} from "@/lib/odoo";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { verifyEmailToken } from "@/lib/otp";
-import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
+import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
-const CURRENT_POLICY_VERSION = "2026-07-v1";
+// Odoo is permanently inaccessible (2026-09-14). This now calls Build-OPT's own public
+// service-to-service bridge (app/api/public/supplier-registrations/route.ts on
+// opt.build.com.sa), which writes straight into its business_parties/supplier_profiles tables —
+// the same tables its ops team reviews suppliers in. The bridge's dedup model is simpler than
+// the old 5-tier Odoo matching this route used to do (email/phone/name fuzzy matching, a
+// needs_review state): it only rejects on a duplicate legal_identifier_value, which this stage
+// never collects (CR/VAT comes later in "complete profile"), so duplicate submissions are
+// deduped only by submissionId (double-click/retry safe) — occasional duplicate pending
+// suppliers are an ops-review nuisance, not a data-integrity issue, and are cheap to merge
+// manually until the bridge grows richer matching.
 const BUSINESS_TYPES = [
   "manufacturer",
   "authorized_distributor",
@@ -31,11 +24,6 @@ const BUSINESS_TYPES = [
   "trader",
   "service_provider",
 ] as const;
-
-/** يحوّل رمز الدولة الداخلي (مثال: "sa") إلى اسمه المعروض — إن كانت القيمة اسماً بالفعل تُعاد كما هي */
-function resolveCountryDisplayName(country: string): string {
-  return optionLabel(true, supplierCountries, country.trim());
-}
 
 const registerSchema = z
   .object({
@@ -52,14 +40,14 @@ const registerSchema = z
       .trim()
       .transform((v) => normalizeVendorPhone(v))
       .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
-    // معرّفات فئات حقيقية من Odoo (Master Data) — لا أسماء نصية حرة
-    category_ids: z.array(z.number().int().positive()).min(1, "اختر فئة واحدة على الأقل"),
+    category_names: z.array(z.string().trim().min(1)).min(1, "اختر فئة واحدة على الأقل"),
     other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
     brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
     short_description: z.string().trim().min(5, "أضف وصفاً مختصراً للمواد أو المنتجات"),
     website: z.string().trim().optional().or(z.literal("")),
     catalog_link: z.string().trim().optional().or(z.literal("")),
     preferred_language: z.enum(["ar", "en"]),
+    submission_id: z.string().uuid(),
     privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
     terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
     turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
@@ -79,7 +67,6 @@ export async function POST(req: NextRequest) {
     const firstError = parsed.error.issues[0]?.message || "بيانات المورد غير مكتملة أو غير صحيحة";
     return NextResponse.json({ error: firstError }, { status: 400 });
   }
-
   const vendor = parsed.data;
 
   const humanVerified = await verifyTurnstileToken(vendor.turnstile_token, clientId);
@@ -87,141 +74,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
-  const consentAt = new Date().toISOString().slice(0, 19).replace("T", " ");
-  // اسم الدولة المعروض — يُحسَب مرة واحدة ويُستخدم في كل الفحوصات والحفظ لضمان التطابق
-  const countryDisplay = resolveCountryDisplayName(vendor.country);
-
-  // الفئات Master Data من Odoo فقط — نرفض أي معرّف غير موجود أو غير نشط قبل أي إنشاء
-  const categoriesValid = await validateActiveCategoryIds(vendor.category_ids);
-  if (!categoriesValid) {
-    return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
+  const baseUrl = process.env.BUILD_OPT_API_URL;
+  const secret = process.env.PUBLIC_INTAKE_SERVICE_SECRET;
+  if (!baseUrl || !secret) {
+    console.error("[vendors/register] BUILD_OPT_API_URL / PUBLIC_INTAKE_SERVICE_SECRET not configured");
+    return NextResponse.json({ error: "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: 500 });
   }
 
   try {
-    // 1) نفس البريد + نفس اسم المنشأة (بعد التطبيع) + الدولة — نفس التسجيل، لا إنشاء
-    const exactMatch = await findSupplierByEmailNameCountry(vendor.email, vendor.establishment_name, countryDisplay);
-    if (exactMatch) {
-      return NextResponse.json({
-        ok: true,
-        id: String(exactMatch.partner.id),
-        status: "already_registered",
-        stage: exactMatch.profile.status,
-      });
-    }
-
-    // 2) نفس البريد، منشأة مختلفة — للمراجعة، لا دمج تلقائي، لا كشف
-    const emailMatch = await findPartnerByEmail(vendor.email);
-    if (emailMatch) {
-      const existingProfile = await findSupplierProfileByPartner(emailMatch.id);
-      if (existingProfile) {
-        const sameName = normalizeCompanyName(emailMatch.name) === normalizeCompanyName(vendor.establishment_name);
-        if (!sameName) {
-          console.warn("[vendors/register] needs_review: email matches existing partner with different establishment name");
-          return NextResponse.json({ ok: true, status: "needs_review" });
-        }
-        // نفس البريد ونفس الاسم لكن لم يلتقطه فحص الدولة أعلاه (احتياط دفاعي) — يُعامَل كنفس التسجيل، لا تكرار
-        return NextResponse.json({
-          ok: true,
-          id: String(emailMatch.id),
-          status: "already_registered",
-          stage: existingProfile.status,
-        });
-      } else {
-        // Partner موجود بلا Profile — إعادة استخدامه (قاعدة 5)
-        return await registerOnExistingPartner(emailMatch.id, vendor, countryDisplay, consentAt);
-      }
-    }
-
-    // 3) نفس الهاتف فقط
-    if (!emailMatch) {
-      const phoneMatch = await findPartnerByPhone(vendor.phone);
-      if (phoneMatch) {
-        const existingProfile = await findSupplierProfileByPartner(phoneMatch.id);
-        if (existingProfile) {
-          console.warn("[vendors/register] needs_review: phone matches existing partner with a supplier profile");
-          return NextResponse.json({ ok: true, status: "needs_review" });
-        }
-        return await registerOnExistingPartner(phoneMatch.id, vendor, countryDisplay, consentAt);
-      }
-    }
-
-    // 4) نفس اسم المنشأة + الدولة، بيانات اتصال مختلفة
-    const nameMatch = await findSupplierByNameAndCountry(vendor.establishment_name, countryDisplay);
-    if (nameMatch) {
-      console.warn("[vendors/register] needs_review: establishment name + country matches an existing supplier");
-      return NextResponse.json({ ok: true, status: "needs_review" });
-    }
-
-    // 5) لا تطابق إطلاقاً — تسجيل جديد كامل
-    const partnerId = await createPreliminaryPartner({
-      establishmentName: vendor.establishment_name,
-      contactName: vendor.contact_name,
-      jobTitle: vendor.job_title || undefined,
-      email: vendor.email,
-      phone: vendor.phone,
-      website: vendor.website || undefined,
+    const res = await fetch(`${baseUrl}/api/public/supplier-registrations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-service-secret": secret },
+      body: JSON.stringify({
+        submissionId: vendor.submission_id,
+        legalName: vendor.establishment_name,
+        countryCode: vendor.supplier_type === "local" ? "SA" : undefined,
+        categoryNames: vendor.category_names,
+        brandNames: vendor.brands,
+        contactName: vendor.contact_name,
+        contactTitle: vendor.job_title || undefined,
+        contactEmail: vendor.email,
+        contactPhone: vendor.phone,
+        supplierType: vendor.supplier_type,
+        businessType: vendor.business_type,
+        shortDescription: vendor.short_description,
+        website: vendor.website || undefined,
+        catalogLink: vendor.catalog_link || undefined,
+        preferredLanguage: vendor.preferred_language,
+      }),
     });
-    return await finishRegistration(partnerId, vendor, countryDisplay, consentAt);
-  } catch (error) {
-    if (error instanceof OdooClientError) {
-      console.error(`[vendors/register][${error.correlationId}] ${error.kind}: ${error.message}`);
-      const status = error.kind === "validation" ? 400 : error.kind === "conflict" ? 409 : 500;
-      return NextResponse.json({ error: error.publicMessage }, { status });
+    const body = (await res.json().catch(() => null)) as { supplierId?: string; error?: string; message?: string } | null;
+    if (res.status === 409) {
+      return NextResponse.json({ ok: true, status: "already_registered" });
     }
-    console.error("Vendor registration failed (unexpected):", error);
+    if (!res.ok) {
+      console.error(`[vendors/register] bridge returned ${res.status}: ${body?.error ?? "unknown"}`);
+      return NextResponse.json({ error: body?.message || "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: res.status >= 500 ? 500 : 400 });
+    }
+    return NextResponse.json({ ok: true, id: body?.supplierId, status: "registered" });
+  } catch (error) {
+    console.error("[vendors/register] bridge unreachable:", error);
     return NextResponse.json({ error: "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: 500 });
   }
-}
-
-type VendorInput = z.infer<typeof registerSchema>;
-
-async function registerOnExistingPartner(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
-  // partner مُعاد استخدامه بلا ملف مورد سابق — اسمه القديم قد يخص جهة اتصال أخرى، فنستبدله باسم المنشأة الجديد
-  await syncPartnerAsEstablishment(partnerId, vendor.establishment_name);
-  await ensurePartnerContact(partnerId, {
-    contactName: vendor.contact_name,
-    jobTitle: vendor.job_title || undefined,
-    email: vendor.email,
-    phone: vendor.phone,
-  });
-  return finishRegistration(partnerId, vendor, countryDisplay, consentAt);
-}
-
-async function finishRegistration(partnerId: number, vendor: VendorInput, countryDisplay: string, consentAt: string) {
-  const brandIds = await resolveOrCreateBrands(vendor.brands ?? []);
-
-  const profileId = await createPreliminarySupplierProfile(
-    partnerId,
-    {
-      establishmentName: vendor.establishment_name,
-      country: countryDisplay,
-      supplierType: vendor.supplier_type,
-      businessType: vendor.business_type,
-      contactName: vendor.contact_name,
-      jobTitle: vendor.job_title || undefined,
-      email: vendor.email,
-      phone: vendor.phone,
-      shortDescription: vendor.short_description,
-      website: vendor.website || undefined,
-      catalogLink: vendor.catalog_link || undefined,
-      preferredLanguage: vendor.preferred_language,
-      policyVersion: CURRENT_POLICY_VERSION,
-      consentAt,
-      otherCategorySuggestion: vendor.other_category_suggestion || undefined,
-    },
-    vendor.category_ids,
-    brandIds
-  );
-
-  const idempotencyKey = `supplier.pre_registered:partner-${partnerId}`;
-  await createOutboxEvent({
-    eventType: "supplier.pre_registered",
-    resourceModel: "x_build_supplier_profile",
-    resourceId: profileId,
-    supplierProfileId: profileId,
-    idempotencyKey,
-    payload: { partner_id: partnerId, profile_id: profileId },
-  });
-
-  return NextResponse.json({ ok: true, id: String(partnerId), status: "registered" });
 }

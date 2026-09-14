@@ -324,7 +324,10 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
       if (!res.ok) throw new Error(result?.error || textByLang(isRtl, "Submission failed", "تعذر إرسال الملف"));
       setIsSubmitted(true);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : textByLang(isRtl, "Something went wrong", "حدث خطأ"));
+      const base = e instanceof Error ? e.message : textByLang(isRtl, "Something went wrong", "حدث خطأ");
+      setSubmitError(
+        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll complete this manually.", "— راسلونا على واتساب 966539927827+ وسنكمل الملف يدويًا.")}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -400,7 +403,11 @@ export function VendorCompleteProfileForm({ isRtl = false, onboardingToken, esta
             <VendorField label={textByLang(isRtl, "Product Categories", "فئات المنتجات")}>
               {categoriesFailed ? (
                 <p className="text-sm text-red-600">
-                  {textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة.")}
+                  {textByLang(
+                    isRtl,
+                    "Registration is temporarily down for maintenance. WhatsApp us at +966539927827 and we'll complete this manually.",
+                    "التسجيل متوقف مؤقتًا للصيانة. راسلونا على واتساب 966539927827+ وسنكمل الملف يدويًا."
+                  )}
                 </p>
               ) : !categories ? (
                 <p className="text-sm text-brand-dark/50">{textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…")}</p>

@@ -45,7 +45,7 @@ async function command(args: string[]): Promise<RedisReply> {
   return body[0]?.result;
 }
 
-export type OperationKind = "customer_submission" | "quote" | "webhook_event" | "outbox" | "outbox_dispatch" | "winner_selection" | "customer_offer";
+export type OperationKind = "customer_submission" | "supplier_registration" | "quote" | "webhook_event" | "outbox" | "outbox_dispatch" | "winner_selection" | "customer_offer";
 export type SubmissionState = {
   status: "processing" | "completed" | "failed";
   operation?: OperationKind;

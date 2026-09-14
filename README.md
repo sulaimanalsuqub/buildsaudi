@@ -7,7 +7,8 @@ Build Saudi is a bilingual Next.js platform for construction-material sourcing i
 - Next.js 15 App Router + React 19
 - TypeScript
 - Tailwind CSS
-- Supabase Auth, Database, Storage, and RLS
+- Odoo Online for operational records and approvals
+- Upstash Redis for distributed idempotency and rate limits
 - Resend transactional email
 - Vercel deployment
 
@@ -33,18 +34,26 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-Local admin/API flows require valid Supabase and Resend values in `.env.local`.
+Local API flows require valid Odoo credentials. Production public workflows also require Upstash Redis, Resend, Turnstile, and the token secrets listed in `.env.local.example`.
 
 ## Environment Variables
 
-Required:
+Core server-side configuration:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+ODOO_BASE_URL=
+ODOO_DATABASE=
+ODOO_USERNAME=
+ODOO_API_KEY=
 RESEND_API_KEY=
-ADMIN_EMAIL=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+CRON_SECRET=
+OTP_SECRET=
+VENDOR_ONBOARDING_TOKEN_SECRET=
+UPLOAD_TOKEN_SECRET=
+RESEND_INBOUND_WEBHOOK_SECRET=
+TURNSTILE_SECRET_KEY=
 NEXT_PUBLIC_APP_URL=
 ```
 
@@ -54,29 +63,15 @@ Optional compatibility alias:
 NEXT_PUBLIC_SITE_URL=
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` is server-only. Never expose it as a `NEXT_PUBLIC_*` variable.
+Never expose Odoo, Redis, Resend, DeepSeek, cron, or token secrets as `NEXT_PUBLIC_*` variables.
 
-## Supabase Setup
+## Operational setup
 
-Run SQL files in this order for a new Supabase project:
+Odoo is the operational system of record for requests, profiles, RFQs, approvals, quotations, and the integration outbox. Configure the required custom models/fields and human roles before enabling public workflows.
 
-1. `supabase/schema.sql`
-2. `supabase/admin-rbac.sql`
-3. `supabase/migrations.sql`
-4. `supabase/rls-hardening.sql`
+Upstash Redis is mandatory in Production: it provides atomic submission claims and distributed rate limits. The application fails closed for protected operations if it is unavailable.
 
-Then create the first admin user:
-
-```sql
-select public.register_admin('AUTH_USER_UUID', 'admin@build.sa', 'admin');
-```
-
-Storage:
-
-- Bucket name: `documents`
-- Current upload route stores BOQ files, contracts, and general files under folder prefixes.
-- Public quote BOQ uploads are allowed through `/api/upload`.
-- Contract and general uploads require an authenticated admin session.
+Resend handles outbound OTP/RFQ messages and inbound supplier replies. Configure the inbound domain, MX records, `email.received` webhook, and `RESEND_INBOUND_WEBHOOK_SECRET` before enabling automated RFQ intake.
 
 ## Quality Checks
 
@@ -91,26 +86,14 @@ Expected result: zero audit vulnerabilities, zero ESLint warnings, zero TypeScri
 
 ## Main API Surface
 
-- `POST /api/quotes` creates public quote requests with server-side validation.
+- `POST /api/quotes/register` creates idempotent public procurement requests with server-side validation.
 - `POST /api/vendors/register` creates public vendor registrations with server-side validation.
-- `POST /api/upload` validates file type/size and stores uploads through the service role client.
-- `POST /api/offer/respond` handles token-based client offer responses.
-- `POST /api/vendor/sign` handles token-based vendor contract signing.
-- `/api/admin/*` routes require admin authorization and rate limiting.
+- `POST /api/carriers/register` creates public carrier registrations with server-side validation.
+- `POST /api/rfq/inbound-email` receives signed Resend inbound replies and records quotes.
+- `POST /api/rfq/quote-intake` is a protected manual recovery endpoint.
+- `/api/cron/odoo-outbox` dispatches authorized operational events.
 - `GET /api/health` returns a lightweight deployment health response.
 
 ## Deployment
 
-Use Vercel with these production environment variables:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-RESEND_API_KEY
-ADMIN_EMAIL
-NEXT_PUBLIC_APP_URL=https://www.build.sa
-NEXT_PUBLIC_SITE_URL=https://www.build.sa
-```
-
-After changing any environment variable, redeploy the project. Use `PRODUCTION_CHECKLIST.md` before and after deployment.
+Use Vercel with the configuration in `.env.local.example` and the release gates in `PRODUCTION_CHECKLIST.md`. After changing any environment variable, redeploy and run the production smoke tests.

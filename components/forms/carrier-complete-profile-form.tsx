@@ -252,7 +252,10 @@ export function CarrierCompleteProfileForm({ isRtl = false, onboardingToken, est
       if (!res.ok) throw new Error(result?.error || textByLang(isRtl, "Submission failed", "تعذر إرسال الملف"));
       setIsSubmitted(true);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : textByLang(isRtl, "Something went wrong", "حدث خطأ"));
+      const base = e instanceof Error ? e.message : textByLang(isRtl, "Something went wrong", "حدث خطأ");
+      setSubmitError(
+        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll complete this manually.", "— راسلونا على واتساب 966539927827+ وسنكمل الملف يدويًا.")}`
+      );
     } finally {
       setIsLoading(false);
     }

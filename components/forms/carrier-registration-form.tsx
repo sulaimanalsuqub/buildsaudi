@@ -66,6 +66,8 @@ const defaultValues: FormValues = {
 };
 
 export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFormProps) {
+  // يبقى ثابتاً طوال محاولة التسجيل، لذلك إعادة إرسال الطلب بعد مهلة الشبكة لا تنشئ ناقلاً ثانياً.
+  const [submissionId] = useState(() => crypto.randomUUID());
   const t = {
     formEyebrow: textByLang(isRtl, "Carrier qualification", "تأهيل الناقلين"),
     formTitle: textByLang(isRtl, "Start your carrier application", "ابدأ طلب انضمامك كناقل"),
@@ -80,6 +82,12 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
       isRtl,
       "We received your basic details. After our initial review, you will get a link to complete your full carrier profile.",
       "استلمنا بياناتكم الأساسية. بعد المراجعة الأولية يصلكم رابط لإكمال ملف الناقل."
+    ),
+    processingTitle: textByLang(isRtl, "Application Is Being Processed", "طلب الانضمام قيد المعالجة"),
+    processingBody: textByLang(
+      isRtl,
+      "Your earlier submission is still being processed securely. Please do not submit it again; check your email shortly.",
+      "طلبكم السابق ما زال يُعالج بشكل آمن. لا تعيدوا الإرسال؛ راقبوا البريد الإلكتروني خلال لحظات."
     ),
     needsReviewTitle: textByLang(isRtl, "Under Review", "قيد المراجعة"),
     needsReviewBody: textByLang(
@@ -112,7 +120,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review">("registered");
+  const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review" | "processing">("registered");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
@@ -165,6 +173,7 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
           short_description: data.shortDescription.trim(),
           website: data.website?.trim() || undefined,
           preferred_language: isRtl ? "ar" : "en",
+          submission_id: submissionId,
           privacy_accepted: data.privacyAccepted,
           terms_accepted: data.termsAccepted,
         }),
@@ -174,15 +183,18 @@ export function CarrierRegistrationForm({ isRtl = false }: CarrierRegistrationFo
       setResultStatus((result?.status as typeof resultStatus) ?? "registered");
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ."));
+      const base = error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ.");
+      setSubmitError(
+        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll register you manually.", "— راسلونا على واتساب 966539927827+ وسنسجّلكم يدويًا.")}`
+      );
     } finally {
       setIsLoading(false);
     }
   });
 
   if (isSubmitted) {
-    const title = resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
-    const body = resultStatus === "needs_review" ? t.needsReviewBody : resultStatus === "already_registered" ? t.alreadyRegisteredBody : t.submitStateBody;
+    const title = resultStatus === "processing" ? t.processingTitle : resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
+    const body = resultStatus === "processing" ? t.processingBody : resultStatus === "needs_review" ? t.needsReviewBody : resultStatus === "already_registered" ? t.alreadyRegisteredBody : t.submitStateBody;
     return (
       <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center md:p-10">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">

@@ -1,134 +1,113 @@
-# Production Checklist - Build Saudi
+# Build Saudi — Production Go-Live Checklist
 
-Use this checklist before deploying or redeploying production.
+Use this checklist for a controlled launch or redeployment. Do not mark a control complete merely because the website loads: the Odoo, Redis, email, and inbound-RFQ paths must all be proven in the target environment.
 
-## 1. Code Quality
+## 1. Release gate
 
-- [ ] `npm install` completed successfully.
-- [ ] `npm audit` returns `found 0 vulnerabilities`.
-- [ ] `npm run lint` passes with no warnings.
-- [ ] `npx tsc --noEmit` passes.
-- [ ] `npm run build` passes.
-- [ ] No obsolete API routes remain referenced by forms or admin pages.
+- [ ] A named release owner has approved the deployment scope and rollback owner.
+- [ ] `npm audit --omit=dev --audit-level=high` reports no high/critical production vulnerabilities.
+- [ ] `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` have passed on the release commit.
+- [ ] No unreviewed local changes are included.
+- [ ] A Vercel Preview has been checked before Production.
 
-## 2. Environment Variables
+## 2. Required production configuration
 
-Required in Vercel:
+Configure these as server-only secrets unless explicitly prefixed `NEXT_PUBLIC_`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-RESEND_API_KEY=...
-ADMIN_EMAIL=admin@build.sa
 NEXT_PUBLIC_APP_URL=https://www.build.sa
 NEXT_PUBLIC_SITE_URL=https://www.build.sa
+
+ODOO_BASE_URL=https://YOUR_COMPANY.odoo.com
+ODOO_DATABASE=...
+ODOO_USERNAME=SERVICE_ACCOUNT_EMAIL
+ODOO_API_KEY=...
+
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
+
+RESEND_API_KEY=...
+RESEND_INBOUND_WEBHOOK_SECRET=whsec_...
+CRON_SECRET=LONG_RANDOM_VALUE
+OTP_SECRET=LONG_RANDOM_VALUE
+VENDOR_ONBOARDING_TOKEN_SECRET=LONG_RANDOM_VALUE
+UPLOAD_TOKEN_SECRET=LONG_RANDOM_VALUE
+TURNSTILE_SECRET_KEY=...
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
+DEEPSEEK_API_KEY=...
 ```
 
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` is not prefixed with `NEXT_PUBLIC_`.
-- [ ] Production and preview environments have the correct values.
-- [ ] Project was redeployed after any environment variable change.
+- [ ] Every secret is distinct, long, and stored only in Vercel/Odoo/Resend/Upstash secret managers.
+- [ ] No `NEXT_PUBLIC_` variable contains Odoo, Redis, Resend, DeepSeek, cron, or token secrets.
+- [ ] `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are present. Public submissions must fail closed without them in Production.
+- [ ] Legacy ERPNext/Supabase variables are removed or documented as unused to avoid routing/configuration ambiguity.
+- [ ] A redeploy was triggered after configuration changes.
 
-## 3. Supabase Database
+## 3. Odoo readiness and access control
 
-Run SQL in this order:
+- [ ] The production service account can access only the required Build models and cannot administer unrelated Odoo data.
+- [ ] Human operations, approver, and read-only roles have been tested with non-admin accounts.
+- [ ] The required custom models and fields exist, including request submission keys, RFQ correlations, quote inclusion states, FX snapshot fields, outbox idempotency keys, supplier/carrier profiles, and onboarding documents.
+- [ ] The required Odoo approval categories and server actions are present and usable.
+- [ ] Odoo backup/restore and audit-log retention have an accountable owner.
+- [ ] Run `scripts/reconcile-launch-workflows.mjs` against staging in report mode; resolve any mismatches before Production.
 
-1. [ ] `supabase/schema.sql`
-2. [ ] `supabase/admin-rbac.sql`
-3. [ ] `supabase/migrations.sql`
-4. [ ] `supabase/rls-hardening.sql`
+## 4. Customer request and supplier/carrier onboarding
 
-Register the first admin:
+- [ ] Submit the same customer request twice with the same browser submission ID; exactly one procurement request is created and the second response is a replay.
+- [ ] Simulate a timeout after submission and confirm operations can reconcile the request without duplicate lines or attachments.
+- [ ] Submit the same supplier registration twice; exactly one preliminary profile/outbox event exists.
+- [ ] Submit the same carrier registration twice; exactly one preliminary profile/outbox event exists.
+- [ ] A local and an international supplier complete onboarding using real test documents.
+- [ ] A carrier completes onboarding using real test documents.
+- [ ] Suspended, rejected, and expired-document profiles are excluded from matching.
 
-```sql
-select public.register_admin('AUTH_USER_UUID', 'admin@build.sa', 'admin');
-```
+## 5. RFQ, pricing, and operational completion
 
-Verify:
+- [ ] Operations approves a supplier RFQ and the email contains both the request tracking number and unique `RFQID` correlation.
+- [ ] A supplier replies through the configured inbound domain; the reply creates exactly one quote and is linked to the correct sent RFQ.
+- [ ] An attachment-only reply creates an operations alert and is manually recovered under a documented procedure.
+- [ ] At least two supplier quotes and, if needed, freight quotes are compared and a human approval selects the winner.
+- [ ] Unknown tax/delivery inclusion, unavailable FX, or stale/ambiguous quote data blocks automatic customer pricing.
+- [ ] The final customer offer records net material cost, freight, input VAT, output VAT, gross total, markup, and FX snapshot.
+- [ ] Before taking payment, the business has a documented binding order, cancellation/refund, invoice, payment, delivery, proof-of-delivery, and reconciliation workflow.
 
-- [ ] `admin_users` exists and contains the production admin user.
-- [ ] RLS is enabled on application tables.
-- [ ] Public quote/vendor writes go through `/api/quotes` and `/api/vendors/register`.
-- [ ] Admin mutations go through `/api/admin/*`.
-- [ ] Offer and vendor-signature token flows go through server API routes.
-- [ ] Indexes from `supabase/migrations.sql` exist for quote/RFQ/admin workflows.
+## 6. Resend and cron proof
 
-## 4. Supabase Storage
+- [ ] Sending domain has SPF, DKIM, DMARC, and a monitored sender address.
+- [ ] Inbound RFQ domain has the required MX records and Resend webhook subscribed to `email.received`.
+- [ ] A valid signed webhook is accepted; an invalid signature returns `401`; duplicate delivery is harmless.
+- [ ] `RESEND_INBOUND_WEBHOOK_SECRET` is present in Production.
+- [ ] Vercel Cron requests are authorized with `CRON_SECRET` and unauthorized requests return `401`.
+- [ ] Cron logs, failed outbox events, dead letters, and operations alerts have an owner and daily review cadence.
 
-- [ ] Bucket `documents` exists.
-- [ ] Bucket settings match the chosen access model.
-- [ ] BOQ uploads are accepted from public quote forms.
-- [ ] Contract and general uploads require an authenticated admin session.
-- [ ] File size and MIME restrictions are verified:
-  - BOQ: PDF, XLSX, XLS, CSV up to 10MB.
-  - Contracts: PDF up to 10MB.
-  - General: PDF, Office, image, CSV up to 20MB.
+## 7. Security, privacy, and legal sign-off
 
-## 5. Auth and Admin
+- [ ] Turnstile works server-side and public endpoints reject missing/invalid challenges.
+- [ ] Production security headers and HTTPS/HSTS are verified.
+- [ ] File uploads are restricted to content-validated formats and size limits; unsafe spreadsheet ingestion is disabled or separately approved.
+- [ ] Privacy notice accurately identifies Odoo, Resend, Cloudflare, and any AI processor that receives request/quote content.
+- [ ] Retention schedule, deletion workflow, data-subject request workflow, breach response, and processor/cross-border transfer evidence have legal approval.
+- [ ] Legal owner has determined whether Build acts as intermediary, seller of record, importer of record, or logistics principal.
+- [ ] Commercial terms, customer complaints, cancellation/refund, delivery, warranty, CR/tax identity, and ZATCA obligations are approved for the actual business model.
 
-- [ ] `/admin/login` loads in production.
-- [ ] Unauthenticated `/api/admin/me` returns `401`.
-- [ ] Non-admin authenticated users cannot access `/admin`.
-- [ ] Active admin users can access Quotes, Vendors, Brands, Contracts, and Users.
-- [ ] Admin invite redirects to `https://www.build.sa/admin`.
-- [ ] Admin-only pages use server-side admin checks.
+## 8. Production smoke test and rollback
 
-## 6. Workflow QA
+- [ ] `https://www.build.sa/` responds over HTTPS.
+- [ ] `https://www.build.sa/api/health` reports the expected Odoo connection state without exposing secrets.
+- [ ] Public customer, supplier, and carrier forms submit in Production using controlled test data.
+- [ ] RFQ inbound test is performed with a benign supplier reply.
+- [ ] Vercel, Odoo, Resend, and Upstash logs show no unhandled errors after the test.
+- [ ] The previous deployment is identified and can be restored; the rollback decision owner is reachable.
 
-- [ ] Customer submits quote request and receives a success message.
-- [ ] Admin receives new quote email.
-- [ ] Admin can add quote items and internal notes.
-- [ ] Admin can create RFQs for active vendors.
-- [ ] Admin can record vendor quotes.
-- [ ] Admin can record freight quotes.
-- [ ] Admin can send an offer link.
-- [ ] Client can accept/reject an offer link once.
-- [ ] Vendor can register and receives confirmation.
-- [ ] Admin can approve, pause, reject, or delete vendors.
-- [ ] Admin can assign/remove vendor brands.
-- [ ] Admin can upload a contract PDF.
-- [ ] Admin can send/re-send contract signing links.
-- [ ] Vendor can sign a contract link once.
+## 9. Explicit no-go conditions
 
-## 7. Email
+Do not launch automated RFQs or customer offers if any of these are true:
 
-- [ ] Resend API key is active.
-- [ ] Sending domain is verified.
-- [ ] SPF, DKIM, and DMARC records are configured.
-- [ ] `ADMIN_EMAIL` receives admin notifications.
-- [ ] Test emails render Arabic text correctly.
-- [ ] Links in emails use `https://www.build.sa`.
+- Redis, Odoo, inbound Resend, or required secrets are unconfigured.
+- Supplier matching is only category-level when the business promises product/SKU-specific routing.
+- Tax, delivery, freight, FX, or final commercial obligations are ambiguous.
+- Odoo role/record-rule access has not been tested.
+- Privacy, processor, and cross-border-transfer evidence is incomplete.
 
-## 8. Security
-
-- [ ] Rate limiting is active on public, upload, offer, vendor, and admin endpoints.
-- [ ] Public API inputs are validated with Zod or explicit checks.
-- [ ] File uploads validate MIME type, size, and path extension.
-- [ ] Service role client is used only in server routes/server components.
-- [ ] No service role key is referenced from client components.
-- [ ] Security headers are active through `next.config.ts`.
-- [ ] Public table policies are intentionally limited.
-
-## 9. Deployment Smoke Test
-
-After Vercel deployment:
-
-- [ ] `https://www.build.sa/` returns 200.
-- [ ] `https://www.build.sa/admin/login` returns 200.
-- [ ] `https://www.build.sa/api/health` returns `{ "ok": true }`.
-- [ ] `https://www.build.sa/api/admin/me` returns 401 when logged out.
-- [ ] Public quote form submits successfully.
-- [ ] Vendor registration form submits successfully.
-- [ ] Admin login works with the production admin account.
-- [ ] Check Vercel logs for runtime errors after smoke tests.
-
-## 10. Operations
-
-- [ ] Database backups are enabled.
-- [ ] Supabase project access is restricted to trusted admins.
-- [ ] Vercel project access is restricted to trusted admins.
-- [ ] Error monitoring is configured if required.
-- [ ] Uptime monitoring pings `/api/health`.
-- [ ] Dependency updates are reviewed regularly with `npm audit`.
-
-Last updated: May 2026
+Last updated: August 2026.

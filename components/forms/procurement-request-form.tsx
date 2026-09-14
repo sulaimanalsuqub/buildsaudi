@@ -194,6 +194,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           delivery_address_notes: combinedAddressNotes || undefined,
           files: files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
           submission_id: submissionId,
+          privacy_accepted: data.privacyAccepted,
           turnstile_token: turnstileToken,
         }),
       });
@@ -203,7 +204,10 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
       setTrackingToken(result?.tracking_token || "");
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ."));
+      const base = error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ.");
+      setSubmitError(
+        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll take your request manually.", "— راسلونا على واتساب 966539927827+ وسنستلم طلبكم يدويًا.")}`
+      );
     } finally {
       setIsLoading(false);
     }

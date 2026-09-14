@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ClipboardCheck, Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { EmailVerify } from "@/components/ui/email-verify";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -71,6 +71,8 @@ const defaultValues: FormValues = {
 };
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
+  // يبقى ثابتاً طوال محاولة التسجيل، لذلك إعادة إرسال الطلب بعد مهلة الشبكة لا تنشئ مورداً ثانياً.
+  const [submissionId] = useState(() => crypto.randomUUID());
   const t = {
     formEyebrow: textByLang(isRtl, "Supplier qualification", "تأهيل الموردين"),
     formTitle: textByLang(isRtl, "Start your supplier application", "ابدأ طلب الانضمام"),
@@ -85,6 +87,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       isRtl,
       "We received your basic details. After our initial review, you will get a link to complete your full supply profile. Final approval comes after we review your complete file and documents.",
       "استلمنا بياناتكم الأساسية. بعد المراجعة الأولية يصلكم رابط لإكمال ملف التوريد. الاعتماد النهائي بعد مراجعة الملف الكامل والمستندات."
+    ),
+    processingTitle: textByLang(isRtl, "Application Is Being Processed", "طلب الانضمام قيد المعالجة"),
+    processingBody: textByLang(
+      isRtl,
+      "Your earlier submission is still being processed securely. Please do not submit it again; check your email shortly.",
+      "طلبكم السابق ما زال يُعالج بشكل آمن. لا تعيدوا الإرسال؛ راقبوا البريد الإلكتروني خلال لحظات."
     ),
     needsReviewTitle: textByLang(isRtl, "Under Review", "قيد المراجعة"),
     needsReviewBody: textByLang(
@@ -126,7 +134,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       ),
       brands: textByLang(isRtl, "Type the brand in English and press Enter.", "اكتب اسم العلامة بالإنجليزي واضغط Enter."),
       categoriesLoading: textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…"),
-      categoriesError: textByLang(isRtl, "Could not load categories. Please refresh the page.", "تعذر تحميل الفئات. أعد تحميل الصفحة."),
+      categoriesError: textByLang(
+        isRtl,
+        "Registration is temporarily down for maintenance. WhatsApp us at +966539927827 and we'll register you manually.",
+        "التسجيل متوقف مؤقتًا للصيانة. راسلونا على واتساب 966539927827+ وسنسجّلكم يدويًا."
+      ),
     },
     privacyLabel: textByLang(isRtl, "I agree to the Privacy Policy", "أوافق على سياسة الخصوصية"),
     termsLabel: textByLang(isRtl, "I agree to the Registration Terms", "أوافق على شروط التسجيل"),
@@ -134,7 +146,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review">("registered");
+  const [resultStatus, setResultStatus] = useState<"registered" | "already_registered" | "needs_review" | "processing">("registered");
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
@@ -205,13 +217,16 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           email: data.email.trim().toLowerCase(),
           email_verified_token: emailToken,
           phone: normalizeVendorPhone(data.contactNumber),
-          category_ids: data.categoryIds,
+          category_names: data.categoryIds
+            .map((id) => categories?.find((c) => c.id === id)?.nameAr)
+            .filter((name): name is string => !!name),
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
           brands: data.brands ?? [],
           short_description: data.shortDescription.trim(),
           website: data.website?.trim() || undefined,
           catalog_link: data.catalogLink?.trim() || undefined,
           preferred_language: isRtl ? "ar" : "en",
+          submission_id: submissionId,
           privacy_accepted: data.privacyAccepted,
           terms_accepted: data.termsAccepted,
           turnstile_token: turnstileToken,
@@ -222,23 +237,26 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       setResultStatus((result?.status as typeof resultStatus) ?? "registered");
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ."));
+      const base = error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ.");
+      setSubmitError(
+        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll register you manually.", "— راسلونا على واتساب 966539927827+ وسنسجّلكم يدويًا.")}`
+      );
     } finally {
       setIsLoading(false);
     }
   });
 
   if (isSubmitted) {
-    const title = resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
-    const body = resultStatus === "needs_review" ? t.needsReviewBody : resultStatus === "already_registered" ? t.alreadyRegisteredBody : t.submitStateBody;
+    const title = resultStatus === "processing" ? t.processingTitle : resultStatus === "needs_review" ? t.needsReviewTitle : resultStatus === "already_registered" ? t.alreadyRegisteredTitle : t.submitStateTitle;
+    const body = resultStatus === "processing" ? t.processingBody : resultStatus === "needs_review" ? t.needsReviewBody : resultStatus === "already_registered" ? t.alreadyRegisteredBody : t.submitStateBody;
     return (
-      <section className="mx-auto max-w-5xl rounded-2xl border border-brand-primary/20 bg-white p-8 text-center md:p-10">
+      <section className="w-full rounded-3xl bg-brand-light/40 p-8 text-center md:p-10">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
           <CheckCircle2 className="h-7 w-7" />
         </div>
         <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{title}</h2>
         <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{body}</p>
-        <a href={isRtl ? "/ar" : "/"} className="mt-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-sm font-semibold text-white hover:bg-brand-dark">
+        <a href={isRtl ? "/ar" : "/"} className="mt-8 inline-block rounded-2xl bg-brand-primary px-8 py-3 text-sm font-semibold text-white hover:bg-brand-dark">
           {isRtl ? "العودة للرئيسية" : "Back to Home"}
         </a>
       </section>
@@ -263,18 +281,14 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   };
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-5xl rounded-2xl border border-brand-dark/10 bg-white p-5 md:p-8" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="mb-8 space-y-4 border-b border-brand-dark/10 pb-6">
-        <p className="inline-flex items-center gap-2 text-sm font-bold text-brand-primary">
-          <ClipboardCheck className="h-4 w-4" />
-          {t.formEyebrow}
-        </p>
-        <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">{t.formTitle}</h2>
-        <p className="max-w-2xl text-sm leading-7 text-brand-dark/65">{t.formBody}</p>
-        <div className="inline-flex items-center gap-2 rounded-full bg-brand-light px-4 py-2 text-sm font-semibold text-brand-dark/70">
-          <ShieldCheck className="h-4 w-4 text-brand-primary" />
+    <form onSubmit={onSubmit} className="w-full" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="mb-8 space-y-3">
+        <h1 className="text-[28px] font-bold leading-tight text-brand-dark md:text-[32px]">{t.formTitle}</h1>
+        <p className="text-[15px] leading-6 text-brand-dark/60">{t.formBody}</p>
+        <p className="inline-flex items-center gap-1.5 pt-1 text-xs font-medium text-brand-dark/45">
+          <ShieldCheck className="h-3.5 w-3.5" />
           {t.secureNote}
-        </div>
+        </p>
       </div>
 
       <div className="space-y-5">
@@ -282,7 +296,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           <select
             value={values.country}
             onChange={(e) => form.setValue("country", e.target.value, { shouldValidate: true })}
-            className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+            className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
           >
             {supplierCountries.map((c) => (
               <option key={c.value} value={c.value}>
@@ -296,7 +310,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           <Input
             {...form.register("establishmentName")}
             autoComplete="organization"
-            className="h-12 text-base"
+            className="h-14 rounded-2xl text-base"
             autoFocus
             placeholder={isRtl ? "اكتب الاسم المسجل في السجل التجاري" : "Legal name as shown on registration"}
           />
@@ -312,11 +326,11 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           {showContactName && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid gap-5 sm:grid-cols-2">
               <VendorField label={t.labels.contactName}>
-                <Input {...form.register("contactName")} className="h-12 text-base" />
+                <Input {...form.register("contactName")} className="h-14 rounded-2xl text-base" />
                 <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
               </VendorField>
               <VendorField label={t.labels.jobTitle}>
-                <Input {...form.register("jobTitle")} className="h-12 text-base" />
+                <Input {...form.register("jobTitle")} className="h-14 rounded-2xl text-base" />
               </VendorField>
             </motion.div>
           )}
@@ -345,7 +359,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 <select
                   value={values.businessType}
                   onChange={(e) => form.setValue("businessType", e.target.value, { shouldValidate: true })}
-                  className="h-12 w-full rounded-xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                  className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
                 >
                   <option value="">{isRtl ? "اختر نوع النشاط" : "Select business type"}</option>
                   {businessTypes.map((b) => (
@@ -389,7 +403,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                     {showOther && (
                       <Input
                         {...form.register("otherCategorySuggestion")}
-                        className="mt-3 h-12 text-base"
+                        className="mt-3 h-14 rounded-2xl text-base"
                         placeholder={t.labels.other}
                       />
                     )}
@@ -410,17 +424,17 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               <VendorField label={t.labels.shortDescription}>
                 <textarea
                   {...form.register("shortDescription")}
-                  className="min-h-[96px] w-full rounded-xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                  className="min-h-[110px] w-full rounded-2xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
                 />
                 <VendorErrorText text={form.formState.errors.shortDescription?.message} isRtl={isRtl} />
               </VendorField>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <VendorField label={t.labels.website}>
-                  <Input {...form.register("website")} dir="ltr" className="h-12 text-base" />
+                  <Input {...form.register("website")} dir="ltr" className="h-14 rounded-2xl text-base" />
                 </VendorField>
                 <VendorField label={t.labels.catalogLink}>
-                  <Input {...form.register("catalogLink")} dir="ltr" className="h-12 text-base" />
+                  <Input {...form.register("catalogLink")} dir="ltr" className="h-14 rounded-2xl text-base" />
                 </VendorField>
               </div>
 
@@ -436,13 +450,13 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                         }
                       },
                     })}
-                    className="h-12 text-base"
+                    className="h-14 rounded-2xl text-base"
                     dir="ltr"
                   />
                   <VendorErrorText text={form.formState.errors.email?.message} isRtl={isRtl} />
                 </VendorField>
                 {emailVerified ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <div className="flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                     <CheckCircle2 className="h-4 w-4" />
                     {isRtl ? "تم التحقق من البريد ✓" : "Email verified ✓"}
                   </div>
@@ -459,7 +473,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 ) : null}
               </div>
 
-              <div className="space-y-3 rounded-xl bg-brand-light/40 p-4">
+              <div className="space-y-3 rounded-2xl bg-brand-light/40 p-4">
                 <label className="flex items-start gap-3 text-sm text-brand-dark/85">
                   <Checkbox
                     checked={values.privacyAccepted}
@@ -493,10 +507,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       )}
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark sm:w-auto">
+        <Button type="submit" size="lg" disabled={isLoading || !emailVerified || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="h-14 w-full rounded-2xl bg-brand-primary text-base hover:bg-brand-dark">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
-        {submitError && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
+        {submitError && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}
       </div>
     </form>
   );
