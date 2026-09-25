@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Instagram, Linkedin, Mail, MessageCircle, X as XIcon } from "lucide-react";
 
 import { Grid } from "@/components/ui/grid";
+import { WarrantySeal } from "@/components/ui/warranty-seal";
 
 const SUPPORT_EMAIL = "cs@build.sa";
 const SUPPORT_PHONE_DISPLAY = "0553771777";
@@ -41,6 +42,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   const year = new Date().getFullYear();
   const links = {
     main: [
+      { href: `${legalBase}/about`, label: isRtl ? "عن بيلد" : "About Build" },
       { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
       { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
@@ -48,6 +50,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
     legal: [
       { href: `${legalBase}/#how-it-works`, label: isRtl ? "كيف نعمل" : "How It Works" },
       { href: isRtl ? "/ar/track-request" : "/track-request", label: isRtl ? "تتبع طلبك" : "Track Your Request" },
+      { href: `${legalBase}/warranty`, label: isRtl ? "سياسة الضمان" : "Warranty Policy" },
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
       { href: `${legalBase}/terms-conditions`, label: isRtl ? "الشروط والأحكام" : "Terms & Conditions" },
       { href: `${legalBase}/cookies-policy`, label: isRtl ? "الكوكيز" : "Cookies" },
@@ -85,14 +88,25 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
         </div>
       </Grid>
 
-      {/* أعمدة معلومات عنا والمساعدة */}
+      {/* أعمدة معلومات عنا والمساعدة وشارة الضمان */}
       <div className="border-t border-brand-dark/10 pt-[var(--space-compact)]">
         <Grid>
-          <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+          <div className="col-span-2 sm:col-span-4 lg:col-span-4">
             <FooterColumn title={isRtl ? "معلومات عنا" : "About Us"} links={links.main} />
           </div>
-          <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+          <div className="col-span-2 sm:col-span-4 lg:col-span-4">
             <FooterColumn title={isRtl ? "مساعدة" : "Help"} links={links.legal} />
+          </div>
+          <div className="col-span-4 mt-8 sm:col-span-8 sm:mt-0 lg:col-span-4">
+            <Link
+              href={`${legalBase}/warranty`}
+              className="group flex items-center gap-3 rounded-xl border border-brand-dark/8 bg-[#f7f9f6] px-4 py-3 transition hover:border-brand-primary/30"
+            >
+              <WarrantySeal className="h-10 w-auto shrink-0" />
+              <span className="type-body font-semibold text-brand-dark/80 transition group-hover:text-brand-primary">
+                {isRtl ? "منتجات أصلية، ضمان موثّق" : "Authentic products, backed warranty"}
+              </span>
+            </Link>
           </div>
         </Grid>
       </div>
