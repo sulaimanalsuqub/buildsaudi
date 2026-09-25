@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Instagram, Linkedin, Mail, MessageCircle, Truck, X as XIcon } from "lucide-react";
+import { Instagram, Linkedin, Mail, MessageCircle, X as XIcon } from "lucide-react";
 
 import { Grid } from "@/components/ui/grid";
 
@@ -44,12 +44,13 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
       { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
       { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
-      { href: isRtl ? "/ar/track-request" : "/track-request", label: isRtl ? "تتبع طلبك" : "Track Your Request" },
     ],
     legal: [
+      { href: `${legalBase}/#how-it-works`, label: isRtl ? "كيف نعمل" : "How It Works" },
+      { href: isRtl ? "/ar/track-request" : "/track-request", label: isRtl ? "تتبع طلبك" : "Track Your Request" },
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
       { href: `${legalBase}/terms-conditions`, label: isRtl ? "الشروط والأحكام" : "Terms & Conditions" },
-      { href: `${legalBase}/cookies-policy`, label: isRtl ? "سياسة الكوكيز" : "Cookies Policy" },
+      { href: `${legalBase}/cookies-policy`, label: isRtl ? "الكوكيز" : "Cookies" },
     ],
   };
 
@@ -84,36 +85,14 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
         </div>
       </Grid>
 
-      {/* وعد التوصيل خلال 48 ساعة */}
-      <div className="border-t border-brand-dark/10 bg-brand-primary/5">
-        <Grid>
-          <div className="col-span-4 flex items-center justify-center gap-2 py-4 text-brand-primary sm:col-span-8 lg:col-span-12">
-            <Truck className="h-4 w-4" aria-hidden="true" />
-            <p className="type-body font-semibold">
-              {isRtl
-                ? "توصيل خلال 48 ساعة لأي مكان في المملكة العربية السعودية"
-                : "Delivery within 48 hours, anywhere in Saudi Arabia"}
-            </p>
-          </div>
-        </Grid>
-      </div>
-
-      {/* أعمدة الصفحات المهمة والسياسات */}
+      {/* أعمدة معلومات عنا والمساعدة */}
       <div className="border-t border-brand-dark/10 pt-[var(--space-compact)]">
         <Grid>
-          <div className="col-span-2 sm:col-span-3 lg:col-span-4">
-            <FooterColumn title={isRtl ? "الصفحات المهمة" : "Important Pages"} links={links.main} />
+          <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+            <FooterColumn title={isRtl ? "معلومات عنا" : "About Us"} links={links.main} />
           </div>
-          <div className="col-span-2 sm:col-span-3 lg:col-span-4">
-            <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
-          </div>
-          <div className="col-span-4 mt-8 sm:col-span-2 sm:mt-0 lg:col-span-4">
-            <p className="type-micro text-brand-dark/40">{isRtl ? "عن بيلد" : "About Us"}</p>
-            <p className="type-body mt-4 max-w-xs text-brand-dark/60">
-              {isRtl
-                ? "المملكة العربية السعودية، جدة، حي الزهراء"
-                : "Al Zahra District, Jeddah, Saudi Arabia"}
-            </p>
+          <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+            <FooterColumn title={isRtl ? "مساعدة" : "Help"} links={links.legal} />
           </div>
         </Grid>
       </div>
@@ -132,17 +111,20 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             <p className="type-micro text-brand-dark/40">
               {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
               {SOCIAL_LINKS.map(({ href, label, Icon }) => (
                 <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 text-brand-dark/55 transition hover:border-brand-primary/40 hover:text-brand-primary"
+                  className="group inline-flex items-center gap-1.5 text-brand-dark/50 transition hover:text-brand-primary"
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-3.5 w-3.5 opacity-70 transition group-hover:opacity-100" aria-hidden="true" />
+                  <span className="type-micro relative">
+                    {label}
+                    <span className="absolute inset-x-0 -bottom-0.5 h-px origin-center scale-x-0 bg-brand-primary transition-transform duration-300 group-hover:scale-x-100" />
+                  </span>
                 </a>
               ))}
             </div>
