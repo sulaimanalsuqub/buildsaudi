@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Instagram, Linkedin, Mail, X as XIcon } from "lucide-react";
+import { Instagram, Linkedin, Mail, MessageCircle, Truck, X as XIcon } from "lucide-react";
 
 import { Grid } from "@/components/ui/grid";
 
 const SUPPORT_EMAIL = "cs@build.sa";
+const SUPPORT_PHONE_DISPLAY = "0553771777";
+const SUPPORT_WHATSAPP_HREF = `https://wa.me/966553771777?text=${encodeURIComponent("هلابيلد")}`;
 
 const SOCIAL_LINKS = [
   { href: "https://www.linkedin.com/company/buildsaudi", label: "LinkedIn", Icon: Linkedin },
@@ -42,6 +44,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
       { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
       { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
+      { href: isRtl ? "/ar/track-request" : "/track-request", label: isRtl ? "تتبع طلبك" : "Track Your Request" },
     ],
     legal: [
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
@@ -52,58 +55,97 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
 
   return (
     <footer className="border-t border-brand-dark/10 bg-white pt-[var(--space-compact)]">
+      {/* شريط "نحن هنا لمساعدتك" مع وسائل التواصل */}
       <Grid>
-        <div className="col-span-4 sm:col-span-4 lg:col-span-5">
-          <Image
-            src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
-            alt={isRtl ? "شعار بيلد" : "Build logo"}
-            width={4302}
-            height={1500}
-            className="h-8 w-auto"
-          />
-          <p className="type-body mt-5 max-w-xs text-brand-dark/60">
-            {isRtl
-              ? "المملكة العربية السعودية، جدة، حي الزهراء"
-              : "Al Zahra District, Jeddah, Saudi Arabia"}
+        <div className="col-span-4 flex flex-col items-center gap-4 pb-8 text-center sm:col-span-8 sm:flex-row sm:justify-center lg:col-span-12">
+          <p className="type-body font-semibold text-brand-dark">
+            {isRtl ? "نحن هنا لمساعدتك!" : "We're here to help!"}
           </p>
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="type-body mt-4 inline-flex items-center gap-2 text-brand-dark transition hover:text-brand-primary"
-            dir="ltr"
-          >
-            <Mail className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-            {SUPPORT_EMAIL}
-          </a>
-          <div className="mt-6 flex items-center gap-3">
-            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 text-brand-dark/55 transition hover:border-brand-primary/40 hover:text-brand-primary"
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              dir="ltr"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-dark/10 px-4 py-2 type-body font-semibold text-brand-dark transition hover:border-brand-primary/40 hover:text-brand-primary"
+            >
+              <Mail className="h-4 w-4 text-brand-primary" aria-hidden="true" />
+              {SUPPORT_EMAIL}
+            </a>
+            <a
+              href={SUPPORT_WHATSAPP_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              dir="ltr"
+              className="inline-flex items-center gap-2 rounded-full border border-[#25D366]/35 px-4 py-2 type-body font-semibold text-brand-dark transition hover:border-[#25D366] hover:bg-[#25D366]/10"
+            >
+              <MessageCircle className="h-4 w-4 text-[#20b957]" aria-hidden="true" />
+              {SUPPORT_PHONE_DISPLAY}
+            </a>
           </div>
-        </div>
-
-        <div className="col-span-2 sm:col-span-2 lg:col-span-3 lg:col-start-7">
-          <FooterColumn title={isRtl ? "الموقع" : "Site"} links={links.main} />
-        </div>
-        <div className="col-span-2 sm:col-span-2 lg:col-span-3">
-          <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
         </div>
       </Grid>
 
+      {/* وعد التوصيل خلال 48 ساعة */}
+      <div className="border-t border-brand-dark/10 bg-brand-primary/5">
+        <Grid>
+          <div className="col-span-4 flex items-center justify-center gap-2 py-4 text-brand-primary sm:col-span-8 lg:col-span-12">
+            <Truck className="h-4 w-4" aria-hidden="true" />
+            <p className="type-body font-semibold">
+              {isRtl
+                ? "توصيل خلال 48 ساعة لأي مكان في المملكة العربية السعودية"
+                : "Delivery within 48 hours, anywhere in Saudi Arabia"}
+            </p>
+          </div>
+        </Grid>
+      </div>
+
+      {/* أعمدة الصفحات المهمة والسياسات */}
+      <div className="border-t border-brand-dark/10 pt-[var(--space-compact)]">
+        <Grid>
+          <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+            <FooterColumn title={isRtl ? "الصفحات المهمة" : "Important Pages"} links={links.main} />
+          </div>
+          <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+            <FooterColumn title={isRtl ? "السياسات" : "Policies"} links={links.legal} />
+          </div>
+          <div className="col-span-4 mt-8 sm:col-span-2 sm:mt-0 lg:col-span-4">
+            <p className="type-micro text-brand-dark/40">{isRtl ? "عن بيلد" : "About Us"}</p>
+            <p className="type-body mt-4 max-w-xs text-brand-dark/60">
+              {isRtl
+                ? "المملكة العربية السعودية، جدة، حي الزهراء"
+                : "Al Zahra District, Jeddah, Saudi Arabia"}
+            </p>
+          </div>
+        </Grid>
+      </div>
+
+      {/* الشعار وحقوق النشر ووسائل التواصل */}
       <div className="mt-16 border-t border-brand-dark/10">
         <Grid>
-          <div className="col-span-4 sm:col-span-8 lg:col-span-12 py-6">
+          <div className="col-span-4 flex flex-col items-center justify-between gap-4 py-6 sm:col-span-8 sm:flex-row lg:col-span-12">
+            <Image
+              src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
+              alt={isRtl ? "شعار بيلد" : "Build logo"}
+              width={4302}
+              height={1500}
+              className="h-7 w-auto"
+            />
             <p className="type-micro text-brand-dark/40">
               {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
             </p>
+            <div className="flex items-center gap-3">
+              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/10 text-brand-dark/55 transition hover:border-brand-primary/40 hover:text-brand-primary"
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
           </div>
         </Grid>
       </div>
