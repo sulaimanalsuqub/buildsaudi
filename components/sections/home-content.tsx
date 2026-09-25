@@ -180,12 +180,18 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
               />
             </div>
 
-            <Link
-              href={quoteHref}
+            <a
+              href={`https://wa.me/966553771777?text=${encodeURIComponent(
+                isRtl
+                  ? "هلا بيلد، عندي طلب توريد هذه المنتجات، يرجى تزويدي بعرض سعر"
+                  : "Hi Build, I have a supply request for these products. Please send me a quote."
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-8 inline-flex h-14 w-fit items-center justify-center rounded-md bg-brand-dark px-9 text-base font-bold text-white transition hover:bg-brand-primary md:mt-10"
             >
               {t.primary}
-            </Link>
+            </a>
           </div>
 
           <div className="col-span-4 sm:col-span-8 lg:col-span-12 mt-16 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-brand-dark/10 pt-5 md:mt-24">
