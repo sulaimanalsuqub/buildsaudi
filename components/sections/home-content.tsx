@@ -183,8 +183,8 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
             <a
               href={`https://wa.me/966553771777?text=${encodeURIComponent(
                 isRtl
-                  ? "هلا بيلد، عندي طلب توريد هذه المنتجات، يرجى تزويدي بعرض سعر"
-                  : "Hi Build, I have a supply request for these products. Please send me a quote."
+                  ? "هلا بيلد، يرجى تزويدي بعرض سعر للأصناف"
+                  : "Hi Build, please send me a quote for the following items."
               )}`}
               target="_blank"
               rel="noopener noreferrer"
