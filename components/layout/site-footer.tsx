@@ -43,13 +43,11 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   const links = {
     main: [
       { href: `${legalBase}/about`, label: isRtl ? "عن بيلد" : "About Build" },
-      { href: isRtl ? "/ar" : "/", label: isRtl ? "الرئيسية" : "Home" },
       { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
       { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
     ],
     legal: [
       { href: `${legalBase}/#how-it-works`, label: isRtl ? "كيف نعمل" : "How It Works" },
-      { href: isRtl ? "/ar/track-request" : "/track-request", label: isRtl ? "تتبع طلبك" : "Track Your Request" },
       { href: `${legalBase}/warranty`, label: isRtl ? "سياسة الضمان" : "Warranty Policy" },
       { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
       { href: `${legalBase}/terms-conditions`, label: isRtl ? "الشروط والأحكام" : "Terms & Conditions" },
@@ -125,20 +123,17 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             <p className="type-micro text-brand-dark/40">
               {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <div className="flex items-center gap-4">
               {SOCIAL_LINKS.map(({ href, label, Icon }) => (
                 <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-1.5 text-brand-dark/50 transition hover:text-brand-primary"
+                  aria-label={label}
+                  className="text-brand-dark/50 transition hover:text-brand-primary"
                 >
-                  <Icon className="h-3.5 w-3.5 opacity-70 transition group-hover:opacity-100" aria-hidden="true" />
-                  <span className="type-micro relative">
-                    {label}
-                    <span className="absolute inset-x-0 -bottom-0.5 h-px origin-center scale-x-0 bg-brand-primary transition-transform duration-300 group-hover:scale-x-100" />
-                  </span>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                 </a>
               ))}
             </div>
