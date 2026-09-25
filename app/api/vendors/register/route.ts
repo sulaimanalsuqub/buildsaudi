@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import { z } from "zod";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { registerVendor, VendorRegistrationError } from "@/lib/vendor-registration";
+import { createVendorFilesToken } from "@/lib/vendor-registration-files";
+import { MAX_VENDOR_FILES, validateVendorFileMetadata } from "@/lib/vendor-file-policy";
+
+export const maxDuration = 120;
 
 const BUSINESS_TYPES = [
   "manufacturer",
@@ -40,17 +44,22 @@ const registerSchema = z.object({
     .trim()
     .transform((v) => normalizeVendorPhone(v))
     .refine(isValidVendorPhone, { message: "أدخل رقم جوال صحيح" }),
-  // أسماء فئات حقيقية (Build-OPT يطابقها بالاسم) — لا معرّفات رقمية داخلية بعد الآن
+  // Names come from Odoo and are validated again on submission.
   category_names: z.array(z.string().trim().min(1)).min(1, "اختر فئة واحدة على الأقل"),
   other_category_suggestion: z.string().trim().max(200).optional().or(z.literal("")),
   brands: z.array(z.string().trim().min(1)).refine((brands) => brands.every(isEnglishBrandName), "اكتب أسماء العلامات التجارية بالإنجليزي فقط").optional().default([]),
   short_description: z.string().trim().optional().or(z.literal("")),
   website: z.string().trim().optional().or(z.literal("")),
-  catalog_link: z.string().trim().optional().or(z.literal("")),
+  files: z.array(z.object({ name: z.string(), size: z.number().int(), type: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).refine(f => !validateVendorFileMetadata(f), "ملف غير صالح: الحد الأقصى 3MB لكل ملف")).max(MAX_VENDOR_FILES).optional().default([]),
   preferred_language: z.enum(["ar", "en"]),
   privacy_accepted: z.literal(true, { message: "يجب الموافقة على سياسة الخصوصية" }),
   terms_accepted: z.literal(true, { message: "يجب الموافقة على شروط التسجيل" }),
   turnstile_token: z.string().min(1, "يرجى إثبات أنك لست برنامجاً آلياً"),
+  supplier_currency_id: z.number().int().positive().optional(),
+  supplier_payment_term_id: z.number().int().positive().optional(),
+  supplier_payment_method_line_id: z.number().int().positive().optional(),
+  purchase_incoterm_id: z.number().int().positive().optional(),
+  purchase_incoterm_location: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 export async function POST(req: NextRequest) {
@@ -71,63 +80,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
-  const baseUrl = process.env.BUILD_OPT_BASE_URL;
-  const secret = process.env.PUBLIC_INTAKE_SERVICE_SECRET;
-  if (!baseUrl || !secret) {
-    console.error("[vendors/register] BUILD_OPT_BASE_URL/PUBLIC_INTAKE_SERVICE_SECRET not configured");
-    return NextResponse.json({ error: "نظام التسجيل غير مهيّأ حالياً — حاول لاحقاً" }, { status: 503 });
-  }
-
   const countryDisplay = resolveCountryDisplayName(vendor.country);
-
-  // ملاحظة مهمة: نقلنا التسجيل من أودو إلى Build-OPT (2026-09-07، بعد توقف أودو عن العمل بالكامل
-  // بسبب ترقية معلّقة خارجة عن سيطرتنا). فحوصات التكرار السابقة (نفس البريد/الهاتف/الاسم مع أودو)
-  // أُسقطت مؤقتاً — كانت تعتمد على استعلامات أودو المباشرة التي لا مقابل لها بعد بجسر Build-OPT
-  // العام. Build-OPT نفسه يحمي فقط من إعادة إرسال نفس الطلب (idempotency على submissionId)، لا من
-  // تسجيل نفس المنشأة مرتين بمحاولتين منفصلتين. هذا تنازل واعٍ لإعادة تشغيل التسجيل فوراً — يحتاج
-  // إعادة بناء لاحقاً (فحص تكرار داخل Build-OPT نفسه) بدل إسقاطه نهائياً.
-  const submissionId = randomUUID();
-
   try {
-    const res = await fetch(`${baseUrl}/api/public/supplier-registrations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-service-secret": secret },
-      body: JSON.stringify({
-        submissionId,
-        legalName: vendor.establishment_name,
-        countryCode: resolveCountryCode(countryDisplay),
-        categoryNames: vendor.category_names,
-        brandNames: vendor.brands ?? [],
-        contactName: vendor.contact_name,
-        contactTitle: vendor.job_title || undefined,
-        contactEmail: vendor.email,
-        contactPhone: vendor.phone,
-        supplierType: vendor.supplier_type,
-        businessType: vendor.business_type,
-        shortDescription: vendor.short_description || undefined,
-        website: vendor.website || undefined,
-        catalogLink: vendor.catalog_link || undefined,
-        preferredLanguage: vendor.preferred_language,
-      }),
-      signal: AbortSignal.timeout(15_000),
+    const result = await registerVendor({
+      ...vendor, country: countryDisplay, country_code: resolveCountryCode(countryDisplay),
     });
-
-    if (res.status === 409) {
-      return NextResponse.json({ ok: true, status: "already_registered" });
-    }
-    if (res.status === 400) {
-      const body = await res.json().catch(() => ({}));
-      if (body?.error === "no_matching_categories") {
-        return NextResponse.json({ error: "فئة أو أكثر لم تعد متاحة — أعد تحميل الصفحة واختر من جديد" }, { status: 400 });
-      }
-      return NextResponse.json({ error: "بيانات المورد غير مكتملة أو غير صحيحة" }, { status: 400 });
-    }
-    if (!res.ok) throw new Error(`build-opt returned ${res.status}`);
-
-    const body = (await res.json()) as { supplierId?: string };
-    return NextResponse.json({ ok: true, id: body.supplierId ?? submissionId, status: "registered" });
+    return NextResponse.json({ ok: true, status: result.status, ...(vendor.files.length ? { uploadToken: createVendorFilesToken(result.vendorId, vendor.files) } : {}) });
   } catch (error) {
-    console.error("[vendors/register] failed to reach build-opt:", error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: "تعذر حفظ بيانات المورد في نظام العمليات" }, { status: 500 });
+    console.error("[vendors/register] registration failed:", error instanceof VendorRegistrationError ? error.message : "internal error");
+    return NextResponse.json(
+      { error: error instanceof VendorRegistrationError ? error.publicMessage : "تعذر حفظ الطلب حالياً. حاول مرة أخرى بعد قليل." },
+      { status: error instanceof VendorRegistrationError ? error.status : 503 },
+    );
   }
 }

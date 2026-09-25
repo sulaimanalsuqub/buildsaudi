@@ -154,31 +154,43 @@ export async function POST(req: NextRequest) {
       .join("\n\n")
       .slice(0, 5000);
 
-    const res = await fetch(`${baseUrl}/api/public/procurement-requests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-service-secret": secret },
-      body: JSON.stringify({
-        submissionId: data.submission_id,
-        legalName: data.company_name || undefined,
-        contactName: data.contact_name,
-        contactEmail: data.email,
-        contactPhone: data.phone,
-        countryCode: "SA",
-        projectName: data.project_name,
-        notes: notes || undefined,
-        requestedDeliveryDate: data.requested_delivery_date || undefined,
-        lines: items.map((i) => ({
-          itemName: i.itemName,
-          quantity: i.quantity,
-          uom: i.unit || "قطعة",
-          brandFreeText: i.brand || undefined,
-          countryOfOrigin: resolveCountryCode(i.countryOfOrigin),
-        })),
-      }),
-      signal: AbortSignal.timeout(20_000),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/api/public/procurement-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-service-secret": secret },
+        body: JSON.stringify({
+          submissionId: data.submission_id,
+          legalName: data.company_name || undefined,
+          contactName: data.contact_name,
+          contactEmail: data.email,
+          contactPhone: data.phone,
+          countryCode: "SA",
+          projectName: data.project_name,
+          notes: notes || undefined,
+          requestedDeliveryDate: data.requested_delivery_date || undefined,
+          lines: items.map((i) => ({
+            itemName: i.itemName,
+            quantity: i.quantity,
+            uom: i.unit || "قطعة",
+            brandFreeText: i.brand || undefined,
+            countryOfOrigin: resolveCountryCode(i.countryOfOrigin),
+          })),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (fetchError) {
+      const msg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const isTimeout = /timeout|abort/i.test(msg);
+      throw new Error(`build-opt ${isTimeout ? "timeout" : "network error"}: ${msg}`);
+    }
 
-    if (!res.ok) throw new Error(`build-opt returned ${res.status}`);
+    if (!res.ok) {
+      // Capture response body so we know WHY build-opt rejected (don't lose it to a generic throw).
+      let upstreamBody = "";
+      try { upstreamBody = (await res.text()).slice(0, 500); } catch { /* ignore read failures */ }
+      throw new Error(`build-opt returned ${res.status}${upstreamBody ? `: ${upstreamBody}` : ""}`);
+    }
     const body = (await res.json()) as { requestNumber?: string };
     const trackingNumber = body.requestNumber ?? data.submission_id;
 
@@ -186,17 +198,38 @@ export async function POST(req: NextRequest) {
     await saveSubmissionState(submissionKey, submissionState);
     return NextResponse.json({ ok: true, tracking_number: trackingNumber, correlation_id: correlationId });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
     try {
       await saveSubmissionState(submissionKey, {
         ...submissionState,
         status: "failed",
         stage: submissionState.stage ?? "unknown",
-        error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+        error: msg.slice(0, 500),
       });
     } catch (stateError) {
       console.error("[quotes/register] unable to record failed submission:", stateError);
     }
-    console.error("[quotes/register] failed to reach build-opt:", error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: "تعذر حفظ طلبكم في نظام العمليات" }, { status: 500 });
+    console.error(`[quotes/register] ${correlationId} failed:`, msg);
+
+    // User-facing message: be specific so users know what's wrong, but don't expose internals.
+    let userMessage = "تعذر حفظ طلبكم في نظام العمليات";
+    let status = 502; // Bad Gateway — we're a proxy that couldn't reach upstream
+    if (/timeout/i.test(msg)) {
+      userMessage = "النظام تحت ضغط — حاول مرة أخرى بعد دقيقة";
+      status = 504; // Gateway Timeout
+    } else if (/network/i.test(msg)) {
+      userMessage = "تعذّر الوصول للنظام — حاول لاحقاً";
+    } else if (/build-opt returned 4\d\d/i.test(msg)) {
+      userMessage = "النظام رفض البيانات المرسلة — تحقق من المعلومات أو حاول لاحقاً";
+      status = 400;
+    } else if (/build-opt returned 5\d\d/i.test(msg)) {
+      userMessage = "النظام الداخلي تحت الصيانة — حاول لاحقاً";
+      status = 503;
+    }
+
+    return NextResponse.json(
+      { error: userMessage, correlation_id: correlationId, stage: submissionState.stage ?? "unknown" },
+      { status }
+    );
   }
 }

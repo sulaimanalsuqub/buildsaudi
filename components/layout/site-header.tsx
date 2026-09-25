@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Languages } from "lucide-react";
+import { Languages, MessageCircle } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
 
@@ -50,10 +50,12 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const homeHref = isRtl ? "/ar" : "/";
+const homeHref = isRtl ? "/ar" : "/";
   const altPath = alternateLocalePath(pathname);
   const query = searchParams?.toString() ?? "";
   const languageHref = query ? `${altPath}?${query}` : altPath;
+  const whatsappHref = `https://wa.me/966553771777?text=${encodeURIComponent("هلابيلد")}`;
+  const showWhatsApp = ["/ar/get-quote", "/get-quote"].includes(pathname.replace(/\/$/, ""));
 
   return (
     <header
@@ -76,6 +78,16 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
         </Link>
 
         <div className="flex items-center gap-2">
+          {showWhatsApp && <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#25D366]/35 bg-white text-[#20b957] transition hover:border-[#25D366] hover:bg-[#25D366]/10"
+            aria-label={isRtl ? "تواصل معنا عبر واتساب" : "Contact us on WhatsApp"}
+            title={isRtl ? "واتساب" : "WhatsApp"}
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          </a>}
           <Link
             href={languageHref}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
