@@ -1172,7 +1172,7 @@ export async function sendSupplierRfqRequestEmail(req: {
   return sendEmail({
     from: FROM,
     to: req.email,
-    replyTo: "supplier@build.sa",
+    replyTo: process.env.RFQ_REPLY_TO || "supplier@build.sa",
     subject: `RFQ Request — ${req.trackingNumber} — Build Saudi [RFQID:${req.correlation}]`,
     html: emailShell({
       previewText: `طلب عرض سعر من Build Saudi للطلب ${req.trackingNumber}`,
