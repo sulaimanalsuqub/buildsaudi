@@ -56,90 +56,33 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer className="border-t border-brand-dark/10 bg-white pt-[var(--space-compact)]">
-      {/* شريط "نحن هنا لمساعدتك" مع وسائل التواصل */}
-      <Grid>
-        <div className="col-span-4 flex flex-col items-center gap-4 pb-8 text-center sm:col-span-8 sm:flex-row sm:justify-center lg:col-span-12">
-          <p className="type-body font-semibold text-brand-dark">
-            {isRtl ? "نحن هنا لمساعدتك!" : "We're here to help!"}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              dir="ltr"
-              className="inline-flex items-center gap-2 rounded-full border border-brand-dark/10 px-4 py-2 type-body font-semibold text-brand-dark transition hover:border-brand-primary/40 hover:text-brand-primary"
-            >
-              <Mail className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-              {SUPPORT_EMAIL}
-            </a>
-            <a
-              href={SUPPORT_WHATSAPP_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              dir="ltr"
-              className="inline-flex items-center gap-2 rounded-full border border-[#25D366]/35 px-4 py-2 type-body font-semibold text-brand-dark transition hover:border-[#25D366] hover:bg-[#25D366]/10"
-            >
-              <MessageCircle className="h-4 w-4 text-[#20b957]" aria-hidden="true" />
-              {SUPPORT_PHONE_DISPLAY}
-            </a>
+    <footer dir={isRtl ? "rtl" : "ltr"} className="bg-brand-light pt-14 text-brand-dark md:pt-20">
+      <Grid className="gap-y-12">
+        <div className="col-span-4 sm:col-span-8 lg:col-span-5">
+          <Link href={isRtl ? "/ar" : "/"} aria-label={isRtl ? "بيلد، الصفحة الرئيسية" : "Build homepage"} className="inline-block">
+            <Image src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"} alt={isRtl ? "بيلد" : "Build"} width={4302} height={1500} className="h-auto w-48 md:w-60" />
+          </Link>
+          <p className="mt-6 max-w-xs text-base leading-8 text-brand-dark/75">{isRtl ? "توريد مواد البناء والتشطيب للمقاولين والمطورين" : "Supply of building materials and finishes for contractors and developers"}</p>
+          <Link href={`${legalBase}/warranty`} className="mt-7 inline-flex items-center gap-3 text-sm font-semibold hover:underline">
+            <WarrantySeal className="h-11 w-auto shrink-0" />
+            {isRtl ? "منتجات أصلية، ضمان موثّق" : "Authentic products, backed warranty"}
+          </Link>
+        </div>
+        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "بيلد" : "Build"} links={links.main} /></div>
+        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "المساعدة والسياسات" : "Help & policies"} links={links.legal} /></div>
+        <div className="col-span-4 sm:col-span-8 lg:col-span-3">
+          <h2 className="text-sm font-bold">{isRtl ? "نحن هنا لمساعدتك" : "We're here to help"}</h2>
+          <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-6 flex min-h-11 w-fit items-center gap-3 text-2xl font-bold hover:underline"><MessageCircle className="h-5 w-5" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-base hover:underline"><Mail className="h-5 w-5" aria-hidden="true" />{SUPPORT_EMAIL}</a>
+          <div className="mt-6 flex flex-wrap gap-1">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-brand-dark/75 transition-colors hover:bg-brand-dark hover:text-brand-light"><Icon className="h-5 w-5" aria-hidden="true" /></a>)}
           </div>
         </div>
+        <div className="col-span-4 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-brand-dark/20 py-6 text-xs leading-6 text-brand-dark/75 sm:col-span-8 lg:col-span-12">
+          <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
+          <Link href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold hover:underline">{isRtl ? "كُن جزءًا من شبكة مورّدي بيلد" : "Join Build's supplier network"}</Link>
+        </div>
       </Grid>
-
-      {/* أعمدة معلومات عنا والمساعدة وشارة الضمان */}
-      <div className="border-t border-brand-dark/10 pt-[var(--space-compact)]">
-        <Grid>
-          <div className="col-span-2 sm:col-span-4 lg:col-span-4">
-            <FooterColumn title={isRtl ? "معلومات عنا" : "About Us"} links={links.main} />
-          </div>
-          <div className="col-span-2 sm:col-span-4 lg:col-span-4">
-            <FooterColumn title={isRtl ? "مساعدة" : "Help"} links={links.legal} />
-          </div>
-          <div className="col-span-4 mt-8 sm:col-span-8 sm:mt-0 lg:col-span-4">
-            <Link
-              href={`${legalBase}/warranty`}
-              className="group flex items-center gap-3 rounded-xl border border-brand-dark/8 bg-[#f7f9f6] px-4 py-3 transition hover:border-brand-primary/30"
-            >
-              <WarrantySeal className="h-10 w-auto shrink-0" />
-              <span className="type-body font-semibold text-brand-dark/80 transition group-hover:text-brand-primary">
-                {isRtl ? "منتجات أصلية، ضمان موثّق" : "Authentic products, backed warranty"}
-              </span>
-            </Link>
-          </div>
-        </Grid>
-      </div>
-
-      {/* الشعار وحقوق النشر ووسائل التواصل */}
-      <div className="mt-16 border-t border-brand-dark/10">
-        <Grid>
-          <div className="col-span-4 flex flex-col items-center justify-between gap-4 py-6 sm:col-span-8 sm:flex-row lg:col-span-12">
-            <Image
-              src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
-              alt={isRtl ? "شعار بيلد" : "Build logo"}
-              width={4302}
-              height={1500}
-              className="h-7 w-auto"
-            />
-            <p className="type-micro text-brand-dark/40">
-              {isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}
-            </p>
-            <div className="flex items-center gap-4">
-              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="text-brand-dark/50 transition hover:text-brand-primary"
-                >
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </a>
-              ))}
-            </div>
-          </div>
-        </Grid>
-      </div>
     </footer>
   );
 }
@@ -153,10 +96,10 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <p className="type-micro text-brand-dark/40">{title}</p>
-      <div className="mt-4 grid gap-3">
+      <h2 className="text-sm font-bold text-brand-dark">{title}</h2>
+      <div className="mt-5 grid gap-1">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="type-body text-brand-dark/70 transition hover:text-brand-primary">
+          <Link key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-brand-dark/80 transition hover:text-brand-dark hover:underline">
             {link.label}
           </Link>
         ))}

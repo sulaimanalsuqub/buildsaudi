@@ -3,8 +3,8 @@ const PETAL_COUNT = 18;
 const petals = Array.from({ length: PETAL_COUNT }, (_, i) => {
   const angle = (i / PETAL_COUNT) * 2 * Math.PI;
   return {
-    cx: 60 + 44 * Math.cos(angle),
-    cy: 60 + 44 * Math.sin(angle),
+    cx: Number((60 + 44 * Math.cos(angle)).toFixed(6)),
+    cy: Number((60 + 44 * Math.sin(angle)).toFixed(6)),
   };
 });
 

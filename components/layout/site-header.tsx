@@ -50,7 +50,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-const homeHref = isRtl ? "/ar" : "/";
+  const homeHref = isRtl ? "/ar" : "/";
   const altPath = alternateLocalePath(pathname);
   const query = searchParams?.toString() ?? "";
   const languageHref = query ? `${altPath}?${query}` : altPath;
@@ -60,7 +60,7 @@ const homeHref = isRtl ? "/ar" : "/";
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 transition-[transform,background-color,box-shadow] duration-300",
+        "fixed inset-x-0 top-0 z-50 bg-white/95 transition-[transform,background-color,box-shadow] duration-300",
         hidden ? "-translate-y-full" : "translate-y-0",
         scrolled ? "border-b border-brand-dark/8 bg-white/92 shadow-sm backdrop-blur-xl" : "",
       ].join(" ")}
@@ -77,12 +77,18 @@ const homeHref = isRtl ? "/ar" : "/";
           />
         </Link>
 
-        <div className="flex items-center gap-2">
+        <nav aria-label={isRtl ? "التنقل الرئيسي" : "Main navigation"} className="hidden items-center gap-8 text-sm font-semibold text-brand-dark/75 md:flex">
+          <Link href={`${homeHref}#catalog`} className="transition-colors hover:text-brand-primary">{isRtl ? "المواد" : "Materials"}</Link>
+          <Link href={`${homeHref}#how-it-works`} className="transition-colors hover:text-brand-primary">{isRtl ? "كيف نعمل" : "How it works"}</Link>
+          <Link href={isRtl ? "/ar/track-request" : "/track-request"} className="transition-colors hover:text-brand-primary">{isRtl ? "تتبّع طلبك" : "Track your request"}</Link>
+        </nav>
+        <div className="flex items-center gap-3">
+          <Link href={isRtl ? "/ar/get-quote" : "/get-quote"} className="inline-flex min-h-11 items-center rounded-md bg-brand-dark px-4 text-xs font-bold text-white transition-colors hover:bg-brand-dark/90 sm:text-sm">{isRtl ? "اطلب عرض سعر" : "Request a quote"}</Link>
           {showWhatsApp && <a
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#25D366]/35 bg-white text-[#20b957] transition hover:border-[#25D366] hover:bg-[#25D366]/10"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#25D366]/35 bg-white text-[#20b957] transition hover:border-[#25D366] hover:bg-[#25D366]/10"
             aria-label={isRtl ? "تواصل معنا عبر واتساب" : "Contact us on WhatsApp"}
             title={isRtl ? "واتساب" : "WhatsApp"}
           >
@@ -90,7 +96,7 @@ const homeHref = isRtl ? "/ar" : "/";
           </a>}
           <Link
             href={languageHref}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
             aria-label={isRtl ? "English" : "العربية"}
             title={isRtl ? "English" : "العربية"}
           >
