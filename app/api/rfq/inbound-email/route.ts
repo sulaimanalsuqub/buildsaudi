@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { sendOpsAlertEmail } from "@/lib/email";
 import { processQuoteReply } from "@/lib/quote-intake";
+import { isErpnextConfigured } from "@/lib/erpnext";
+import { processQuoteReplyErpnext } from "@/lib/erpnext-rfq";
 import { extractEmailAddress, resolveInboundContent } from "@/lib/resend-inbound";
 import { claimSubmission, saveSubmissionState, type SubmissionState } from "@/lib/shared-store";
 import { retryableInboundOutcome, terminalInboundOutcome } from "@/lib/inbound-webhook-policy";
@@ -50,11 +52,12 @@ const FAILURE_LABELS: Record<string, string> = {
 export type InboundDeps = {
   resolveInboundContent: typeof resolveInboundContent;
   processQuoteReply: typeof processQuoteReply;
+  processQuoteReplyErpnext: typeof processQuoteReplyErpnext;
   sendOpsAlertEmail: typeof sendOpsAlertEmail;
   claimSubmission: typeof claimSubmission;
   saveSubmissionState: typeof saveSubmissionState;
 };
-const defaultDeps: InboundDeps = { resolveInboundContent, processQuoteReply, sendOpsAlertEmail, claimSubmission, saveSubmissionState };
+const defaultDeps: InboundDeps = { resolveInboundContent, processQuoteReply, processQuoteReplyErpnext, sendOpsAlertEmail, claimSubmission, saveSubmissionState };
 
 export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps = defaultDeps) {
   const secret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
@@ -124,9 +127,15 @@ export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps =
   const trackingMatch = subject.match(TRACKING_NUMBER_PATTERN);
   const correlationMatch = subject.match(RFQ_CORRELATION_PATTERN);
 
+  // في وضع ERPNext الـcorrelation token كافٍ ومستقل (RFQ+Supplier)، ولا يحمل رد RFQ رقم تتبع BLD-.
+  // في وضع Odoo يبقى رقم التتبع مطلوباً كما كان.
+  const useErpnext = isErpnextConfigured();
+  const processReply = useErpnext ? deps.processQuoteReplyErpnext : deps.processQuoteReply;
+  const trackingMissing = !useErpnext && !trackingMatch;
+
   // Terminal malformed/unmatched messages are acknowledged only after their ops alert
   // has been recorded. Infrastructure failures below remain retryable.
-  if (!fromEmail || !trackingMatch || !correlationMatch || (text.length < 5 && !attachmentCount)) {
+  if (!fromEmail || trackingMissing || !correlationMatch || (text.length < 5 && !attachmentCount)) {
     await deps.sendOpsAlertEmail({
       subject: "بريد وارد على قناة RFQ تعذر ربطه",
       details: [
@@ -136,7 +145,7 @@ export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps =
           label: "السبب",
           value: !fromEmail
             ? "عنوان مرسل غير صالح"
-            : !trackingMatch
+            : trackingMissing
               ? "لا يوجد رقم تتبع بالموضوع"
               : !correlationMatch
                 ? "لا يوجد رمز RFQ فريد بالموضوع؛ لا نستخدم تخميناً لربط الرد"
@@ -152,8 +161,8 @@ export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps =
   }
 
   try {
-    const result = await deps.processQuoteReply({
-      trackingNumber: trackingMatch[1],
+    const result = await processReply({
+      trackingNumber: trackingMatch?.[1] ?? "",
       correlation: correlationMatch[1],
       email: fromEmail,
       rawText: text,
@@ -167,7 +176,7 @@ export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps =
         subject: "رد RFQ وصل لكن تعذر تسجيله كعرض سعر",
         details: [
           { label: "المرسل", value: fromEmail },
-          { label: "رقم التتبع", value: trackingMatch[1] },
+          { label: "رقم التتبع", value: trackingMatch?.[1] ?? "—" },
           { label: "السبب", value: FAILURE_LABELS[result.reason] ?? result.reason },
         ],
         rawText: text,
@@ -184,7 +193,7 @@ export async function handleInboundWebhook(req: NextRequest, deps: InboundDeps =
       subject: "خطأ غير متوقع أثناء معالجة رد RFQ وارد",
       details: [
         { label: "المرسل", value: fromEmail },
-        { label: "رقم التتبع", value: trackingMatch[1] },
+        { label: "رقم التتبع", value: trackingMatch?.[1] ?? "—" },
         { label: "الخطأ", value: message.slice(0, 300) },
       ],
       rawText: text,

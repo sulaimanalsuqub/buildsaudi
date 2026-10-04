@@ -33,23 +33,22 @@ export async function vendorOdooCall<T>(model: string, method: string, params: R
   }
 }
 
+/** الفئات التجارية الثماني لتخصّص الموردين — ثابتة (business constants) لا تُدار من نظام خارجي */
+export const VENDOR_CATEGORIES = [
+  ["الأدوات الصحية", "Sanitaryware & Bath Fittings"],
+  ["الكهرباء والإنارة", "Electrical & Lighting"],
+  ["السباكة وأنظمة الأنابيب", "Plumbing & Piping Systems"],
+  ["التكييف والتهوية", "HVAC"],
+  ["الأرضيات", "Tiles & Flooring"],
+  ["الجداريات", "Wall Finishes & Coverings"],
+  ["الدهانات الداخلية والخارجية", "Paints & Coatings"],
+  ["اللواصق والمواد المساعدة", "Adhesives, Grouts & Sealants"],
+] as const;
+
 export async function listVendorCategories(): Promise<{ id: string; nameAr: string; nameEn: string }[]> {
-  const labels = [
-    ["الأدوات الصحية", "Sanitaryware & Bath Fittings"],
-    ["الكهرباء والإنارة", "Electrical & Lighting"],
-    ["السباكة وأنظمة الأنابيب", "Plumbing & Piping Systems"],
-    ["التكييف والتهوية", "HVAC"],
-    ["الأرضيات", "Tiles & Flooring"],
-    ["الجداريات", "Wall Finishes & Coverings"],
-    ["الدهانات الداخلية والخارجية", "Paints & Coatings"],
-    ["اللواصق والمواد المساعدة", "Adhesives, Grouts & Sealants"],
-  ] as const;
-  const names = labels.map(([name]) => name);
-  const tags = await vendorOdooCall<{ id: number; name: string }[]>("res.partner.category", "search_read", {
-    domain: [["name", "in", names]], fields: ["id", "name"], order: "name", limit: 100,
-  });
-  const ids = new Set(tags.map((tag) => tag.name));
-  return labels.filter(([name]) => ids.has(name)).map(([nameAr, nameEn]) => ({ id: nameAr, nameAr, nameEn }));
+  // قائمة ثابتة — بلا أي اعتماد على Odoo وقت التشغيل. (كان اعتماد Odoo هنا يُظهر رسالة
+  // "التسجيل متوقف مؤقتًا للصيانة" على build.sa/register متى تعذّر الوصول لـOdoo.)
+  return VENDOR_CATEGORIES.map(([nameAr, nameEn]) => ({ id: nameAr, nameAr, nameEn }));
 }
 
 export type VendorCommercialOptions = {

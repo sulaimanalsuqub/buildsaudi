@@ -87,8 +87,11 @@ test("public route reports Odoo unavailability without claiming success or expos
   const body = await response.json(); assert.equal(body.ok, undefined);
   assert.ok(!JSON.stringify(body).includes("private diagnostic")); assert.equal(writes, 0);
 });
-test("public categories endpoint works without the retired Build-OPT server", async () => {
+test("public categories endpoint serves the 8 static trade categories (no Odoo/Build-OPT)", async () => {
   const { GET } = await import("../app/api/reference/material-categories/route.ts");
   const response = await GET(); assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, categories: [{ id: "السباكة وأنظمة الأنابيب", nameAr: "السباكة وأنظمة الأنابيب", nameEn: "Plumbing & Piping Systems" }] });
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.categories.length, 8);
+  assert.ok(body.categories.some((c: { id: string; nameEn: string }) => c.id === "السباكة وأنظمة الأنابيب" && c.nameEn === "Plumbing & Piping Systems"));
 });

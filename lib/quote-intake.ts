@@ -13,7 +13,7 @@ import { claimSubmission, saveSubmissionState } from "@/lib/shared-store";
 import { createHash, randomUUID } from "crypto";
 
 export type QuoteIntakeResult =
-  | { ok: true; quoteId: number; quoteType: "supplier" | "freight"; confidence: number }
+  | { ok: true; quoteId: number | string; quoteType: "supplier" | "freight"; confidence: number }
   | { ok: false; reason: "request_not_found" | "partner_not_matched" | "extraction_failed" | "attachment_review_required" };
 
 /** يعالج رد مورد/ناقل على RFQ (نصاً حراً) ويحوّله لعرض سعر منظَّم في Odoo — تُستخدم من نقطة الاستقبال اليدوية ومن قارئ البريد الوارد معاً */
