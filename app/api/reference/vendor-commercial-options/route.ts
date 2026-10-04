@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("[reference/vendor-commercial-options] Odoo unavailable", error instanceof VendorRegistrationError ? error.message : "internal error");
-    return NextResponse.json({ error: "تعذر جلب خيارات المورد الدولي" }, { status: 503 });
+    // تحلّل بأمان: هذه الخيارات (عملة/دفع/إنكوترم) اختيارية وللموردين الدوليين فقط، وفي وضع ERPNext
+    // غير مستخدمة. لا نُسقط فورم التسجيل عند تعذّر Odoo — نُرجع قوائم فارغة بدل 503.
+    return NextResponse.json(
+      { ok: true, currencies: [], paymentTerms: [], paymentMethods: [], incoterms: [] },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

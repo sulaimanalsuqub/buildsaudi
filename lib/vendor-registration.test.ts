@@ -145,14 +145,18 @@ test("reconciles a lost create response with the saved Odoo reference", async ()
   assert.equal(createCalls, 1);
 });
 
-test("serves bilingual categories directly from Odoo with stable Arabic submission values", async () => {
+test("serves the 8 trade categories statically with stable Arabic submission values (no Odoo)", async () => {
   const mod = await registration(); assert.ok(mod, "direct Odoo registration is missing");
-  assert.deepEqual(await mod.listVendorCategories(), [{ id: "السباكة وأنظمة الأنابيب", nameAr: "السباكة وأنظمة الأنابيب", nameEn: "Plumbing & Piping Systems" }]);
+  globalThis.fetch = async () => { assert.fail("listVendorCategories must not hit the network"); };
+  const cats = await mod.listVendorCategories();
+  assert.equal(cats.length, 8);
+  assert.ok(cats.every((c) => c.id === c.nameAr && !!c.nameEn)); // stable Arabic submission value (id === nameAr)
+  assert.ok(cats.some((c) => c.id === "السباكة وأنظمة الأنابيب" && c.nameEn === "Plumbing & Piping Systems"));
 });
 
-test("rejects missing Odoo configuration without making a network request", async () => {
+test("categories load without any Odoo configuration (static constants)", async () => {
   const mod = await registration(); assert.ok(mod, "direct Odoo registration is missing");
   delete process.env.ODOO_API_KEY;
-  globalThis.fetch = async () => { assert.fail("must not call Odoo without credentials"); };
-  await assert.rejects(mod.listVendorCategories(), /configured/i);
+  globalThis.fetch = async () => { assert.fail("must not call Odoo for categories"); };
+  assert.equal((await mod.listVendorCategories()).length, 8);
 });
