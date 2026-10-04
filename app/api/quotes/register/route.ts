@@ -9,6 +9,7 @@ import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, supplierC
 import { extractRequestItems } from "@/lib/material-extraction";
 import { isErpnextConfigured, ErpnextClientError } from "@/lib/erpnext";
 import { createSupplyRequestInErpnext } from "@/lib/erpnext-supply-request";
+import { sendProcurementRequestReceivedEmail } from "@/lib/email";
 
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
@@ -182,6 +183,20 @@ export async function POST(req: NextRequest) {
 
       submissionState = { ...submissionState, status: "completed", trackingNumber: result.trackingNumber, stage: "completed" };
       await saveSubmissionState(submissionKey, submissionState);
+
+      // تأكيد للعميل (best-effort — لا يفشّل الطلب إن تعذّر الإرسال)
+      try {
+        const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.build.sa").replace(/\/$/, "");
+        await sendProcurementRequestReceivedEmail({
+          contactName: data.contact_name,
+          email: data.email,
+          trackingNumber: result.trackingNumber,
+          trackingUrl: `${base}/ar/track-request?token=${encodeURIComponent(result.trackingNumber)}`,
+        });
+      } catch (emailError) {
+        console.error("[quotes/register] confirmation email failed (non-blocking):", emailError instanceof Error ? emailError.message : emailError);
+      }
+
       return NextResponse.json({ ok: true, tracking_number: result.trackingNumber, correlation_id: correlationId });
     }
 

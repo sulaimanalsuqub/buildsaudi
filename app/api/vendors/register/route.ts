@@ -8,6 +8,7 @@ import { isErpnextConfigured } from "@/lib/erpnext";
 import { registerVendorInErpnext, ErpnextVendorError } from "@/lib/erpnext-vendor-registration";
 import { createErpnextVendorFilesToken } from "@/lib/erpnext-vendor-files";
 import { createVendorFilesToken } from "@/lib/vendor-registration-files";
+import { sendVendorRegistrationConfirmation } from "@/lib/email";
 import { MAX_VENDOR_FILES, validateVendorFileMetadata } from "@/lib/vendor-file-policy";
 
 export const maxDuration = 120;
@@ -97,6 +98,19 @@ export async function POST(req: NextRequest) {
         country_code: countryCode,
         fileNames: vendor.files.map((f) => f.name),
       });
+      // تأكيد للمورد (best-effort — لا يفشّل التسجيل)
+      if (result.status === "registered") {
+        try {
+          await sendVendorRegistrationConfirmation({
+            establishment_name: vendor.establishment_name,
+            manager_name: vendor.contact_name,
+            email: vendor.email,
+            lang: vendor.preferred_language,
+          });
+        } catch (emailError) {
+          console.error("[vendors/register] confirmation email failed (non-blocking):", emailError instanceof Error ? emailError.message : emailError);
+        }
+      }
       return NextResponse.json({
         ok: true,
         status: result.status,
