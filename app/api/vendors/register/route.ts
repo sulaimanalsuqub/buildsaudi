@@ -4,6 +4,9 @@ import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { registerVendor, VendorRegistrationError } from "@/lib/vendor-registration";
+import { isErpnextConfigured } from "@/lib/erpnext";
+import { registerVendorInErpnext, ErpnextVendorError } from "@/lib/erpnext-vendor-registration";
+import { createErpnextVendorFilesToken } from "@/lib/erpnext-vendor-files";
 import { createVendorFilesToken } from "@/lib/vendor-registration-files";
 import { MAX_VENDOR_FILES, validateVendorFileMetadata } from "@/lib/vendor-file-policy";
 
@@ -81,9 +84,36 @@ export async function POST(req: NextRequest) {
   }
 
   const countryDisplay = resolveCountryDisplayName(vendor.country);
+  const countryCode = resolveCountryCode(countryDisplay);
+
+  // ERPNext (مصدر الحقيقة) عند تهيئته، وإلا fallback لـOdoo (rollback آمن).
+  // ملاحظة: في وضع ERPNext لا يُصدَر uploadToken (تدفّق رفع الملفات متعدد المراحل لا يزال على Odoo
+  // ويعتمد على معرّف مورد رقمي) — تُسجَّل أسماء الملفات على المورد، ويُستكمل التدفّق لاحقاً.
+  if (isErpnextConfigured()) {
+    try {
+      const result = await registerVendorInErpnext({
+        ...vendor,
+        country: countryDisplay,
+        country_code: countryCode,
+        fileNames: vendor.files.map((f) => f.name),
+      });
+      return NextResponse.json({
+        ok: true,
+        status: result.status,
+        ...(vendor.files.length ? { uploadToken: createErpnextVendorFilesToken(result.supplier, vendor.files) } : {}),
+      });
+    } catch (error) {
+      console.error("[vendors/register] ERPNext registration failed:", error instanceof ErpnextVendorError ? error.message : "internal error");
+      return NextResponse.json(
+        { error: error instanceof ErpnextVendorError ? error.publicMessage : "تعذر حفظ الطلب حالياً. حاول مرة أخرى بعد قليل." },
+        { status: error instanceof ErpnextVendorError ? error.status : 503 }
+      );
+    }
+  }
+
   try {
     const result = await registerVendor({
-      ...vendor, country: countryDisplay, country_code: resolveCountryCode(countryDisplay),
+      ...vendor, country: countryDisplay, country_code: countryCode,
     });
     return NextResponse.json({ ok: true, status: result.status, ...(vendor.files.length ? { uploadToken: createVendorFilesToken(result.vendorId, vendor.files) } : {}) });
   } catch (error) {

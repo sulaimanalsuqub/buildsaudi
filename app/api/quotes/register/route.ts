@@ -7,6 +7,8 @@ import { validateSafeUpload } from "@/lib/file-validation";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, supplierCountries } from "@/lib/vendor-options";
 import { extractRequestItems } from "@/lib/material-extraction";
+import { isErpnextConfigured, ErpnextClientError } from "@/lib/erpnext";
+import { createSupplyRequestInErpnext } from "@/lib/erpnext-supply-request";
 
 const MAX_FILES = 5;
 const MAX_FILE_BASE64_LENGTH = 11_000_000; // ~8MB بعد فك الترميز
@@ -101,10 +103,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "تعذر التحقق من أنك لست برنامجاً آلياً — أعد تحميل الصفحة وحاول مجدداً" }, { status: 400 });
   }
 
+  // نظام العمليات: ERPNext (مصدر الحقيقة) متى ما هُيّئ، وإلا fallback لـBuild-OPT (مسار rollback آمن).
+  const useErpnext = isErpnextConfigured();
   const baseUrl = process.env.BUILD_OPT_BASE_URL;
   const secret = process.env.PUBLIC_INTAKE_SERVICE_SECRET;
-  if (!baseUrl || !secret) {
-    console.error("[quotes/register] BUILD_OPT_BASE_URL/PUBLIC_INTAKE_SERVICE_SECRET not configured");
+  if (!useErpnext && (!baseUrl || !secret)) {
+    console.error("[quotes/register] no operations backend configured (ERPNEXT_* or BUILD_OPT_BASE_URL/PUBLIC_INTAKE_SERVICE_SECRET)");
     return NextResponse.json({ error: "نظام استقبال الطلبات غير مهيّأ حالياً — حاول لاحقاً" }, { status: 503 });
   }
 
@@ -154,11 +158,39 @@ export async function POST(req: NextRequest) {
       .join("\n\n")
       .slice(0, 5000);
 
+    // ── مسار ERPNext (مصدر الحقيقة): Customer/Contact/Address → Items → Material Request ──
+    if (useErpnext) {
+      const result = await createSupplyRequestInErpnext({
+        submissionId: data.submission_id,
+        legalName: data.company_name || undefined,
+        contactName: data.contact_name,
+        email: data.email,
+        phone: data.phone,
+        projectName: data.project_name,
+        notes: notes || undefined,
+        requestedDeliveryDate: data.requested_delivery_date || undefined,
+        lines: items.map((i) => ({
+          itemName: i.itemName,
+          quantity: i.quantity,
+          unit: i.unit || undefined,
+          brand: i.brand || undefined,
+          countryOfOrigin: i.countryOfOrigin || undefined,
+        })),
+        files: data.files.map((f) => ({ name: f.name, mimeType: f.mimeType, base64Data: f.base64Data })),
+        correlationId,
+      });
+
+      submissionState = { ...submissionState, status: "completed", trackingNumber: result.trackingNumber, stage: "completed" };
+      await saveSubmissionState(submissionKey, submissionState);
+      return NextResponse.json({ ok: true, tracking_number: result.trackingNumber, correlation_id: correlationId });
+    }
+
+    // ── مسار Build-OPT القديم (fallback) ──
     let res: Response;
     try {
       res = await fetch(`${baseUrl}/api/public/procurement-requests`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-service-secret": secret },
+        headers: { "Content-Type": "application/json", "x-service-secret": secret as string },
         body: JSON.stringify({
           submissionId: data.submission_id,
           legalName: data.company_name || undefined,
@@ -214,7 +246,14 @@ export async function POST(req: NextRequest) {
     // User-facing message: be specific so users know what's wrong, but don't expose internals.
     let userMessage = "تعذر حفظ طلبكم في نظام العمليات";
     let status = 502; // Bad Gateway — we're a proxy that couldn't reach upstream
-    if (/timeout/i.test(msg)) {
+    if (error instanceof ErpnextClientError) {
+      userMessage = error.publicMessage;
+      status =
+        error.kind === "timeout" ? 504 :
+        error.kind === "network" ? 503 :
+        error.kind === "validation" || error.kind === "conflict" ? 400 :
+        502; // auth/permission/not_found/unknown → مشكلة تهيئة داخلية
+    } else if (/timeout/i.test(msg)) {
       userMessage = "النظام تحت ضغط — حاول مرة أخرى بعد دقيقة";
       status = 504; // Gateway Timeout
     } else if (/network/i.test(msg)) {
