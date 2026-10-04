@@ -19,6 +19,7 @@ not a marketplace). Native ERPNext first; minimum customization; nothing irrever
 | [08-cutover](08-cutover.md) | feature switch, gates, rollback |
 | [09-customization-register](09-customization-register.md) | every non-native change (minimal) |
 | [10-b2g-government-quotation](10-b2g-government-quotation.md) | B2G government project quotation + print format |
+| [11-erpnext-objects](11-erpnext-objects.md) | reproducible inventory of all ERPNext objects created (+ assets/) |
 
 ## Status
 | Phase | Status |

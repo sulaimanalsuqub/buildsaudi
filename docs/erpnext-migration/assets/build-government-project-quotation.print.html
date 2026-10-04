@@ -1,0 +1,160 @@
+{%- set vat = frappe.db.get_value("Company", doc.company, "tax_id") or "—" -%}
+{%- set cr = frappe.db.get_value("Company", doc.company, "registration_details") or "—" -%}
+{%- set company_abbr = frappe.db.get_value("Company", doc.company, "abbr") or "" -%}
+{%- set addr_name = frappe.db.get_value("Dynamic Link", {"link_doctype":"Company","link_name":doc.company,"parenttype":"Address"}, "parent") -%}
+{%- set entity = doc.customer_name or doc.party_name or "—" -%}
+<div class="gov-doc" dir="rtl">
+
+  <!-- ============ COVER ============ -->
+  <div class="gov-page cover">
+    <div class="brand">BUILD<span class="brand-sub"> | بِلدْ</span></div>
+    <div class="legal-brandline">علامة تجارية تابعة للكيان القانوني: <strong>{{ doc.company }}</strong></div>
+
+    <div class="financial-proposal">
+      <div class="fp-ar">العرض المالي</div>
+      <div class="fp-en">FINANCIAL PROPOSAL</div>
+    </div>
+
+    <table class="cover-grid">
+      <tr><td class="k">اسم المنافسة / المشروع</td><td class="v">{{ doc.custom_tender_name or "—" }}</td></tr>
+      <tr><td class="k">الجهة الحكومية</td><td class="v">{{ entity }}</td></tr>
+      <tr><td class="k">رقم المنافسة</td><td class="v">{{ doc.custom_tender_number or "—" }}</td></tr>
+      <tr><td class="k">الرقم المرجعي (اعتماد)</td><td class="v">{{ doc.custom_etimad_reference or "—" }}</td></tr>
+      <tr><td class="k">رقم العرض</td><td class="v">{{ doc.name }}</td></tr>
+      <tr><td class="k">تاريخ العرض</td><td class="v">{{ frappe.utils.formatdate(doc.transaction_date, "dd/MM/yyyy") }}</td></tr>
+      <tr><td class="k">مدة سريان العرض</td><td class="v">{% if doc.valid_till %}حتى {{ frappe.utils.formatdate(doc.valid_till, "dd/MM/yyyy") }}{% else %}—{% endif %}</td></tr>
+      <tr><td class="k">مدة التوريد / التنفيذ</td><td class="v">{{ doc.custom_execution_period or "—" }}</td></tr>
+      <tr><td class="k">نطاق التوريد</td><td class="v">{{ doc.custom_scope_of_supply or "—" }}</td></tr>
+    </table>
+
+    <div class="bidder">
+      <div class="bidder-title">بيانات مقدّم العرض</div>
+      <table class="bidder-grid">
+        <tr><td class="k">الاسم القانوني (Legal Company Name)</td><td class="v">{{ doc.company }}</td></tr>
+        <tr><td class="k">السجل التجاري (CR)</td><td class="v">{{ cr }}</td></tr>
+        <tr><td class="k">الرقم الضريبي (VAT)</td><td class="v">{{ vat }}</td></tr>
+        {%- if addr_name %}{%- set addr = frappe.get_doc("Address", addr_name) -%}
+        <tr><td class="k">العنوان (Address)</td><td class="v">{{ addr.address_line1 or "" }}{% if addr.city %}، {{ addr.city }}{% endif %}{% if addr.country %}، {{ addr.country }}{% endif %}</td></tr>
+        <tr><td class="k">الهاتف / البريد</td><td class="v">{{ addr.phone or "—" }} {% if addr.email_id %}· {{ addr.email_id }}{% endif %}</td></tr>
+        {%- else %}
+        <tr><td class="k">العنوان / الهاتف / البريد</td><td class="v">—</td></tr>
+        {%- endif %}
+        <tr><td class="k">العلامة التجارية</td><td class="v">Build</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ COVER LETTER ============ -->
+  <div class="gov-page" style="page-break-before:always">
+    <div class="section-title">خطاب العرض المالي</div>
+    <p class="letter">السادة/ {{ entity }}،</p>
+    <p class="letter">السلام عليكم ورحمة الله وبركاته،</p>
+    <p class="letter">
+      إشارة إلى المنافسة رقم ({{ doc.custom_tender_number or "—" }}){% if doc.custom_etimad_reference %} والرقم المرجعي ({{ doc.custom_etimad_reference }}){% endif %} والخاصة بـ ({{ doc.custom_tender_name or "—" }})، نتشرف بتقديم عرضنا المالي لتنفيذ نطاق التوريد والأعمال وفق وثائق المنافسة وكراسة الشروط والمواصفات وجداول الكميات والملاحق والتوضيحات ذات العلاقة.
+    </p>
+    <table class="summary-mini">
+      <tr><td class="k">القيمة قبل ضريبة القيمة المضافة</td><td class="v">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</td></tr>
+      {% if doc.discount_amount and doc.discount_amount > 0 %}<tr><td class="k">الخصم</td><td class="v">{{ frappe.utils.fmt_money(doc.discount_amount, currency=doc.currency) }}</td></tr>{% endif %}
+      <tr><td class="k">ضريبة القيمة المضافة (15%)</td><td class="v">{{ frappe.utils.fmt_money(doc.total_taxes_and_charges, currency=doc.currency) }}</td></tr>
+      <tr class="grand"><td class="k">الإجمالي شامل ضريبة القيمة المضافة</td><td class="v">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</td></tr>
+    </table>
+    <p class="letter">وتفضلوا بقبول فائق الاحترام والتقدير،</p>
+    <p class="letter"><strong>{{ doc.company }}</strong> — علامة Build التجارية</p>
+  </div>
+
+  <!-- ============ BOQ ============ -->
+  <div class="gov-page" style="page-break-before:always">
+    <div class="section-title">جدول الكميات (BOQ)</div>
+    <table class="boq">
+      <thead>
+        <tr>
+          <th class="c-idx">م</th>
+          <th class="c-code">رقم الصنف/البند</th>
+          <th class="c-desc">الوصف</th>
+          <th class="c-uom">الوحدة</th>
+          <th class="c-qty">الكمية</th>
+          <th class="c-rate">سعر الوحدة</th>
+          <th class="c-amt">الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in doc.items %}
+        <tr>
+          <td class="c-idx">{{ loop.index }}</td>
+          <td class="c-code">{{ item.item_code }}</td>
+          <td class="c-desc">
+            <div class="desc-name">{{ item.item_name }}</div>
+            {% if item.description and item.description != item.item_name %}<div class="desc-full">{{ item.description | striptags | e }}</div>{% endif %}
+          </td>
+          <td class="c-uom">{{ item.uom }}</td>
+          <td class="c-qty">{{ "{:,.2f}".format(item.qty) }}</td>
+          <td class="c-rate">{{ frappe.utils.fmt_money(item.rate, currency=doc.currency) }}</td>
+          <td class="c-amt">{{ frappe.utils.fmt_money(item.amount, currency=doc.currency) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ FINANCIAL SUMMARY ============ -->
+  <div class="gov-page summary-block">
+    <div class="section-title">الملخص المالي</div>
+    <table class="summary">
+      <tr><td class="k">إجمالي البنود</td><td class="v">{{ frappe.utils.fmt_money(doc.total, currency=doc.currency) }}</td></tr>
+      {% if doc.discount_amount and doc.discount_amount > 0 %}<tr><td class="k">الخصم</td><td class="v">- {{ frappe.utils.fmt_money(doc.discount_amount, currency=doc.currency) }}</td></tr>{% endif %}
+      <tr><td class="k">الإجمالي قبل الضريبة</td><td class="v">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</td></tr>
+      <tr><td class="k">ضريبة القيمة المضافة (15%)</td><td class="v">{{ frappe.utils.fmt_money(doc.total_taxes_and_charges, currency=doc.currency) }}</td></tr>
+      <tr class="grand"><td class="k">الإجمالي شامل الضريبة — TOTAL INCLUDING VAT</td><td class="v">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</td></tr>
+    </table>
+    {% if doc.in_words %}<p class="in-words">فقط {{ doc.in_words }} لا غير.</p>{% endif %}
+  </div>
+
+  <!-- ============ TERMS (gov terms only — never B2B defaults) ============ -->
+  {%- set terms_html = doc.terms or (frappe.db.get_value("Terms and Conditions", doc.tc_name, "terms") if doc.tc_name else None) -%}
+  {% if terms_html %}
+  <div class="gov-page" style="page-break-before:always">
+    <div class="section-title">الشروط</div>
+    <div class="terms">{{ terms_html }}</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+  .gov-doc { font-family: "Tahoma","Arial",sans-serif; color:#111; font-size:12px; line-height:1.7; }
+  .gov-page { padding:4px 2px; }
+  .brand { font-size:40px; font-weight:800; letter-spacing:2px; color:#0f2a43; }
+  .brand-sub { font-size:20px; font-weight:600; color:#4a6076; }
+  .legal-brandline { font-size:11px; color:#444; margin-bottom:26px; }
+  .financial-proposal { text-align:center; margin:30px 0; border-top:3px solid #0f2a43; border-bottom:3px solid #0f2a43; padding:14px 0; }
+  .fp-ar { font-size:28px; font-weight:800; color:#0f2a43; }
+  .fp-en { font-size:14px; letter-spacing:4px; color:#4a6076; }
+  .cover-grid, .bidder-grid { width:100%; border-collapse:collapse; margin:16px 0; }
+  .cover-grid td, .bidder-grid td { border:1px solid #c9d3dc; padding:8px 10px; vertical-align:top; }
+  .cover-grid .k, .bidder-grid .k, .summary .k, .summary-mini .k { background:#eef2f6; font-weight:700; width:42%; color:#0f2a43; }
+  .bidder { margin-top:26px; }
+  .bidder-title { font-weight:800; color:#0f2a43; border-bottom:2px solid #0f2a43; padding-bottom:4px; margin-bottom:8px; }
+  .section-title { font-size:16px; font-weight:800; color:#0f2a43; border-right:5px solid #0f2a43; padding:4px 10px; margin-bottom:12px; background:#f4f7f9; }
+  .letter { margin:10px 0; text-align:justify; }
+  .summary-mini, .summary { width:100%; border-collapse:collapse; margin:16px 0; }
+  .summary-mini td, .summary td { border:1px solid #c9d3dc; padding:8px 10px; }
+  .summary .v, .summary-mini .v { text-align:left; font-variant-numeric:tabular-nums; }
+  .summary .grand, .summary-mini .grand { font-size:15px; font-weight:800; }
+  .summary .grand .k, .summary-mini .grand .k { background:#0f2a43; color:#fff; }
+  .summary .grand .v, .summary-mini .grand .v { background:#dCE6ef; color:#0f2a43; }
+  .in-words { font-weight:700; background:#f4f7f9; border:1px dashed #0f2a43; padding:8px 10px; }
+  table.boq { width:100%; border-collapse:collapse; }
+  table.boq th { background:#0f2a43; color:#fff; border:1px solid #0f2a43; padding:7px 5px; font-size:11px; }
+  table.boq td { border:1px solid #c9d3dc; padding:6px 5px; vertical-align:top; }
+  table.boq .c-idx { text-align:center; width:4%; }
+  table.boq .c-code { width:14%; font-size:10px; color:#333; }
+  table.boq .c-desc { width:40%; }
+  table.boq .c-uom { text-align:center; width:8%; }
+  table.boq .c-qty { text-align:center; width:9%; }
+  table.boq .c-rate, table.boq .c-amt { text-align:left; width:12.5%; font-variant-numeric:tabular-nums; }
+  .desc-name { font-weight:700; }
+  .desc-full { font-size:10px; color:#444; margin-top:2px; white-space:normal; word-break:break-word; }
+  .terms { border:1px solid #c9d3dc; padding:10px 12px; background:#fafcfd; }
+  table.boq thead { display:table-header-group; }
+  table.boq tr { page-break-inside:avoid; }
+</style>
