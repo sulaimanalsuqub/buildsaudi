@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { OdooClientError, getProcurementRequestByTrackingToken } from "@/lib/odoo";
+import { isErpnextConfigured, ErpnextClientError } from "@/lib/erpnext";
+import { getSupplyRequestTracking } from "@/lib/erpnext-supply-request";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
@@ -10,6 +13,21 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) {
     return NextResponse.json({ error: "رمز التتبع مطلوب" }, { status: 400 });
+  }
+
+  // ERPNext (مصدر الحقيقة): رقم التتبع = اسم Material Request
+  if (isErpnextConfigured()) {
+    try {
+      const view = await getSupplyRequestTracking(token, randomUUID());
+      if (!view) {
+        return NextResponse.json({ error: "رقم التتبع غير صحيح" }, { status: 404 });
+      }
+      return NextResponse.json({ ok: true, ...view });
+    } catch (error) {
+      const cid = error instanceof ErpnextClientError ? error.correlationId : "";
+      console.error(`[quotes/track][erpnext][${cid}]`, error instanceof Error ? error.message : error);
+      return NextResponse.json({ error: "تعذر الوصول لبيانات الطلب حالياً" }, { status: 500 });
+    }
   }
 
   try {

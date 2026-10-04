@@ -326,6 +326,72 @@ async function resolveItem(line: SupplyRequestLine, cid: string): Promise<Resolv
 // Material Request (Purpose = Purchase, Draft)
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// Customer tracking (safe view) — /api/quotes/track
+// token = Material Request name (the reference shown to the customer).
+// Returns ONLY customer-safe fields (spec §40): no supplier, cost, margin, or internal notes.
+// ─────────────────────────────────────────────────────────────
+
+export type SupplyRequestTracking = {
+  trackingNumber: string;
+  projectName: string;
+  customerStatus: string;
+  requestDate: string;
+  declineReason: string | null;
+};
+
+/** يحوّل حالة Material Request إلى حالة عامة آمنة للعميل */
+function mapMrStatus(status: string): { customerStatus: string; declineReason: string | null } {
+  switch (status) {
+    case "Draft":
+    case "Pending":
+      return { customerStatus: "reviewing", declineReason: null };
+    case "Partially Ordered":
+      return { customerStatus: "confirmed", declineReason: null };
+    case "Ordered":
+      return { customerStatus: "preparing", declineReason: null };
+    case "Partially Received":
+      return { customerStatus: "preparing", declineReason: null };
+    case "Received":
+      return { customerStatus: "ready_to_ship", declineReason: null };
+    case "Issued":
+    case "Transferred":
+      return { customerStatus: "in_transit", declineReason: null };
+    case "Stopped":
+      return { customerStatus: "needs_attention", declineReason: null };
+    case "Cancelled":
+      return { customerStatus: "declined", declineReason: "other" };
+    default:
+      return { customerStatus: "received", declineReason: null };
+  }
+}
+
+export async function getSupplyRequestTracking(token: string, cid: string): Promise<SupplyRequestTracking | null> {
+  const name = token.trim();
+  // قبول اسم Material Request فقط (لا تخمين على doctypes أخرى)
+  if (!name) return null;
+  let mr: { name: string; status: string; transaction_date: string; items?: { project?: string }[] };
+  try {
+    mr = await getDoc("Material Request", name, cid);
+  } catch (error) {
+    if (error instanceof ErpnextClientError && error.kind === "not_found") return null;
+    throw error;
+  }
+  // اسم المشروع (للعرض) — من أول بند مرتبط بمشروع
+  let projectName = "";
+  const projectId = (mr.items || []).map((i) => i.project).find(Boolean);
+  if (projectId) {
+    try {
+      const p = await getDoc<{ project_name?: string }>("Project", projectId, cid);
+      projectName = p.project_name || "";
+    } catch {
+      /* اسم المشروع تحسيني */
+    }
+  }
+  const { customerStatus, declineReason } = mapMrStatus(mr.status);
+  return { trackingNumber: mr.name, projectName, customerStatus, requestDate: mr.transaction_date || "", declineReason };
+}
+
 export async function createSupplyRequestInErpnext(input: SupplyRequestInput): Promise<SupplyRequestResult> {
   const cid = input.correlationId;
   if (!input.lines.length) {
