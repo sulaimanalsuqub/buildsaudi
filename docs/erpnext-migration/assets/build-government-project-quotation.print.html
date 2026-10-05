@@ -68,8 +68,11 @@
       <thead>
         <tr>
           <th class="c-idx">م</th>
-          <th class="c-code">رقم الصنف/البند</th>
+          <th class="c-img">صورة</th>
+          <th class="c-name">الصنف</th>
           <th class="c-desc">الوصف</th>
+          <th class="c-brand">العلامة التجارية</th>
+          <th class="c-origin">المنشأ</th>
           <th class="c-uom">الوحدة</th>
           <th class="c-qty">الكمية</th>
           <th class="c-rate">سعر الوحدة</th>
@@ -78,13 +81,15 @@
       </thead>
       <tbody>
         {% for item in doc.items %}
+        {%- set origin = frappe.db.get_value("Item", item.item_code, "country_of_origin") -%}
+        {%- set img = item.image or "" -%}
         <tr>
           <td class="c-idx">{{ loop.index }}</td>
-          <td class="c-code">{{ item.item_code }}</td>
-          <td class="c-desc">
-            <div class="desc-name">{{ item.item_name }}</div>
-            {% if item.description and item.description != item.item_name %}<div class="desc-full">{{ item.description | striptags | e }}</div>{% endif %}
-          </td>
+          <td class="c-img">{% if img %}<img class="itemimg" src="{% if img.startswith('http') %}{{ img }}{% else %}https://buildsaudi.k.frappe.cloud{{ img }}{% endif %}"/>{% endif %}</td>
+          <td class="c-name"><div class="desc-name">{{ item.item_name }}</div><div class="c-code2" dir="ltr">{{ item.item_code }}</div></td>
+          <td class="c-desc">{% if item.description and item.description != item.item_name %}{{ item.description | striptags | e }}{% endif %}</td>
+          <td class="c-brand">{{ item.brand or "—" }}</td>
+          <td class="c-origin">{{ origin or "—" }}</td>
           <td class="c-uom">{{ item.uom }}</td>
           <td class="c-qty">{{ "{:,.2f}".format(item.qty) }}</td>
           <td class="c-rate">{{ frappe.utils.fmt_money(item.rate, currency=doc.currency) }}</td>
@@ -146,12 +151,20 @@
   table.boq { width:100%; border-collapse:collapse; }
   table.boq th { background:#0f2a43; color:#fff; border:1px solid #0f2a43; padding:7px 5px; font-size:11px; }
   table.boq td { border:1px solid #c9d3dc; padding:6px 5px; vertical-align:top; }
-  table.boq .c-idx { text-align:center; width:4%; }
-  table.boq .c-code { width:14%; font-size:10px; color:#333; }
-  table.boq .c-desc { width:40%; }
-  table.boq .c-uom { text-align:center; width:8%; }
-  table.boq .c-qty { text-align:center; width:9%; }
-  table.boq .c-rate, table.boq .c-amt { text-align:left; width:12.5%; font-variant-numeric:tabular-nums; }
+  table.boq { font-size:9px; }
+  table.boq th { font-size:9px; padding:5px 3px; }
+  table.boq td { padding:4px 3px; }
+  table.boq .c-idx { text-align:center; width:3%; }
+  table.boq .c-img { text-align:center; width:9%; }
+  table.boq .c-name { width:19%; }
+  table.boq .c-code2 { font-size:7.5px; color:#999; font-weight:400; margin-top:1px; }
+  table.boq .c-desc { width:21%; color:#444; }
+  table.boq .c-brand { width:9%; text-align:center; }
+  table.boq .c-origin { width:9%; text-align:center; }
+  table.boq .c-uom { text-align:center; width:6%; }
+  table.boq .c-qty { text-align:center; width:6%; }
+  table.boq .c-rate, table.boq .c-amt { text-align:left; width:9.5%; font-variant-numeric:tabular-nums; }
+  table.boq .itemimg { max-height:42px; max-width:60px; object-fit:contain; }
   .desc-name { font-weight:700; }
   .desc-full { font-size:10px; color:#444; margin-top:2px; white-space:normal; word-break:break-word; }
   .terms { border:1px solid #c9d3dc; padding:10px 12px; background:#fafcfd; }
