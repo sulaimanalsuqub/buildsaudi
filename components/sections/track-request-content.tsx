@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { AlertCircle, Loader2, PackageSearch } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, Loader2, PackageSearch, Search } from "lucide-react";
 
 import { Container } from "@/components/ui/container";
 import { textByLang } from "@/lib/vendor-options";
@@ -42,20 +42,26 @@ const DECLINE_REASON_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(token));
   const [data, setData] = useState<TrackingData | null>(null);
   const [error, setError] = useState("");
+  const [input, setInput] = useState("");
 
   useEffect(() => {
     if (!token) {
-      setError(textByLang(isRtl, "Tracking link is missing or invalid.", "رابط التتبع غير موجود أو غير صالح."));
+      // لا رمز في الرابط — نعرض خانة الإدخال بدل رسالة خطأ
       setLoading(false);
+      setData(null);
+      setError("");
       return;
     }
     let cancelled = false;
+    setLoading(true);
+    setError("");
     (async () => {
       try {
         const res = await fetch(`/api/quotes/track?token=${encodeURIComponent(token)}`);
@@ -77,9 +83,19 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
     };
   }, [token, isRtl]);
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = input.trim();
+    if (!value) return;
+    const base = isRtl ? "/ar/track-request" : "/track-request";
+    router.push(`${base}?token=${encodeURIComponent(value)}`);
+  };
+
   const statusLabel = data ? STATUS_LABELS[data.customerStatus] : null;
   const isDeclined = data?.customerStatus === "declined";
   const reasonLabel = data?.declineReason ? DECLINE_REASON_LABELS[data.declineReason] : null;
+
+  const showSearch = !loading && !data;
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
@@ -91,12 +107,6 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
                 <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
                 <span>{textByLang(isRtl, "Loading your request…", "جاري تحميل بيانات طلبكم…")}</span>
               </div>
-            ) : error ? (
-              <>
-                <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
-                <h2 className="mt-4 text-xl font-bold text-brand-dark">{textByLang(isRtl, "Not Found", "غير موجود")}</h2>
-                <p className="mt-3 text-brand-dark/75">{error}</p>
-              </>
             ) : data ? (
               <>
                 <PackageSearch className="mx-auto h-12 w-12 text-brand-primary" />
@@ -112,8 +122,45 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
                     <p className="mt-2 text-sm text-red-600/90">{isRtl ? reasonLabel.ar : reasonLabel.en}</p>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setData(null); setError(""); setInput(""); router.push(isRtl ? "/ar/track-request" : "/track-request"); }}
+                  className="mt-6 text-sm text-brand-primary hover:underline"
+                >
+                  {textByLang(isRtl, "Track another request", "تتبّع طلب آخر")}
+                </button>
               </>
             ) : null}
+
+            {showSearch && (
+              <>
+                <PackageSearch className="mx-auto h-12 w-12 text-brand-primary" />
+                <h2 className="mt-4 text-xl font-bold text-brand-dark">{textByLang(isRtl, "Track your request", "تتبّع طلبك")}</h2>
+                <p className="mt-2 text-sm text-brand-dark/70">
+                  {textByLang(isRtl, "Enter the reference number you received when you submitted your request.", "أدخل الرقم المرجعي الذي استلمته عند إرسال طلبك.")}
+                </p>
+                {error && (
+                  <div className="mx-auto mt-4 flex items-center justify-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" /> <span>{error}</span>
+                  </div>
+                )}
+                <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={textByLang(isRtl, "e.g. MAT-MR-2026-00001", "مثال: MAT-MR-2026-00001")}
+                    dir="ltr"
+                    className="min-h-11 flex-1 rounded-xl border border-brand-dark/15 px-4 text-center text-brand-dark outline-none focus:border-brand-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-primary px-6 font-bold text-white hover:bg-brand-primary/90"
+                  >
+                    <Search className="h-4 w-4" /> {textByLang(isRtl, "Track", "تتبّع")}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </Container>
       </section>
