@@ -247,7 +247,7 @@ export function HomeContent({ isRtl = false }: HomeContentProps) {
       {/* ── How it works ─────────────────────────────── */}
       <HowItWorks isRtl={isRtl} />
 
-      <section className="supply-cta bg-brand-accent text-brand-dark">
+      <section className="supply-cta text-brand-dark" style={{ backgroundColor: "#dde6d7" }}>
         <Grid className="items-end gap-y-10">
           <div className="col-span-4 sm:col-span-8 lg:col-span-9">
             <h2 className="supply-cta-title">{isRtl ? <>أرسل طلبك.<br />وسنرتّب <span className="cta-outline">التوريد لك.</span></> : <>Send your request.<br />We&apos;ll handle <span className="cta-outline">the supply.</span></>}</h2>
