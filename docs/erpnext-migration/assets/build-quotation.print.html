@@ -1,0 +1,100 @@
+{%- set vat = frappe.db.get_value("Company", doc.company, "tax_id") or "—" -%}
+{%- set cr = frappe.db.get_value("Company", doc.company, "registration_details") or "—" -%}
+{%- set entity = doc.customer_name or doc.party_name or "—" -%}
+<div class="bq" dir="rtl">
+  <!-- Header -->
+  <table class="bq-head"><tr>
+    <td class="bq-logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAcsAAACgCAYAAABjRkdqAAAACXBIWXMAAC4jAAAuIwF4pT92AAAUBUlEQVR4nO3deZQmVXnH8XcWdpBlHIfu997neXtoMmQCqDQOw9Dvc7ubIQwwENEzgP9IFoNJOAkYMSS4BESBRKLhRHOyqPGwJWCQ3bDKKEaWiIACQUBQIySAwyKLbDPk3LcbGGdh3u6qt25V9fdzzv1vznTduvXWr24tz200AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMurfv3+OC273pulBEmSFN/9+MTnGt1tHNkfkvT74YT/qdxlcNrgFOxsAUHsyLDt684f6IGf6IN/wQR7zQV/tqpm+7E3udaZf9UGPl1EZaqxozErdJwAAMhsYG5gnJn/SCUfTV7oOx65aJ2y/GGelBCcAoHKkLWM+yEUuyEv5BuRGZ57/400/qUF3Tt13AADe1MRt1lsKCcgNNGfySx/kC/3tXTxDBQAoFWnLXt7khlQhuYH2vAvyqTlLFmyXet8AAKY5DbqDC3pW/s8jc5ppBn0kvmHbaDRmpN5XAIDpZ0YMIRfk0dSB2FUzWelH/W+k3mkAgGmiOTywpzP9dvIAnPQsU16Ks+C5Ye62qfchAKCm5h0wbxsf9GQX5MXUwZdtlqk/m7g1CwBA7m+5/jR50OU50zS9ToPuxnEClMTQ0NBmfonvj1VHJkp6HeeCnuGCXuhMvxtfQpC2DKTeTmBdTWvu6k2uSh1sPWzPx9myBt2S0QcK4Mzt0TR9TycITT4bg9Cb3OSCPuyDrt7Uj1aGZT4DhbJwi91WnVuuJi+UINCKmGU+0DQ9OPV+B2ov64fYhCXKdMvVmTyUOsASheblrdGWph4DoLYIS1RdvGBzplekDqwStOfirJqVToAe8CY3Z/mBMrNEKvF5nTP5xMTzu3SzuqBPuKAPOtO7Jh5fPJd4e+5uBh3hyARyRFiiitxI60Bven/hQWTylDM927dbH1TTd8aX4Da+3qUuc0E+7kxv9EHXFLyt8e+dS4F2ICfxZZ4sP0pmlihSLDTuTf89wWztmvgi3FTfPo3PE73pSZ0ydgWHe1xqjKXAgIwIS1TCisYsF+QEb/pMsWGjN7p2y/LqRt9Q39YuyEe86eOFBr7J7a49sCivfgDTjg/yHWaWKDMZlh1d0OsTVMs5opeF3OOSXIUWcjd92bXl2F71Cag1whKlf9M1yD2FBkrQswYXDb6liP7F555Zf4OTbbF/jRWNWUX0D6gNF/Q/mVmijKQtS3yQx4oLEvmmC273BF2dGV8Y8kFXFRiYl8aauQn6ClQTYYkyis/XCnw+uUpMjkm9dqRb7HbqrLHZReWsnALzer7JBLr9gWZcsoi3YZE3GZaF3vTnBQTG6vgZSPzMo0yj6IPf2we9tZALBZOLG6ExO3WfgdIjLFEmzdB0PshPCphV3dYcae3TKK+ZcbYbP/3o/b6Qr6SeVQOlN/HBNDNLJBe/YfRBv1/QLdeZjQqQtvTF4gIFFDX4UOq+AqVGWKIsnMnf9zAM1sRbrvP2nf+2RgXFbz296Q96OLt8qeQzbSAtF/RbzCyRmgRZ3rPZk8kd8c3aRh3WlzV/nA/yi97sJ72/qE9mgMohLJFaXGC8F59NvF7qrWYvsPS25J98KXX/gFKK35Yxs0RK8QWT/INSL4+hUueRlbaM9aBgwxoZkf1S9w0oHcISKY1XsMnzu0K5z7dbvzldRvX1W7Omz+Z3O1Zu4u1YYB3eZCUzS1T1+Ft7RuRNT93YklnTZAHs/8ptZh70qNR9QsGcyf91f4DIi68t5Bp/xM7kX+JVW3w5oK4/QsISqTRND8rnxC4v+Xbr6Ok+knPD3G19kCtzCssHqR87zUwmLN/04DF50pucLyNySFW+0eqGN7mBmeW0MtONuWZ8LuXNt1NuiDe5Koff5urmiLw3ZT9KJTRmO9MrcgrMd6fuDioYlutedcWlbuow2yQsa/gMa4nvl1EZkiArxOREF/Qfnem1LujdPuhzbxzLcmWq7Wxac9dcPhUxf1yqPpSVW+y2ylrz2Y+/JHVd6r6g4mG51snmPgmytMoD6oN8g5llNc1ZsmA7Z3KaD3Jep2xhXINxUi/LpAtLH/Tz2YNSvpxq+yvxOU4OC0w7c3uk7gtqEZadtiauFLBw4cLNqziohGXV66hmuthLEpbxt+KCPJ0tKPX++IwuxfZXhTM9PHtYymdT9wP1Ccvxgyro9XH186oNbNYV6Fl1JOHYjblmFcMyftqR+Tdn/oAU2141PshF2cJSH0jdB9QsLCfarfHWWJUGl7CsfOWbyoXlxJqNldvu6n5SIi9k2d8adLfU/UD9wjLOMK+pUnmt+BA/S3+ZWaajQXeuYujE2Uq27fZ7p9juqvKm/5ztnCYnpO4DahiWnWZ6alUGl7CsroGxgXlVC0s/6nfJoboMJqE/6DuyhaVeww6fBpKEZdDVVamvGD8pyNJXZpbpxOWmqhaW8ZvITNtM8YEp8UFuyXCcPJb3cYASShSW8dbF96pQvICwrK6dhwfnVi0sfdBTpry9pq/0798/p+htrgNvelKWY2VgbGBe6j6gpmE5Hpj6vrIPcLzFkqWPzCzT6Qt9b61eWGZ5O1O+U/T21kVztPX2TMeK8fZx7SUOy9saJTfdw1KGZcdY7cabP1RMjnFBz3BBL4wf+bugP3JBPt0oqTjLqlxYmtybYXvPLHp7a2SGN30mw/FyfOoOoMZhGVsz6OIyD7ILcnWdwzJ++ypBljvTP3Imp3vTc+KC187koU4B7k1d8Jic3igpt9jtVLWwjAsVTHl7eV6ZiTe5ear73pX4ohE1CcuyV8DIWsy67GHZND044/idXuYLgaqFpTd9ua4XnjVfZPvzqbcfdQ/LuNRNidU9LF3QZXUNy/lL529fpbCcd8C8bbJsb/9oa0GR21s3zuRzU/8d6Nmptx891hwe2LOzAsOG2ojsH1dm8KZ/6oJe0Ktg1aCtsg60N/mPOodl1tJqZQ7LwUWDb6lSWEpb+jIda23pK3J768YHPXnKv4Ogl6befpRJaMxumr4n2zdJG2jt1pGNkqp7WMZVYeoalrG0YpXCMl40ZtlePhvJxgf9i6mHpVyd02GAWlnRmOVMP5zl+cqvNNO/bpSUD/L1Oodl03S0rmEZV90gLNEtwhK9rTaSQ2DGTxHKOkx1D0s30gp1DcuszwCZWU4vhCVKe59/rXZrWYcpnjDrHJbefLuuYekWu60IS3SLsERPDS4b3CLrKgnxm76yDlPdwzLW6K1rWGrQLQlLdIuwRM+5IB/PdMIN8mhZh8mZXlHnsOw33beuYRkv5AhLdIuwROmXuPGmz5Z1mOoels2R1j51DcuFCxduTliiW4QlSv+KvjP5ZVmHyZleXuewdObeVdewHBoa2oywRLcISxQizg5rGZZBL6tzWEpb9qprWMbvgglLdIuwRCGyVOyvc1iq6a83SqzOb8Py6Qgmg7BEIQjLjYRJe2BRmQ9BZ3p4XcNSg+7MzBLdIixRCB/0+ZrOLC/NcsJtmh7UKDHXlmPrGpYyLAsJS3SLsETpP/6uc1jGsoCNEovVk2oblnERgAx9o4LP9EJYoudccLvXNixNLsl4wj2vUe7vEFfVNSydyWmEJbpFWKLnfNDj6xqWPsjXMvUtyNOxkkyjhDrF8DNdCJQ6LGf4IPcRlugWYYneWtGY5YP8MONJd1VZh8kHPTdzoAT5QKNkJpaDWlXXsPTmD8jat3ihVOQ2s0RXWoQlesqbnpo9TPThOBMo4VDN8CYXZz7pmj4+b9/5b2uUhF/i+73p/dnDpBOWcUHwP4gFABqleoae+QIujts5RW43YZkWYYlemTlRE3ZNHiddb3KHN39EnKmWYcikLUu8yc259G38RZ+7Ykgl7tYMF/R3vOnP8+rXWrOwHzaD/P78pfO3T9nB+Pe9ycqc+vSFIredsEyLsESuNOgOLuj7XJDv5X/C7ZygHnNB/kGCLHdjrlnY8IXG7OZo6+3e/HHe5PZe9M2ZPBV/kK3RlhbVrb6hvq079V9NP+mCPtibMfuV9rw3+dcYyvHTjXhRVdQ3lS7IHzuT/82rL2JyYhHbvs6t8Slvb//+/XOK3N66ISxrzgU5Ib7+38vWecnFZKULercPurqAE+4bzfTxiVnnTT7oT13Q63Ppl+mNLv5/Jjd1Zn1BnyuyXzG44t/2Jg8502tzGqvL/Ejn//t2XCN04gWXYsdrvX7K087kv5tBbvFB4vh9K6dj8kpn+mNvevPELdd87nCs3dqtI4v8LROWaRGWNedMPpfyZEhjH9T1GOgfbS2ofVhefcA2W11yWH8RrXHRgX2F/a1XJ/8OBGFZc1krsNDYBxwD6x8DLugTRb90liIsZ1+8/ITNLln+ahFt80sOubWov9X4+rK3THZfEJY1l88r8jT2AcfAOmF5QdG/ZcKSsESJf2A09gHHwAZnlkcVfeIiLAlL9NbMWAGHEx6hxzGQ2zGwKi7vVfSJi7AkLNFjLsg9nCgJS46BnI4B01NTnLQIS8ISpS/2TWMfcAyM336VR+O3xClOWoQlYYke86af4WTPyZ5jIJdj4LdTnbAIS8ISPSYmx3CiJCx7fQy4oNc4kyfre6ylXU6NsCQs0WPNoCPpTzTTpq12Jg+VYDsKbc707FgSUE3fGW9Vpt6e3JvJylgaMOXJirAkLNFjzdB0yU82XTW5JdZfdUFvq+YJVZ91pofPDXO3jbOs5NtTQHNBXpyokfr6B/pNa+46USKwJn3U61O8/bouwpKwRO/NiCfy1CedN20mX37tyn3OkgXb+SAXJd+mSTX5SX/Qd7y2w+OCzi7oWT2pSVqaJnfGmeSGDrjxCwb5t/TbmKmtic/744y5DCepWGA/S3+o4EMFH3ShU2w8/clnveZMH5AROWSD29xufXBiJY7k27mJPlw3MDYwb0N9kCBL6zTLGu+v/Dg+B+9muTQJsiKuFJN6myff5E4Zkf3KdHLprDOaoU87Dw/OnezfpNzdG5zJJ6b8mwl6Wb5HA3rGmX61XCdcvSsu07Spq/YYQt70n+LtvtTbvF4zfbwTGpuuETrTm39/75YtK6SvL8cfvAv67snOtGRYdnRBz+gsz5W6H5s+Lr/bWU2kJOumrs0tdjtl6dtUln6bdemhY5tdvPzvimmHnFzU32rcELac7L7wQf9qysdV0Asn+/eQiDM5LfmJKOjdcRUU1x5YNJXnrrEPcVaTuh/e9GdxYevBRYOTLsYsozI08SnP95P3Y1PjFdd+ND0nBv3GZs5TWFPyY3EprtR9W+dW6w9imDeHB/ZslFh8TJFpPNstS92HKovrsE553wf5SurtR5fiLK6QE2zQJ+I6iXE9SG9yvjf9qDd/mLSlL6fBmuGD39uZfrgzWza5o8efK6x2QR/xJjfEkIu3VfN6hhX3SbwFPbGawbk+yDe9yb3j+7D3zzrjfpvo2+3O9Aof9IvxZZ2m6UHx4qTROzPjBZMPekpcd3I8POWlHvf1qc6+7RyXeo4P+ufe/KF9oe+tjQrJcqzHxa9Tb3+VuaA/yrDvP516+9GloaGhzeLtsF60VBVN1jV/6fzt8+zXgiULtkvep6F8+9T/rimsaViQuL9z7etU1m8suWxvisvXUm9/VWnQ3bJNIuQDqfsAANNGfPaV4aT9/FQeHaDzvPJDWcKyaTrKfgSAgjiTP8t0S9r0owzW5O/KZbkF64Oujne92O8AUBBpy5JMtwNNnoy3qBmw7sVP2LJdoMjt7G8AKNDgssEtshYYcUH/lkHrTnwBzAV9OOP+Pov9DQAFy6UykvkjGLhNmulNrsq6rx2f7ABA8WJhiOxhqc9IW/Zi/DbOBzkzc1AGfTiGLvsZAAoW6w7H6lGZAzPIL1zQZQzg+i/0+CBfyr5/NV6UfIb9CwCJjBd0yOVk/nIs8BEDgsEcX9kl1nrOY9+6IC/17Tdf2K9ADfWb7uuD/uFkmmvL703m38fi6gXXU51Uf2KFqEbJxaLoedbadUHucSOtAxvTVFyCzZuemmv9YtNzUvcLQI9M1K2d7IlhkrVe5c6iBtAFt/sU+nNKowKyFPbe+Ale7o39d+b2qPuztvGA9If5IOfFW9J57kcX5MX+4YFfS91HAD1CWFYnLGM1nk6x+7wD842Z0TPjtZf1Omd6bY1arA98fywW0LN9F+TM1McHgB4iLKsTlpFvt47u3QmfNrVZpT5CxR6g5gjLaoVl5IJeQLCVJtjXNE0PTn1MAOgxwrJ6YRlXV4lrrJYgKKZ9c0H+JvXxAKAAhGX1wnKtRcUzlcGjZdwHJisXLly4eepjAUABCMtqhmXUWUjc9BVCr/jgd0HvpkA9MI0QltUNy9df+CEwiw1Lk3uboelSjz2AAhGW1Q7LKH476ExeYIZZwIzS9C6/xPenHnMABSMsqx+WkbRlzAd5jMDsaVBerkF3SD3WABIgLOsRllF/exfvg9xCYOYelKudyV/WvcIRgDdBWNYnLDtCY7Y3fxxvyuYVlHJfM+hI6mEFkJgLblCCLJ1MU9PRyfz75khrnyLrf062PzIs8xs1E+uUxtuGzDKnestVnvSmJ/FpCABMA/FCxZtcFSvNEJxdheRTLsin+CwEAKahpjV3dUHPiHVMCc31QnJNp9h6u3V031Df1qnHCgCQ3sy4fqcL8jFvcoML+sQ0DM/VnVVITM6PATkwNjAv9aAAAEoufmAfPz1xQY9ybTlWTE6sU3NBPuJMf9ePtH7LtQcWxefaqfc5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgEYp/T/NC4lSiwJ7cAAAAABJRU5ErkJggg==" alt="Build"/></td>
+    <td class="bq-co">
+      <div class="co-name">{{ doc.company }}</div>
+      <div class="co-line">السجل التجاري: {{ cr }}{% if vat and vat != "—" %} · الرقم الضريبي: {{ vat }}{% endif %}</div>
+      <div class="co-line">علامة <strong>Build</strong> التجارية</div>
+    </td>
+  </tr></table>
+
+  <div class="bq-title"><span class="t-ar">عرض سعر</span> <span class="t-en">QUOTATION</span></div>
+
+  <table class="bq-meta">
+    <tr><td class="k">العميل</td><td class="v">{{ entity }}</td><td class="k">رقم العرض</td><td class="v" dir="ltr">{{ doc.name }}</td></tr>
+    <tr><td class="k">التاريخ</td><td class="v">{{ frappe.utils.formatdate(doc.transaction_date, "dd/MM/yyyy") }}</td><td class="k">صالح حتى</td><td class="v">{% if doc.valid_till %}{{ frappe.utils.formatdate(doc.valid_till, "dd/MM/yyyy") }}{% else %}—{% endif %}</td></tr>
+  </table>
+
+  <table class="boq">
+    <thead><tr>
+      <th class="c-idx">م</th><th class="c-img">صورة</th><th class="c-name">الصنف</th><th class="c-desc">الوصف</th>
+      <th class="c-brand">العلامة التجارية</th><th class="c-origin">المنشأ</th><th class="c-uom">الوحدة</th>
+      <th class="c-qty">الكمية</th><th class="c-rate">سعر الوحدة</th><th class="c-amt">الإجمالي</th>
+    </tr></thead>
+    <tbody>
+      {% for item in doc.items %}
+      {%- set origin = frappe.db.get_value("Item", item.item_code, "country_of_origin") -%}
+      {%- set img = item.image or "" -%}
+      <tr>
+        <td class="c-idx">{{ loop.index }}</td>
+        <td class="c-img">{% if img %}<img class="itemimg" src="{% if img.startswith('http') %}{{ img }}{% else %}https://buildsaudi.k.frappe.cloud{{ img }}{% endif %}"/>{% endif %}</td>
+        <td class="c-name"><div class="nm">{{ item.item_name }}</div><div class="cd" dir="ltr">{{ item.item_code }}</div></td>
+        <td class="c-desc">{% if item.description and item.description != item.item_name %}{{ item.description | striptags | e }}{% endif %}</td>
+        <td class="c-brand">{{ item.brand or "—" }}</td>
+        <td class="c-origin">{{ origin or "—" }}</td>
+        <td class="c-uom">{{ item.uom }}</td>
+        <td class="c-qty">{{ "{:,.2f}".format(item.qty) }}</td>
+        <td class="c-rate">{{ frappe.utils.fmt_money(item.rate, currency=doc.currency) }}</td>
+        <td class="c-amt">{{ frappe.utils.fmt_money(item.amount, currency=doc.currency) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="summary">
+    <tr><td class="k">إجمالي البنود</td><td class="v">{{ frappe.utils.fmt_money(doc.total, currency=doc.currency) }}</td></tr>
+    {% if doc.discount_amount and doc.discount_amount > 0 %}<tr><td class="k">الخصم</td><td class="v">- {{ frappe.utils.fmt_money(doc.discount_amount, currency=doc.currency) }}</td></tr>{% endif %}
+    <tr><td class="k">الإجمالي قبل الضريبة</td><td class="v">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</td></tr>
+    {% if doc.total_taxes_and_charges and doc.total_taxes_and_charges > 0 %}<tr><td class="k">ضريبة القيمة المضافة</td><td class="v">{{ frappe.utils.fmt_money(doc.total_taxes_and_charges, currency=doc.currency) }}</td></tr>{% endif %}
+    <tr class="grand"><td class="k">الإجمالي النهائي</td><td class="v">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</td></tr>
+  </table>
+  {% if doc.in_words %}<p class="inwords">فقط {{ doc.in_words }} لا غير.</p>{% endif %}
+
+  {%- set terms_html = doc.terms or (frappe.db.get_value("Terms and Conditions", doc.tc_name, "terms") if doc.tc_name else None) -%}
+  {% if terms_html %}<div class="terms-title">الشروط والأحكام</div><div class="terms">{{ terms_html }}</div>{% endif %}
+
+  <div class="bq-foot">نشكر لكم ثقتكم بـBuild · {{ doc.company }}</div>
+</div>
+<style>
+  .bq{font-family:"Tahoma","Arial",sans-serif;color:#111;font-size:11px;line-height:1.6}
+  .bq-head{width:100%;border-bottom:3px solid #0f2a43;padding-bottom:8px;margin-bottom:4px}
+  .bq-logo{text-align:right;vertical-align:middle}
+  .bq-logo img{height:54px;width:auto}
+  .bq-co{text-align:left;vertical-align:middle;font-size:10px;color:#444}
+  .co-name{font-weight:800;color:#0f2a43;font-size:13px}
+  .bq-title{text-align:center;margin:14px 0;padding:8px 0;background:#f4f7f9;border-radius:6px}
+  .bq-title .t-ar{font-size:22px;font-weight:800;color:#0f2a43}
+  .bq-title .t-en{font-size:13px;letter-spacing:3px;color:#4a6076;margin-right:8px}
+  .bq-meta{width:100%;border-collapse:collapse;margin-bottom:14px}
+  .bq-meta td{border:1px solid #c9d3dc;padding:7px 10px}
+  .bq-meta .k{background:#eef2f6;font-weight:700;color:#0f2a43;width:14%}
+  table.boq{width:100%;border-collapse:collapse;font-size:9px}
+  table.boq th{background:#0f2a43;color:#fff;border:1px solid #0f2a43;padding:6px 3px}
+  table.boq td{border:1px solid #c9d3dc;padding:4px 3px;vertical-align:top}
+  table.boq .c-idx{text-align:center;width:3%}
+  table.boq .c-img{text-align:center;width:9%}
+  table.boq .c-name{width:19%}
+  table.boq .nm{font-weight:700}
+  table.boq .cd{font-size:7.5px;color:#999;margin-top:1px}
+  table.boq .c-desc{width:21%;color:#444}
+  table.boq .c-brand,table.boq .c-origin{width:9%;text-align:center}
+  table.boq .c-uom,table.boq .c-qty{text-align:center;width:6%}
+  table.boq .c-rate,table.boq .c-amt{text-align:left;width:9.5%;font-variant-numeric:tabular-nums}
+  table.boq .itemimg{max-height:42px;max-width:60px;object-fit:contain}
+  table.boq tr{page-break-inside:avoid}
+  table.boq thead{display:table-header-group}
+  .summary{width:100%;border-collapse:collapse;margin:16px 0}
+  .summary td{border:1px solid #c9d3dc;padding:7px 10px}
+  .summary .k{background:#eef2f6;font-weight:700;color:#0f2a43;width:60%}
+  .summary .v{text-align:left;font-variant-numeric:tabular-nums}
+  .summary .grand .k{background:#0f2a43;color:#fff;font-size:14px}
+  .summary .grand .v{background:#dce6ef;color:#0f2a43;font-size:14px;font-weight:800}
+  .inwords{font-weight:700;background:#f4f7f9;border:1px dashed #0f2a43;padding:7px 10px}
+  .terms-title{font-weight:800;color:#0f2a43;margin:14px 0 6px;border-right:4px solid #0f2a43;padding:3px 8px;background:#f4f7f9}
+  .terms{border:1px solid #c9d3dc;padding:8px 10px;background:#fafcfd;font-size:10px}
+  .bq-foot{text-align:center;color:#6b7280;font-size:10px;margin-top:18px;border-top:1px solid #e8ede8;padding-top:8px}
+</style>
