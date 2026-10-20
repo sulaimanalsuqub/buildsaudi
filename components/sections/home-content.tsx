@@ -50,11 +50,6 @@ export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
               <Image src="/images/build-truck-vendor.png" alt={isRtl ? "شاحنة توريد بيلد" : "Build supply truck"} width={2048} height={1134} priority sizes="(min-width: 1200px) 550px, (min-width: 768px) 46vw, 90vw" />
             </div>
             <p className="hero-supply-caption">{isRtl ? "من احتياجك، إلى أرض مشروعك" : "From your requirements to your site"}</p>
-            <ol className="hero-supply-steps" aria-label={isRtl ? "رحلة التوريد" : "The supply journey"}>
-              {(isRtl ? ["الطلب", "عرض السعر", "التسليم"] : ["Request", "Quote", "Delivery"]).map((label, index) => (
-                <li key={label}><span>{label}</span>{index < 2 && <DirectionArrow size={14} aria-hidden="true" />}</li>
-              ))}
-            </ol>
           </div>
         </Container>
       </section>

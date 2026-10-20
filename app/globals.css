@@ -242,9 +242,6 @@ body {
 .hero-truck { width: 100%; max-width: 550px; }
 .hero-truck img { display: block; width: 100%; height: auto; }
 .hero-supply-caption { margin-top: 1.5rem; text-align: center; font-size: 1.0625rem; font-weight: 500; }
-.hero-supply-steps { display: flex; justify-content: center; gap: 1.25rem; margin-top: 1rem; padding: 0; list-style: none; color: var(--home-muted); font-size: .8125rem; }
-.hero-supply-steps li { display: flex; align-items: center; gap: 1.25rem; }
-.hero-supply-steps svg { color: var(--home-green); }
 .home-heading { font-size: clamp(2rem, 3vw, 3rem); font-weight: 700; line-height: 1.4; letter-spacing: -.02em; }
 .home-section-heading { max-width: 46rem; margin-inline: auto; margin-bottom: 3rem; text-align: center; }
 .home-section-heading > p { margin-top: .875rem; color: var(--home-muted); font-size: 1.0625rem; line-height: 1.85; }

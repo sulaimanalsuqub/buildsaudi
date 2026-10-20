@@ -99,68 +99,88 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
 
   return (
     <main dir={isRtl ? "rtl" : "ltr"}>
-      <section className="bg-[#f7f9f6] py-14 md:py-20">
+      <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#f2f6f4] py-12 md:py-20" aria-labelledby="track-request-title">
         <Container>
-          <div className="mx-auto max-w-xl rounded-2xl border border-brand-dark/10 bg-white p-8 text-center md:p-10">
-            {loading ? (
-              <div className="flex flex-col items-center gap-3 py-8 text-brand-dark/70">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
-                <span>{textByLang(isRtl, "Loading your request…", "جاري تحميل بيانات طلبكم…")}</span>
-              </div>
-            ) : data ? (
-              <>
-                <PackageSearch className="mx-auto h-12 w-12 text-brand-primary" />
-                <p className="mt-4 text-xs font-semibold text-brand-dark/50">{textByLang(isRtl, "Tracking Number", "رقم التتبع")}</p>
-                <p className="text-lg font-bold tracking-wide text-brand-primary" dir="ltr">{data.trackingNumber}</p>
-                {data.projectName && <p className="mt-4 text-sm text-brand-dark/60">{data.projectName}</p>}
-                <div className={`mx-auto mt-6 max-w-sm rounded-xl px-5 py-4 ${isDeclined ? "bg-red-50" : "bg-brand-primary/8"}`}>
-                  <p className="text-sm font-semibold text-brand-dark/50">{textByLang(isRtl, "Current Status", "الحالة الحالية")}</p>
-                  <p className={`mt-1 text-lg font-bold ${isDeclined ? "text-red-700" : "text-brand-primary"}`}>
-                    {statusLabel ? (isRtl ? statusLabel.ar : statusLabel.en) : data.customerStatus}
-                  </p>
-                  {isDeclined && reasonLabel && (
-                    <p className="mt-2 text-sm text-red-600/90">{isRtl ? reasonLabel.ar : reasonLabel.en}</p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { setData(null); setError(""); setInput(""); router.push(isRtl ? "/ar/track-request" : "/track-request"); }}
-                  className="mt-6 text-sm text-brand-primary hover:underline"
-                >
-                  {textByLang(isRtl, "Track another request", "تتبّع طلب آخر")}
-                </button>
-              </>
-            ) : null}
+          <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+            <div className="max-w-xl">
+              <h1 id="track-request-title" className="text-3xl font-bold leading-tight tracking-tight text-brand-dark sm:text-4xl md:text-5xl">
+                {textByLang(isRtl, "Track your request", "تتبّع طلبك")}
+              </h1>
+              <p className="mt-5 max-w-lg text-base leading-8 text-brand-dark/75 md:text-lg">
+                {textByLang(isRtl, "Enter the reference number you received when you submitted your request.", "أدخل الرقم المرجعي الذي استلمته عند إرسال طلبك.")}
+              </p>
+            </div>
 
-            {showSearch && (
-              <>
-                <PackageSearch className="mx-auto h-12 w-12 text-brand-primary" />
-                <h2 className="mt-4 text-xl font-bold text-brand-dark">{textByLang(isRtl, "Track your request", "تتبّع طلبك")}</h2>
-                <p className="mt-2 text-sm text-brand-dark/70">
-                  {textByLang(isRtl, "Enter the reference number you received when you submitted your request.", "أدخل الرقم المرجعي الذي استلمته عند إرسال طلبك.")}
-                </p>
-                {error && (
-                  <div className="mx-auto mt-4 flex items-center justify-center gap-2 text-sm text-red-600">
-                    <AlertCircle className="h-4 w-4" /> <span>{error}</span>
+            <div className="rounded-[14px] border border-brand-dark/12 bg-white p-6 md:p-8">
+              {loading ? (
+                <div className="flex min-h-44 items-center justify-center gap-3 text-brand-dark/75" role="status" aria-live="polite">
+                  <Loader2 className="h-5 w-5 animate-spin text-brand-primary" aria-hidden="true" />
+                  <span>{textByLang(isRtl, "Loading your request…", "جاري تحميل بيانات طلبكم…")}</span>
+                </div>
+              ) : data ? (
+                <div aria-live="polite">
+                  <div className="flex items-start gap-4 border-b border-brand-dark/10 pb-6">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#eaf2ee] text-brand-dark">
+                      <PackageSearch className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-brand-dark/70">{textByLang(isRtl, "Tracking number", "رقم التتبع")}</p>
+                      <p className="mt-1 break-all text-lg font-bold tracking-wide text-brand-dark" dir="ltr">{data.trackingNumber}</p>
+                      {data.projectName && <p className="mt-2 text-sm text-brand-dark/75">{data.projectName}</p>}
+                    </div>
                   </div>
-                )}
-                <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={textByLang(isRtl, "e.g. MAT-MR-2026-00001", "مثال: MAT-MR-2026-00001")}
-                    dir="ltr"
-                    className="min-h-11 flex-1 rounded-xl border border-brand-dark/15 px-4 text-center text-brand-dark outline-none focus:border-brand-primary"
-                  />
+
+                  <div className="mt-6">
+                    <p className="text-sm font-semibold text-brand-dark/70">{textByLang(isRtl, "Current status", "الحالة الحالية")}</p>
+                    <p className={`mt-2 text-xl font-bold leading-relaxed ${isDeclined ? "text-red-700" : "text-brand-dark"}`}>
+                      {statusLabel ? (isRtl ? statusLabel.ar : statusLabel.en) : data.customerStatus}
+                    </p>
+                    {isDeclined && reasonLabel && (
+                      <p className="mt-2 text-sm leading-7 text-red-700/90">{isRtl ? reasonLabel.ar : reasonLabel.en}</p>
+                    )}
+                  </div>
+
                   <button
-                    type="submit"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-primary px-6 font-bold text-white hover:bg-brand-primary/90"
+                    type="button"
+                    onClick={() => { setData(null); setError(""); setInput(""); router.push(isRtl ? "/ar/track-request" : "/track-request"); }}
+                    className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-dark underline decoration-brand-dark/35 underline-offset-4 transition hover:decoration-brand-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
                   >
-                    <Search className="h-4 w-4" /> {textByLang(isRtl, "Track", "تتبّع")}
+                    {textByLang(isRtl, "Track another request", "تتبّع طلبًا آخر")}
                   </button>
+                </div>
+              ) : showSearch ? (
+                <form onSubmit={onSubmit}>
+                  <label htmlFor="tracking-number" className="block text-sm font-semibold text-brand-dark">
+                    {textByLang(isRtl, "Reference number", "الرقم المرجعي")}
+                  </label>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      id="tracking-number"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder={textByLang(isRtl, "e.g. MAT-MR-2026-00001", "مثال: MAT-MR-2026-00001")}
+                      dir="ltr"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "tracking-error" : undefined}
+                      className="min-h-12 min-w-0 flex-1 rounded-lg border border-brand-dark/20 bg-white px-4 text-center text-brand-dark outline-none transition placeholder:text-brand-dark/70 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
+                    />
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-dark px-6 font-bold text-white transition hover:bg-brand-dark/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
+                    >
+                      <Search className="h-4 w-4" aria-hidden="true" />
+                      {textByLang(isRtl, "Track request", "تتبّع الطلب")}
+                    </button>
+                  </div>
+                  {error && (
+                    <p id="tracking-error" className="mt-4 flex items-start gap-2 text-sm leading-6 text-red-700" role="alert">
+                      <AlertCircle className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{error}</span>
+                    </p>
+                  )}
                 </form>
-              </>
-            )}
+              ) : null}
+            </div>
           </div>
         </Container>
       </section>
