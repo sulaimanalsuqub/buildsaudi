@@ -56,31 +56,31 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer bg-white pt-14 text-brand-dark md:pt-20">
-      <Grid className="gap-y-12">
-        <div className="col-span-4 sm:col-span-8 lg:col-span-5">
+    <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer bg-[#003932] pt-12 text-white md:pt-16">
+      <Grid className="gap-y-10 md:gap-y-14">
+        <div className="col-span-4 sm:col-span-8 lg:col-span-4">
           <Link href={isRtl ? "/ar" : "/"} aria-label={isRtl ? "بيلد، الصفحة الرئيسية" : "Build homepage"} className="inline-block">
-            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={isRtl ? "بيلد" : "Build"} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 md:w-40" />
+            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={isRtl ? "بيلد" : "Build"} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 brightness-0 invert md:w-40" />
           </Link>
-          <p className="mt-6 max-w-xs text-base leading-8 text-brand-dark/75">{isRtl ? "توريد مواد البناء والتشطيب للمقاولين والمطورين" : "Supply of building materials and finishes for contractors and developers"}</p>
-          <Link href={`${legalBase}/warranty`} className="mt-7 inline-flex items-center gap-3 text-sm font-semibold hover:underline">
-            <WarrantySeal className="h-11 w-auto shrink-0" />
+          <p className="mt-5 max-w-xs text-base leading-8 text-white/70">{isRtl ? "توريد مواد البناء والتشطيب للمقاولين والمطورين" : "Supply of building materials and finishes for contractors and developers"}</p>
+          <Link href={`${legalBase}/warranty`} className="mt-6 inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-white hover:underline">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white"><WarrantySeal className="h-9 w-auto" /></span>
             {isRtl ? "منتجات أصلية، ضمان موثّق" : "Authentic products, backed warranty"}
           </Link>
         </div>
         <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "بيلد" : "Build"} links={links.main} /></div>
         <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "المساعدة والسياسات" : "Help & policies"} links={links.legal} /></div>
-        <div className="col-span-4 sm:col-span-8 lg:col-span-3">
+        <div className="col-span-4 sm:col-span-8 lg:col-span-4">
           <h2 className="text-sm font-bold">{isRtl ? "نحن هنا لمساعدتك" : "We're here to help"}</h2>
-          <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-6 flex min-h-11 w-fit items-center gap-3 text-2xl font-bold hover:underline"><MessageCircle className="h-5 w-5" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
-          <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-base hover:underline"><Mail className="h-5 w-5" aria-hidden="true" />{SUPPORT_EMAIL}</a>
-          <div className="mt-6 flex flex-wrap gap-1">
-            {SOCIAL_LINKS.map(({ href, label, Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-brand-dark/75 transition-colors hover:bg-brand-dark hover:text-brand-light"><Icon className="h-5 w-5" aria-hidden="true" /></a>)}
+          <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-5 flex min-h-11 w-fit items-center gap-3 text-2xl font-bold text-white hover:underline"><MessageCircle className="h-5 w-5" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-base text-white/80 hover:text-white hover:underline"><Mail className="h-5 w-5" aria-hidden="true" />{SUPPORT_EMAIL}</a>
+          <div className="mt-5 flex flex-wrap gap-1">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/15 hover:text-white"><Icon className="h-5 w-5" aria-hidden="true" /></a>)}
           </div>
         </div>
-        <div className="col-span-4 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-brand-dark/20 py-6 text-xs leading-6 text-brand-dark/75 sm:col-span-8 lg:col-span-12">
+        <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 py-5 text-xs leading-6 text-white/70 sm:col-span-8 lg:col-span-12">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <Link href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold hover:underline">{isRtl ? "كُن جزءًا من شبكة مورّدي بيلد" : "Join Build's supplier network"}</Link>
+          <Link href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-white hover:underline">{isRtl ? "كُن جزءًا من شبكة مورّدي بيلد" : "Join Build's supplier network"}</Link>
         </div>
       </Grid>
     </footer>
@@ -96,10 +96,10 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-bold text-brand-dark">{title}</h2>
+      <h2 className="text-sm font-bold text-white">{title}</h2>
       <div className="mt-5 grid gap-1">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-brand-dark/80 transition hover:text-brand-dark hover:underline">
+          <Link key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-white/70 transition hover:text-white hover:underline">
             {link.label}
           </Link>
         ))}
