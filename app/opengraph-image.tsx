@@ -23,7 +23,7 @@ export default function OgImage() {
           style={{
             fontSize: 64,
             fontWeight: 700,
-            color: "#1D3F1F",
+            color: "#003932",
             marginBottom: 20,
             letterSpacing: "-2px"
           }}
@@ -33,7 +33,7 @@ export default function OgImage() {
         <div
           style={{
             fontSize: 26,
-            color: "#1D3F1F",
+            color: "#003932",
             opacity: 0.7,
             textAlign: "center",
             maxWidth: 800,

@@ -8,7 +8,7 @@ export default function MaintenancePage() {
     <main className="flex min-h-screen flex-col bg-white text-brand-dark" dir="rtl">
       <header className="border-b border-brand-dark/8 bg-white/92 backdrop-blur-xl">
         <Container className="flex h-[72px] items-center justify-between gap-4">
-          <Image src="/brand/logo-ar.svg" alt="شعار بيلد" width={4302} height={1500} className="h-11 w-auto" priority />
+          <Image src="/brand/logo-ar.png" alt="شعار بيلد" width={2883} height={1231} className="h-11 w-auto" priority />
           <span className="inline-flex h-9 items-center rounded-full border border-brand-dark/12 bg-brand-light px-4 text-sm font-bold text-brand-dark/70">
             صيانة مؤقتة
           </span>

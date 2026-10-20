@@ -13,8 +13,8 @@ const BASE_URL = (
   "https://www.build.sa"
 ).replace(/\/$/, "");
 
-const LOGO_URL   = `${BASE_URL}/brand/logo-en.svg`;
-const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.svg`;
+const LOGO_URL   = `${BASE_URL}/brand/logo-en.png`;
+const LOGO_AR_URL = `${BASE_URL}/brand/logo-ar.png`;
 
 // إرسال الإيميل مع إعادة المحاولة تلقائياً (3 محاولات، backoff تصاعدي)
 // تنبيه: Resend SDK لا يرمي استثناءً عند فشل API — يرجع { error } عادي، فلازم فحصه صراحةً
@@ -103,7 +103,7 @@ type EmailShellOptions = {
 
 function emailShell({
   previewText = "",
-  accentColor = "#1D3F1F",
+  accentColor = "#003932",
   badgeIcon = "",
   badgeLabel = "",
   logoVariant,
@@ -164,7 +164,7 @@ ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;font-size
         <td style="padding:28px 16px 0;text-align:center;">
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
             <tr>
-              <td style="background:#1D3F1F;border-radius:12px;padding:24px 32px;">
+              <td style="background:#003932;border-radius:12px;padding:24px 32px;">
                 <img src="${LOGO_URL}" alt="Build Saudi" height="26" style="display:block;margin:0 auto 14px;height:26px;width:auto;opacity:.9;" />
                 <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,.5);text-align:center;direction:${htmlDir};">
                   ${isEn ? "Build — construction &amp; finishing materials supplier for projects in Saudi Arabia" : "بيلد — مورد مواد بناء وتشطيب للمشاريع الإنشائية في السعودية"}
@@ -192,7 +192,7 @@ ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;font-size
 function infoRow(label: string, value: string, dir = "rtl") {
   return `<tr>
     <td style="padding:10px 0;border-bottom:1px solid #f0f2ef;color:#6b7280;font-size:13px;width:130px;vertical-align:top;">${esc(label)}</td>
-    <td style="padding:10px 0;border-bottom:1px solid #f0f2ef;font-weight:600;color:#1D3F1F;font-size:14px;" dir="${dir}">${value}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f2ef;font-weight:600;color:#003932;font-size:14px;" dir="${dir}">${value}</td>
   </tr>`;
 }
 
@@ -211,12 +211,12 @@ function ctaButton(href: string, label: string, color = "#09B14B") {
 }
 
 function greeting(name: string, subtitle?: string) {
-  return `<h2 style="margin:0 0 ${subtitle ? "6px" : "20px"};font-size:22px;font-weight:700;color:#1D3F1F;line-height:1.3;">مرحباً، ${esc(name)}</h2>
+  return `<h2 style="margin:0 0 ${subtitle ? "6px" : "20px"};font-size:22px;font-weight:700;color:#003932;line-height:1.3;">مرحباً، ${esc(name)}</h2>
 ${subtitle ? `<p style="margin:0 0 24px;font-size:14px;color:#6b7280;">${esc(subtitle)}</p>` : ""}`;
 }
 
 function highlightBox(content: string, color = "#09B14B") {
-  return `<div style="background:${color}0d;border-right:4px solid ${color};border-radius:0 10px 10px 0;padding:16px 20px;margin:24px 0;font-size:14px;color:#1D3F1F;line-height:1.7;">${content}</div>`;
+  return `<div style="background:${color}0d;border-right:4px solid ${color};border-radius:0 10px 10px 0;padding:16px 20px;margin:24px 0;font-size:14px;color:#003932;line-height:1.7;">${content}</div>`;
 }
 
 function sectionTitle(text: string) {
@@ -309,8 +309,8 @@ export async function sendVendorFullyApprovedEmail(vendor: {
   const isEn = lang === "en";
   const fullName = `${vendor.manager_name} / ${vendor.establishment_name}`;
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   return sendEmail({
     from: FROM,
@@ -328,7 +328,7 @@ export async function sendVendorFullyApprovedEmail(vendor: {
         ? `
         ${greeting(fullName)}
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          Your profile has been reviewed and <strong style="color:#1D3F1F;">${esc(vendor.establishment_name)}</strong>
+          Your profile has been reviewed and <strong style="color:#003932;">${esc(vendor.establishment_name)}</strong>
           is now <strong style="color:#09B14B;">fully approved</strong> as a supplier on Build Saudi.
         </p>
         ${highlightBox("You're now eligible to receive Request for Quotation (RFQ) emails whenever a matching opportunity comes up.")}
@@ -342,7 +342,7 @@ export async function sendVendorFullyApprovedEmail(vendor: {
         : `
         ${greeting(fullName)}
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          تمت مراجعة ملفكم واعتماد منشأة <strong style="color:#1D3F1F;">${esc(vendor.establishment_name)}</strong>
+          تمت مراجعة ملفكم واعتماد منشأة <strong style="color:#003932;">${esc(vendor.establishment_name)}</strong>
           كمورد <strong style="color:#09B14B;">معتمد نهائياً</strong> في Build Saudi.
         </p>
         ${highlightBox("أنتم الآن مؤهلون لاستقبال طلبات عروض الأسعار (RFQ) عبر البريد عند توفر فرص مناسبة لتخصصاتكم.")}
@@ -372,11 +372,11 @@ export async function sendVendorRejectedEmail(vendor: {
   const fullName = `${vendor.manager_name} / ${vendor.establishment_name}`;
   const reasonText = vendor.reason?.trim();
   const reasonBlock = reasonText
-    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#003932;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
     : "";
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   return sendEmail({
     from: FROM,
@@ -387,7 +387,7 @@ export async function sendVendorRejectedEmail(vendor: {
       previewText: isEn
         ? `Regarding ${vendor.establishment_name}'s application to Build Saudi`
         : `بخصوص طلب انضمام ${vendor.establishment_name} إلى Build Saudi`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeLabel: isEn ? "Regarding your application" : "بخصوص طلب الانضمام",
       content: isEn
         ? `
@@ -437,8 +437,8 @@ export async function sendVendorMoreInfoRequestedEmail(vendor: {
     : "";
   const completeUrl = vendor.onboardingUrl ? safeUrl(vendor.onboardingUrl) : "";
   const signOff = isEn
-    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   return sendEmail({
     from: FROM,
@@ -492,11 +492,11 @@ export async function sendVendorSuspendedEmail(vendor: {
   const fullName = `${vendor.manager_name} / ${vendor.establishment_name}`;
   const reasonText = vendor.reason?.trim();
   const reasonBlock = reasonText
-    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#003932;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
     : "";
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   return sendEmail({
     from: FROM,
@@ -543,8 +543,8 @@ export async function sendVendorReactivatedEmail(vendor: {
   const isEn = lang === "en";
   const fullName = `${vendor.manager_name} / ${vendor.establishment_name}`;
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   return sendEmail({
     from: FROM,
@@ -592,7 +592,7 @@ export async function sendSupplierFinalReviewNotification(vendor: {
     subject: `ملف توريد جاهز للمراجعة النهائية — ${vendor.establishment_name}`,
     html: emailShell({
       previewText: `المورد ${vendor.establishment_name} أكمل ملف التوريد — مراجعة نهائية مطلوبة`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeIcon: "📋",
       badgeLabel: "ملف توريد جاهز للمراجعة",
       content: `
@@ -643,7 +643,7 @@ export async function sendCarrierRegistrationConfirmation(carrier: {
           Thank you for your interest in joining the Build Saudi carrier network. We've received your basic information and our logistics team will review it.
         </p>
         ${highlightBox("After preliminary approval, you'll receive a link to complete your carrier profile (service areas, vehicle types, licenses, insurance, and banking).")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>
       `
         : `
         ${greeting(fullName)}
@@ -651,7 +651,7 @@ export async function sendCarrierRegistrationConfirmation(carrier: {
           شكرًا لاهتمامكم بالانضمام إلى شبكة ناقلي Build Saudi. تم استلام بياناتكم الأساسية وسيراجعها فريق العمليات اللوجستية.
         </p>
         ${highlightBox("بعد الموافقة الأولية، يصلكم رابط لإكمال ملف الناقل (مناطق الخدمة، أنواع المركبات، التراخيص، التأمين، والبيانات البنكية).")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>
       `,
     }),
   });
@@ -720,8 +720,8 @@ export async function sendCarrierMoreInfoRequestedEmail(carrier: {
   const requestedBlock = requested ? highlightBox(esc(requested), "#f59e0b") : "";
   const completeUrl = carrier.onboardingUrl ? safeUrl(carrier.onboardingUrl) : "";
   const signOff = isEn
-    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
   return sendEmail({
     from: FROM,
     to: carrier.email,
@@ -765,11 +765,11 @@ export async function sendCarrierRejectedEmail(carrier: {
   const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
   const reasonText = carrier.reason?.trim();
   const reasonBlock = reasonText
-    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#003932;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
     : "";
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
   return sendEmail({
     from: FROM,
     to: carrier.email,
@@ -779,7 +779,7 @@ export async function sendCarrierRejectedEmail(carrier: {
       previewText: isEn
         ? `Regarding ${carrier.establishment_name}'s carrier application to Build Saudi`
         : `بخصوص طلب انضمام ${carrier.establishment_name} كناقل إلى Build Saudi`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeLabel: isEn ? "Regarding your application" : "بخصوص طلب الانضمام",
       content: isEn
         ? `
@@ -810,8 +810,8 @@ export async function sendCarrierFullyApprovedEmail(carrier: {
   const isEn = lang === "en";
   const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
   return sendEmail({
     from: FROM,
     to: carrier.email,
@@ -828,7 +828,7 @@ export async function sendCarrierFullyApprovedEmail(carrier: {
         ? `
         ${greeting(fullName)}
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          Your profile has been reviewed and <strong style="color:#1D3F1F;">${esc(carrier.establishment_name)}</strong>
+          Your profile has been reviewed and <strong style="color:#003932;">${esc(carrier.establishment_name)}</strong>
           is now <strong style="color:#09B14B;">fully approved</strong> as a carrier on Build Saudi.
         </p>
         ${highlightBox("You're now eligible to receive shipment and trip requests matching your coverage and fleet whenever one comes up.")}
@@ -837,7 +837,7 @@ export async function sendCarrierFullyApprovedEmail(carrier: {
         : `
         ${greeting(fullName)}
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
-          تمت مراجعة ملفكم واعتماد <strong style="color:#1D3F1F;">${esc(carrier.establishment_name)}</strong>
+          تمت مراجعة ملفكم واعتماد <strong style="color:#003932;">${esc(carrier.establishment_name)}</strong>
           كناقل <strong style="color:#09B14B;">معتمد نهائياً</strong> في Build Saudi.
         </p>
         ${highlightBox("أنتم الآن مؤهلون لاستقبال طلبات الشحن والرحلات المطابقة لتغطيتكم وأسطولكم عند توفرها.")}
@@ -859,11 +859,11 @@ export async function sendCarrierSuspendedEmail(carrier: {
   const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
   const reasonText = carrier.reason?.trim();
   const reasonBlock = reasonText
-    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#1D3F1F;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
+    ? `<p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;"><strong style="color:#003932;">${isEn ? "Reason:" : "السبب:"}</strong> ${esc(reasonText)}</p>`
     : "";
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
   return sendEmail({
     from: FROM,
     to: carrier.email,
@@ -905,8 +905,8 @@ export async function sendCarrierReactivatedEmail(carrier: {
   const isEn = lang === "en";
   const fullName = `${carrier.manager_name} / ${carrier.establishment_name}`;
   const signOff = isEn
-    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
   return sendEmail({
     from: FROM,
     to: carrier.email,
@@ -946,7 +946,7 @@ export async function sendCarrierFinalReviewNotification(carrier: {
     subject: `ملف ناقل جاهز للمراجعة النهائية — ${carrier.establishment_name}`,
     html: emailShell({
       previewText: `الناقل ${carrier.establishment_name} أكمل ملفه — مراجعة نهائية مطلوبة`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeIcon: "🚚",
       badgeLabel: "ملف ناقل جاهز للمراجعة",
       content: `
@@ -995,8 +995,8 @@ export async function sendDocumentExpiryAlertEmail(vendor: {
   const docLabel = DOCUMENT_TYPE_LABELS[vendor.documentType]?.[lang] ?? vendor.documentType;
   const isExpired = vendor.daysLeft <= 0;
   const signOff = isEn
-    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>`
-    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>`;
+    ? `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>`
+    : `<p style="margin:20px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>`;
 
   const statusLine = isEn
     ? isExpired
@@ -1024,7 +1024,7 @@ export async function sendDocumentExpiryAlertEmail(vendor: {
         ? `
         ${greeting(fullName)}
         <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
-          Your document <strong style="color:#1D3F1F;">${esc(docLabel)}</strong> on file with Build Saudi ${statusLine} (${esc(vendor.expiryDate)}).
+          Your document <strong style="color:#003932;">${esc(docLabel)}</strong> on file with Build Saudi ${statusLine} (${esc(vendor.expiryDate)}).
         </p>
         ${highlightBox("Please upload an updated copy through your supplier profile to keep your account in good standing.", isExpired ? "#ef4444" : "#f59e0b")}
         ${signOff}
@@ -1032,7 +1032,7 @@ export async function sendDocumentExpiryAlertEmail(vendor: {
         : `
         ${greeting(fullName)}
         <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
-          مستند <strong style="color:#1D3F1F;">${esc(docLabel)}</strong> المسجّل لدى Build Saudi ${statusLine} (${esc(vendor.expiryDate)}).
+          مستند <strong style="color:#003932;">${esc(docLabel)}</strong> المسجّل لدى Build Saudi ${statusLine} (${esc(vendor.expiryDate)}).
         </p>
         ${highlightBox("يُرجى رفع نسخة محدّثة عبر ملف التوريد الخاص بكم للحفاظ على استمرارية الحساب.", isExpired ? "#ef4444" : "#f59e0b")}
         ${signOff}
@@ -1073,7 +1073,7 @@ export async function sendVendorRegistrationConfirmation(vendor: {
           Thank you for your interest in joining the Build Saudi supplier network. We've received your basic information and our team will review it.
         </p>
         ${highlightBox("After preliminary approval, you'll receive a link to complete your supplier profile (categories, banking, and documents). Final approval follows a review of the complete profile.")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#1D3F1F;">Build Saudi Team</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">Best regards,<br/><strong style="color:#003932;">Build Saudi Team</strong></p>
       `
         : `
         ${greeting(fullName)}
@@ -1081,7 +1081,7 @@ export async function sendVendorRegistrationConfirmation(vendor: {
           شكرًا لاهتمامكم بالانضمام إلى شبكة موردي Build Saudi. تم استلام بياناتكم الأساسية وسيراجعها فريقنا.
         </p>
         ${highlightBox("بعد الموافقة الأولية، يصلكم رابط لإكمال ملف التوريد (الفئات، البنك، والمستندات). الاعتماد النهائي بعد مراجعة الملف الكامل.")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>
       `,
     }),
   });
@@ -1114,7 +1114,7 @@ export async function sendProcurementRequestReceivedEmail(req: {
         </p>
         ${highlightBox(`رقم التتبع: <strong dir="ltr" style="font-variant-numeric:tabular-nums;">${esc(req.trackingNumber)}</strong>`)}
         ${ctaButton(req.trackingUrl, "تتبع حالة الطلب")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>
       `,
     }),
   });
@@ -1176,7 +1176,7 @@ export async function sendSupplierRfqRequestEmail(req: {
     subject: `RFQ Request — ${req.trackingNumber} — Build Saudi [RFQID:${req.correlation}]`,
     html: emailShell({
       previewText: `طلب عرض سعر من Build Saudi للطلب ${req.trackingNumber}`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeLabel: "RFQ",
       content: `
         ${greeting(req.supplierName || "شريك Build")}
@@ -1212,7 +1212,7 @@ export async function sendCarrierRfqRequestEmail(req: {
     subject: `Freight RFQ — ${req.trackingNumber} — Build Saudi [RFQID:${req.correlation}]`,
     html: emailShell({
       previewText: `طلب عرض سعر شحن من Build Saudi للطلب ${req.trackingNumber}`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeLabel: "Freight RFQ",
       content: `
         ${greeting(req.carrierName || "شريك Build")}
@@ -1266,7 +1266,7 @@ export async function sendProcurementRequestDeclinedEmail(req: {
         </p>
         ${highlightBox(`رقم التتبع: <strong dir="ltr" style="font-variant-numeric:tabular-nums;">${esc(req.trackingNumber)}</strong>`)}
         ${ctaButton(req.trackingUrl, "عرض تفاصيل الطلب")}
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>
       `,
     }),
   });
@@ -1300,7 +1300,7 @@ export async function sendCustomerQuoteEmail(req: {
         </p>
         <div style="background:#f0f9f3;border:2px solid #09B14B33;border-radius:16px;padding:28px;text-align:center;margin:0 0 24px;">
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;letter-spacing:.5px;">الإجمالي شاملاً التوريد والشحن حتى موقعكم</p>
-          <p style="margin:0;font-size:36px;font-weight:800;color:#1D3F1F;font-variant-numeric:tabular-nums;" dir="ltr">${esc(priceFormatted)} <span style="font-size:18px;font-weight:600;">SAR</span></p>
+          <p style="margin:0;font-size:36px;font-weight:800;color:#003932;font-variant-numeric:tabular-nums;" dir="ltr">${esc(priceFormatted)} <span style="font-size:18px;font-weight:600;">SAR</span></p>
           <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">غير شامل ضريبة القيمة المضافة (15%)</p>
         </div>
         ${infoTable(
@@ -1313,7 +1313,7 @@ export async function sendCustomerQuoteEmail(req: {
         <p style="margin:24px 0 0;font-size:14px;color:#374151;line-height:1.8;">
           للموافقة على العرض والمضي في الطلب، أو لأي استفسار أو تعديل، يكفي الرد على هذا البريد وسيتواصل معكم فريقنا مباشرة.
         </p>
-        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#1D3F1F;">فريق Build Saudi</strong></p>
+        <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">مع تحياتنا،<br/><strong style="color:#003932;">فريق Build Saudi</strong></p>
       `,
     }),
   });
@@ -1337,7 +1337,7 @@ export async function sendInternalNewProcurementRequestNotification(req: {
     subject: `طلب توريد جديد — ${req.trackingNumber}`,
     html: emailShell({
       previewText: `طلب توريد جديد من ${req.contactName} — ${req.trackingNumber}`,
-      accentColor: "#1D3F1F",
+      accentColor: "#003932",
       badgeIcon: "🆕",
       badgeLabel: "طلب توريد جديد",
       content: `
@@ -1394,13 +1394,13 @@ export async function sendEmailVerificationOTP(params: { email: string; code: st
       badgeIcon: "🔐",
       badgeLabel: "التحقق من البريد الإلكتروني",
       content: `
-        <h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1D3F1F;">رمز التحقق</h2>
+        <h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#003932;">رمز التحقق</h2>
         <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.8;">
           أدخل الرمز أدناه لإكمال التحقق من بريدك الإلكتروني لدى بيلد.
         </p>
         <div style="background:#f0f9f3;border:2px solid #09B14B33;border-radius:16px;padding:28px;text-align:center;margin:0 0 24px;">
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:600;letter-spacing:.5px;">رمز التحقق</p>
-          <p style="margin:0;font-size:40px;font-weight:800;color:#1D3F1F;letter-spacing:10px;font-variant-numeric:tabular-nums;" dir="ltr">${esc(params.code)}</p>
+          <p style="margin:0;font-size:40px;font-weight:800;color:#003932;letter-spacing:10px;font-variant-numeric:tabular-nums;" dir="ltr">${esc(params.code)}</p>
         </div>
         <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.7;">
           هذا الرمز صالح لمدة <strong>5 دقائق</strong>. لا تشاركه مع أي شخص.

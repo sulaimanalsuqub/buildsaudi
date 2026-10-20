@@ -33,14 +33,14 @@ export function AuroraText({ children, className = "" }: AuroraTextProps) {
       const h = canvas!.height;
       ctx!.clearRect(0, 0, w, h);
 
-      // Brand colors: dark #1D3F1F, primary #09B14B, accent #C5D92D
+      // Brand colors: dark #003932, primary #09B14B, accent #C5D92D
       const grad = ctx!.createLinearGradient(
         Math.sin(t * 0.4) * w * 0.3 + w * 0.2,
         0,
         Math.cos(t * 0.3) * w * 0.3 + w * 0.7,
         h
       );
-      grad.addColorStop(0, "#1D3F1F");
+      grad.addColorStop(0, "#003932");
       grad.addColorStop(0.35 + Math.sin(t * 0.5) * 0.15, "#09B14B");
       grad.addColorStop(0.65 + Math.cos(t * 0.4) * 0.15, "#C5D92D");
       grad.addColorStop(1, "#09B14B");

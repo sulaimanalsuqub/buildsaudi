@@ -290,16 +290,16 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           <div className="quote-section-heading">
             <span className="quote-section-number" aria-hidden="true">01</span>
             <Upload className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-            <h3 id="materials-heading" className="text-lg font-bold text-brand-dark">{t("Your materials list", "قائمة المواد")}</h3>
+            <h2 id="materials-heading" className="text-lg font-bold text-brand-dark">{t("Your materials list", "قائمة المواد")}</h2>
             {required}
           </div>
-          <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg bg-brand-light p-1.5" role="group" aria-label={t("How would you like to add materials?", "طريقة إضافة المواد")}>
+          <div className="quote-material-modes mb-5 grid grid-cols-2 gap-2 rounded-lg p-1.5" role="group" aria-label={t("How would you like to add materials?", "طريقة إضافة المواد")}>
             {[{value: "file" as const, icon: Upload, en: "Upload a file", ar: "رفع ملف"}, {value: "text" as const, icon: MessageSquare, en: "Write your list", ar: "كتابة القائمة"}].map(mode => <button key={mode.value} type="button" onClick={() => setMaterialMode(mode.value)} aria-pressed={materialMode === mode.value} className={`relative z-0 flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-md px-2 text-sm font-semibold transition-colors ${materialMode === mode.value ? "bg-brand-dark text-white" : "text-brand-dark/75 hover:bg-white/70 hover:text-brand-dark"}`}>
               <mode.icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span>{t(mode.en, mode.ar)}</span>
             </button>)}
           </div>
           <div hidden={materialMode !== "file"}>
-            <label onDragOver={handleFilesDragOver} onDragLeave={handleFilesDragLeave} onDrop={handleFilesDrop} className={`relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center transition-colors focus-within:ring-2 focus-within:ring-brand-primary ${isDraggingFiles ? "border-brand-primary bg-brand-primary/10" : "border-brand-dark/20 bg-brand-light/40 hover:border-brand-primary hover:bg-brand-primary/[.04]"}`}>
+            <label onDragOver={handleFilesDragOver} onDragLeave={handleFilesDragLeave} onDrop={handleFilesDrop} className={`quote-upload relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center transition-colors focus-within:ring-2 focus-within:ring-brand-primary ${isDraggingFiles ? "border-brand-primary bg-brand-primary/10" : "border-brand-dark/20 bg-brand-light/40 hover:border-brand-primary hover:bg-brand-primary/[.04]"}`}>
               <input type="file" aria-label={t("Attach material files", "إرفاق ملفات المواد")} multiple accept=".csv,.pdf" disabled={isReadingFiles} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" onChange={(e) => { void toggleFilesPicked(e.target.files); e.target.value = ""; }} />
               <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-brand-primary shadow-sm">{isReadingFiles ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}</span>
               <span className="text-base font-bold text-brand-dark">{isReadingFiles ? t("Preparing your files…", "جارٍ تجهيز الملفات…") : t("Drop your BOQ or material list here", "اسحب جدول الكميات أو قائمة المواد هنا")}</span>
@@ -337,7 +337,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           <div className="quote-section-heading">
             <span className="quote-section-number" aria-hidden="true">02</span>
             <MapPin className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-            <h3 className="text-base font-bold text-brand-dark">{t("Where is your project?", "وين مشروعك؟")}</h3>
+            <h2 className="text-base font-bold text-brand-dark">{t("Where is your project?", "وين مشروعك؟")}</h2>
             {required}
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -355,7 +355,7 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
           <div className="quote-section-heading">
             <span className="quote-section-number" aria-hidden="true">03</span>
             <MessageSquare className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-            <h3 className="text-base font-bold text-brand-dark">{t("How can we reach you?", "كيف نتواصل معك؟")}</h3>
+            <h2 className="text-base font-bold text-brand-dark">{t("How can we reach you?", "كيف نتواصل معك؟")}</h2>
             {required}
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -381,11 +381,11 @@ export function ProcurementRequestForm({ isRtl = false }: { isRtl?: boolean }) {
             </label>
             <VendorErrorText text={form.formState.errors.privacyAccepted?.message} isRtl={isRtl} />
           </div>
-          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && <div className="mt-3"><Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" /><div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-expired-callback="onQuoteTurnstileExpired" data-error-callback="onQuoteTurnstileExpired" data-language={isRtl ? "ar" : "en"} data-size="flexible" /></div>}
+          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && <div className="mt-3"><Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" /><div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-callback="onQuoteTurnstileVerified" data-expired-callback="onQuoteTurnstileExpired" data-error-callback="onQuoteTurnstileExpired" data-language={isRtl ? "ar" : "en"} data-size="compact" /></div>}
           <Button
             type="submit"
             disabled={isLoading || isReadingFiles}
-            className="mt-5 h-14 w-full gap-3 rounded-lg bg-brand-dark px-5 text-base text-white hover:bg-brand-dark/90"
+            className="quote-submit mt-5 h-14 w-full gap-3 rounded-full bg-[#087d39] px-5 text-base text-white hover:bg-brand-dark"
           >
             {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />{t("Sending your request…", "جارٍ إرسال طلبك…")}</> : <>{t("Send quote request", "إرسال طلب عرض السعر")}<Send className="h-4 w-4 rtl:rotate-180" aria-hidden="true" /></>}
           </Button>

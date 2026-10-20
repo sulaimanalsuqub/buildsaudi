@@ -35,17 +35,17 @@ export function ConfirmDialog({
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md rounded-2xl bg-white p-6 shadow-xl"
           dir="rtl"
         >
-          <AlertDialog.Title className="text-lg font-bold text-[#1D3F1F]">
+          <AlertDialog.Title className="text-lg font-bold text-[#003932]">
             {title}
           </AlertDialog.Title>
           {description && (
-            <AlertDialog.Description className="mt-2 text-sm text-[#1D3F1F]/70 leading-relaxed">
+            <AlertDialog.Description className="mt-2 text-sm text-[#003932]/70 leading-relaxed">
               {description}
             </AlertDialog.Description>
           )}
           <div className="mt-5 flex gap-3 justify-end">
             <AlertDialog.Cancel asChild>
-              <button className="rounded-full border border-[#1D3F1F]/20 px-5 py-2.5 text-sm font-semibold text-[#1D3F1F] hover:bg-[#1D3F1F]/5">
+              <button className="rounded-full border border-[#003932]/20 px-5 py-2.5 text-sm font-semibold text-[#003932] hover:bg-[#003932]/5">
                 {cancelLabel}
               </button>
             </AlertDialog.Cancel>
@@ -55,7 +55,7 @@ export function ConfirmDialog({
               className={`rounded-full px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50 ${
                 isDanger
                   ? "bg-red-600 hover:bg-red-700"
-                  : "bg-[#09B14B] hover:bg-[#1D3F1F]"
+                  : "bg-[#09B14B] hover:bg-[#003932]"
               }`}
             >
               {loading ? "..." : confirmLabel}

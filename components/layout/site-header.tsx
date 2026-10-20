@@ -60,20 +60,20 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 bg-white/95 transition-[transform,background-color,box-shadow] duration-300",
+        "fixed inset-x-0 top-0 z-50 bg-white transition-transform duration-300",
         hidden ? "-translate-y-full" : "translate-y-0",
-        scrolled ? "border-b border-brand-dark/8 bg-white/92 shadow-sm backdrop-blur-xl" : "",
+        scrolled ? "border-b border-brand-dark/10" : "",
       ].join(" ")}
     >
       <Container className="flex h-[72px] items-center justify-between gap-4">
         <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
           <Image
-            src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"}
+            src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"}
             alt={isRtl ? "شعار بيلد" : "Build logo"}
-            width={4302}
-            height={1500}
+            width={isRtl ? 2883 : 2846}
+            height={isRtl ? 1231 : 1287}
             priority
-            className="h-14 w-auto"
+            className="h-10 w-auto sm:h-11"
           />
         </Link>
 
@@ -83,7 +83,7 @@ export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
           <Link href={isRtl ? "/ar/track-request" : "/track-request"} className="transition-colors hover:text-brand-primary">{isRtl ? "تتبّع طلبك" : "Track your request"}</Link>
         </nav>
         <div className="flex items-center gap-3">
-          <Link href={isRtl ? "/ar/get-quote" : "/get-quote"} className="inline-flex min-h-11 items-center rounded-md bg-brand-dark px-4 text-xs font-bold text-white transition-colors hover:bg-brand-dark/90 sm:text-sm">{isRtl ? "اطلب عرض سعر" : "Request a quote"}</Link>
+          {!showWhatsApp && <Link href={isRtl ? "/ar/get-quote" : "/get-quote"} className="inline-flex min-h-11 items-center rounded-full bg-brand-dark px-5 text-xs font-bold text-white transition-colors hover:bg-brand-dark/90 sm:text-sm">{isRtl ? "اطلب عرض سعر" : "Request a quote"}</Link>}
           {showWhatsApp && <a
             href={whatsappHref}
             target="_blank"

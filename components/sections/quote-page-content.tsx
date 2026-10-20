@@ -6,12 +6,16 @@ import { ProcurementRequestForm } from "@/components/forms/procurement-request-f
 export function QuotePageContent({ isRtl = false }: { isRtl?: boolean }) {
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   return (
-    <main dir={isRtl ? "rtl" : "ltr"} className="quote-page min-h-screen bg-brand-light pb-16 pt-7 md:pb-24 md:pt-12">
+    <main dir={isRtl ? "rtl" : "ltr"} className="quote-page min-h-screen pb-16 pt-6 md:pb-24 md:pt-10">
       <Container>
-        <Link href={isRtl ? "/ar" : "/"} className="mb-8 inline-flex min-h-11 items-center gap-2 text-sm text-brand-dark/75 hover:text-brand-dark"><BackArrow className="h-4 w-4" aria-hidden="true" />{isRtl ? "العودة إلى بيلد" : "Back to Build"}</Link>
-        <div className="mx-auto max-w-2xl">
-          <div className="min-w-0 rounded-2xl border border-brand-dark/15 bg-white p-5 sm:p-8">
-            <div className="mb-8 flex items-center justify-between gap-4 border-b border-brand-dark/15 pb-5"><h2 className="text-lg font-bold">{isRtl ? "طلب عرض سعر" : "Request a quote"}</h2><p className="text-xs text-brand-dark/70">{isRtl ? "* حقول مطلوبة" : "* Required fields"}</p></div>
+        <div className="quote-page-shell mx-auto">
+          <Link href={isRtl ? "/ar" : "/"} className="quote-back-link inline-flex min-h-11 items-center gap-2 text-sm hover:underline"><BackArrow className="h-4 w-4" aria-hidden="true" />{isRtl ? "العودة إلى بيلد" : "Back to Build"}</Link>
+          <div className="quote-page-intro">
+            <h1>{isRtl ? "طلب عرض سعر" : "Request a quote"}</h1>
+            <p>{isRtl ? "أضف قائمة المواد وتفاصيل مشروعك، وخلّ ترتيب التوريد علينا." : "Share your materials list and project details. We’ll take care of coordinating the supply."}</p>
+          </div>
+          <div className="quote-form-surface">
+            <p className="quote-required-note">{isRtl ? "* حقول مطلوبة" : "* Required fields"}</p>
             <ProcurementRequestForm isRtl={isRtl} />
           </div>
         </div>

@@ -56,11 +56,11 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer dir={isRtl ? "rtl" : "ltr"} className="bg-brand-light pt-14 text-brand-dark md:pt-20">
+    <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer bg-white pt-14 text-brand-dark md:pt-20">
       <Grid className="gap-y-12">
         <div className="col-span-4 sm:col-span-8 lg:col-span-5">
           <Link href={isRtl ? "/ar" : "/"} aria-label={isRtl ? "بيلد، الصفحة الرئيسية" : "Build homepage"} className="inline-block">
-            <Image src={isRtl ? "/brand/logo-ar.svg" : "/brand/logo-en.svg"} alt={isRtl ? "بيلد" : "Build"} width={4302} height={1500} className="h-auto w-48 md:w-60" />
+            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={isRtl ? "بيلد" : "Build"} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 md:w-40" />
           </Link>
           <p className="mt-6 max-w-xs text-base leading-8 text-brand-dark/75">{isRtl ? "توريد مواد البناء والتشطيب للمقاولين والمطورين" : "Supply of building materials and finishes for contractors and developers"}</p>
           <Link href={`${legalBase}/warranty`} className="mt-7 inline-flex items-center gap-3 text-sm font-semibold hover:underline">
