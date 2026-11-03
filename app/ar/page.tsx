@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar",
-  title: "بيلد | مورد مواد بناء",
+  title: "مورد مواد بناء | بيلد",
   description: siteConfig.descriptionAr,
   keywords: siteConfig.keywordsAr,
 });
