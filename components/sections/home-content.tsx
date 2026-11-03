@@ -30,7 +30,7 @@ export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
         <Container className="home-hero-layout">
           <div className="home-hero-copy">
             <h1 id="home-title" className="home-title">
-              {isRtl ? <>رحلة توريد المواد<br /><span>أسرع</span></> : <>Materials supply,<br /><span>Faster</span></>}
+              {isRtl ? <>مورد مواد البناء<br /><span>أسرع</span></> : <>Materials supply,<br /><span>Faster</span></>}
             </h1>
             <p className="home-lead">{body}</p>
             <div className="home-hero-actions">

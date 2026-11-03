@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata = pageMetadata({
   lang: "ar",
   path: "/ar",
-  title: "بيلد | توريد مواد البناء والتشطيبات للمشاريع في السعودية",
+  title: "بيلد | مورد مواد بناء",
   description: siteConfig.descriptionAr,
   keywords: siteConfig.keywordsAr,
 });
