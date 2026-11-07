@@ -10,6 +10,9 @@ import { getMarketing } from "@/lib/dictionaries/marketing";
 export function alternateLocalePath(pathname: string): string {
   const path = pathname || "/";
 
+  // The existing Bani placeholder is Arabic-only; English has the supplier form.
+  if (path.replace(/\/$/, "") === "/ar/register/bani") return "/register";
+
   if (path === "/ar" || path === "/ar/") {
     return "/";
   }
@@ -35,7 +38,7 @@ export function SiteHeader({ isRtl = false }: { isRtl?: boolean }) {
     <div className="marketing-container header-inner">
       <Link prefetch={false} href={home} aria-label={t.home} className="header-logo"><Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t.name} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} priority sizes="100px" /></Link>
       <nav aria-label={t.menu} className="header-nav"><MegaMenu isRtl={isRtl} /><Link prefetch={false} className="header-desktop" href={`${home}#how-it-works`}>{t.how}</Link><Link prefetch={false} className="header-desktop header-audience" href={`${home}#for-projects`}>{t.audience}</Link></nav>
-      <div className="header-actions">{pathname.endsWith("/get-quote") && <a className="header-desktop" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer" aria-label={t.whatsapp}><MessageCircle size={19} /></a>}<Link prefetch={false} className="header-desktop" href={`${base}/track-request`}>{t.track}</Link><Link prefetch={false} className="language-switch" href={query ? `${altPath}?${query}` : altPath} lang={isRtl ? 'en' : 'ar'} aria-label={isRtl ? 'English' : 'العربية'}>{isRtl ? 'EN' : 'AR'}</Link><Link prefetch={false} href={`${base}/get-quote`} className="build-button header-cta">{t.quote}</Link></div>
+      <div className="header-actions">{pathname.endsWith("/get-quote") && <a className="header-desktop" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer" aria-label={t.whatsapp}><MessageCircle size={19} /></a>}<Link prefetch={false} className="header-desktop" href={`${base}/track-request`}>{t.track}</Link><Link prefetch={false} className="language-switch" href={query ? `${altPath}?${query}` : altPath} lang={isRtl ? 'en' : 'ar'} aria-label={t.languageLabel}>{isRtl ? 'EN' : 'AR'}</Link><Link prefetch={false} href={`${base}/get-quote`} className="build-button header-cta">{t.quote}</Link></div>
     </div>
   </header>;
 }

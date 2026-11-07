@@ -308,8 +308,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
     <form onSubmit={onSubmit} className="w-full" dir={isRtl ? "rtl" : "ltr"}>
       <div className="mb-8 space-y-3">
         <h1 className="text-[28px] font-bold leading-tight text-brand-dark md:text-[32px]">{t.formTitle}</h1>
-        <p className="text-[15px] leading-6 text-brand-dark/60">{t.formBody}</p>
-        <p className="inline-flex items-center gap-1.5 pt-1 text-xs font-medium text-brand-dark/45">
+        <p className="text-[15px] leading-6 text-brand-dark/70">{t.formBody}</p>
+        <p className="inline-flex items-center gap-1.5 pt-1 text-xs font-medium text-brand-dark/70">
           <ShieldCheck className="h-3.5 w-3.5" />
           {t.secureNote}
         </p>
@@ -399,12 +399,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 <section className="space-y-5 rounded-2xl border border-brand-dark/10 bg-brand-light/40 p-5" aria-label={interfaceCopy(isRtl, "vendor_registration_form_047")}>
                   <div>
                     <p className="text-base font-bold text-brand-dark">{interfaceCopy(isRtl, "vendor_registration_form_048")}</p>
-                    <p className="mt-1 text-sm leading-6 text-brand-dark/60">{interfaceCopy(isRtl, "vendor_registration_form_049")}</p>
+                    <p className="mt-1 text-sm leading-6 text-brand-dark/70">{interfaceCopy(isRtl, "vendor_registration_form_049")}</p>
                   </div>
                   {commercialOptionsFailed ? (
                     <p className="text-sm text-red-600">{interfaceCopy(isRtl, "vendor_registration_form_050")}</p>
                   ) : !commercialOptions ? (
-                    <p className="text-sm text-brand-dark/50">{interfaceCopy(isRtl, "vendor_registration_form_051")}</p>
+                    <p className="text-sm text-brand-dark/70">{interfaceCopy(isRtl, "vendor_registration_form_051")}</p>
                   ) : (
                     <>
                       <div className="grid gap-5 sm:grid-cols-2">
@@ -447,7 +447,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 {categoriesFailed ? (
                   <p className="text-sm text-red-600">{t.helpers.categoriesError}</p>
                 ) : !categories ? (
-                  <p className="text-sm text-brand-dark/50">{t.helpers.categoriesLoading}</p>
+                  <p className="text-sm text-brand-dark/70">{t.helpers.categoriesLoading}</p>
                 ) : (
                   <>
                     <VendorOptionGrid>
@@ -549,7 +549,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       )}
 
       <div className="mt-8 border-t border-brand-dark/10 pt-6">
-        <Button type="submit" size="lg" disabled={isLoading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="h-14 w-full rounded-2xl bg-brand-primary text-base hover:bg-brand-dark">
+        <Button type="submit" size="lg" disabled={isLoading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)} className="h-14 w-full rounded-2xl text-base ">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

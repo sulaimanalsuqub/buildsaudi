@@ -488,7 +488,7 @@ main:not(.marketing-home) { background-color: var(--color-paper); }
 @keyframes phone-arrive { from { opacity: .6; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @supports (animation-timeline: view()) {
   .reveal { animation: section-reveal 350ms ease-out both; animation-timeline: view(); animation-range: entry 0% entry 20%; }
-  @keyframes section-reveal { from { opacity: .7; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes section-reveal { from { opacity: 1; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 }
 @media (max-width: 1100px) {
   .header-audience { display: none !important; }

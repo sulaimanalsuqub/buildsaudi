@@ -49,7 +49,7 @@ export default function EnglishRootLayout({ children }: Readonly<{ children: Rea
       </head>
       <body className={gtAmericaArabic.className}>
         <GtmNoscript />
-        <Suspense fallback={<div className="h-[72px]" />}>
+        <Suspense fallback={<div className="fixed inset-x-0 top-0 h-[72px] bg-white" aria-hidden="true" />}>
           <SiteHeader />
         </Suspense>
         <div id="page-content" tabIndex={-1} className="pt-[72px]">{children}</div>

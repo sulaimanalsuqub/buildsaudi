@@ -167,7 +167,7 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
                     />
                     <button
                       type="submit"
-                      className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-dark px-6 font-bold text-white transition hover:bg-brand-dark/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
+                      className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-accent px-6 font-bold text-brand-dark transition hover:bg-brand-accent/80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
                     >
                       <Search className="h-4 w-4" aria-hidden="true" />
                       {interfaceCopy(isRtl, "track_request_content_011")}

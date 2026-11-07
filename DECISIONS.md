@@ -5,7 +5,7 @@
 - Use IBM Plex Sans Arabic with IBM Plex Sans Latin through next/font for the requested Arabic/Latin pairing; preserve original logo artwork and existing font files.
 - Code-first implementation of the explicitly requested phone and UI demonstrations. All illustrative quotes, ETAs and testimonials are visibly marked as examples, not operational promises.
 - There is no existing product catalog route: category cards link to category detail anchors in the homepage catalog, which offer the existing quote flow. No invented store URLs.
-- CSS handles motion without adding animation dependencies. Keep existing dependencies for other pages.
+- Use the installed Framer Motion for the mega-menu entrance, with animation features loaded only when it opens. CSS handles the marquee, hover states and progressive scroll slides. No new animation dependency.
 - The connected browser runtime reported no available browsers. Use the installed Playwright CLI for public-site research and local visual verification.
 - All API, env, analytics IDs and existing form behavior remain outside the change boundary.
 - Restore the complete shared footer on quote/tracking/registration pages, as requested. Preserve all existing footer destinations, support details, warranty badge and social URLs.
@@ -13,3 +13,7 @@
 - Remove the incumbent form's unsupported “within 24 hours” marketing promise; use pricing/availability follow-up wording without a numerical SLA.
 - Baseline lint has three React Hook Form compiler warnings; build has middleware deprecation and stale Browserslist warnings. These predate the redesign and require unrelated maintenance.
 - Disable speculative Next.js link prefetch on marketing/navigation links. The first mobile audit showed form bundles downloading on the homepage; these routes now load when selected. Analytics behavior and IDs remain unchanged.
+- Fix the header Suspense fallback to be fixed-position like the resolved header. The old in-flow fallback shifted the page by 72px on hydration (mobile CLS 0.087); matching geometry removes that shift without changing analytics.
+- Keep scroll-reveal text fully opaque while sliding. Opacity-based scroll timelines left offscreen text at reduced contrast during accessibility auditing; the slide retains motion without reducing readability.
+- Include the visible AR/EN abbreviation in the language switch's accessible name for voice-control parity.
+- The existing `/ar/register/bani` coming-soon page has no English route. Its language switch goes to `/register`, the corresponding English supplier application, instead of a 404. Other locale switches keep the exact route and query.
