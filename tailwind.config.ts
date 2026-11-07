@@ -9,10 +9,10 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          dark: "#003932",
-          primary: "#003932",
-          accent: "#C5D92D",
-          light: "#F4F3EB"
+          dark: "rgb(var(--brand-dark-rgb) / <alpha-value>)",
+          primary: "rgb(var(--brand-dark-rgb) / <alpha-value>)",
+          accent: "rgb(var(--brand-accent-rgb) / <alpha-value>)",
+          light: "rgb(var(--brand-light-rgb) / <alpha-value>)"
         }
       },
       borderRadius: {

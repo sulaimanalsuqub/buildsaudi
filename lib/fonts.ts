@@ -1,12 +1,6 @@
-import localFont from "next/font/local";
+import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from "next/font/google";
 
-export const gtAmericaArabic = localFont({
-  src: [
-    { path: "../app/fonts/GTAmericaArabic-Light.ttf", weight: "300", style: "normal" },
-    { path: "../app/fonts/GTAmericaArabic-Regular.ttf", weight: "400", style: "normal" },
-    { path: "../app/fonts/GTAmericaArabic-Medium.ttf", weight: "500", style: "normal" },
-    { path: "../app/fonts/GTAmericaArabic-Bold.ttf", weight: "700", style: "normal" },
-    { path: "../app/fonts/GTAmericaArabic-Black.ttf", weight: "900", style: "normal" },
-  ],
-  display: "swap",
-});
+export const arabicFont = IBM_Plex_Sans_Arabic({ weight: ["400", "500", "600", "700"], subsets: ["arabic", "latin"], display: "swap", variable: "--font-arabic" });
+export const latinFont = IBM_Plex_Sans({ weight: ["400", "500", "600", "700"], subsets: ["latin"], display: "swap", variable: "--font-latin" });
+// Preserve the import contract of existing layouts and error pages.
+export const gtAmericaArabic = { className: `${arabicFont.variable} ${latinFont.variable} build-font` };
