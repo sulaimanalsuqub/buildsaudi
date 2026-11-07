@@ -1,16 +1,9 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Languages, MessageCircle } from "lucide-react";
-
-import { Container } from "@/components/ui/container";
-
-type SiteHeaderProps = {
-  isRtl?: boolean;
-};
+import { MegaMenu } from "@/components/marketing/mega-menu";
+import { getMarketing } from "@/lib/dictionaries/marketing";
 
 /** يحوّل المسار بين العربية والإنجليزية مع الحفاظ على الصفحة الحالية */
 export function alternateLocalePath(pathname: string): string {
@@ -29,81 +22,19 @@ export function alternateLocalePath(pathname: string): string {
   return `/ar${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-export function SiteHeader({ isRtl = false }: SiteHeaderProps) {
+export function SiteHeader({ isRtl = false }: { isRtl?: boolean }) {
   const pathname = usePathname() || "/";
-  const searchParams = useSearchParams();
-  const [hidden, setHidden] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    lastScrollY.current = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      setHidden(y > lastScrollY.current && y > 72);
-      // بدون خلفية، الهيدر لو رجع يظهر وسط الصفحة (بعد التمرير) يتراكب مع أي محتوى تحته مباشرة —
-      // نعطيه خلفية بمجرد ما يتجاوز الهيرو، بغض النظر عن اتجاه التمرير.
-      setScrolled(y > 72);
-      lastScrollY.current = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const homeHref = isRtl ? "/ar" : "/";
+  const query = useSearchParams()?.toString() ?? "";
   const altPath = alternateLocalePath(pathname);
-  const query = searchParams?.toString() ?? "";
-  const languageHref = query ? `${altPath}?${query}` : altPath;
-  const whatsappHref = `https://wa.me/966553771777?text=${encodeURIComponent("هلابيلد")}`;
-  const showWhatsApp = ["/ar/get-quote", "/get-quote"].includes(pathname.replace(/\/$/, ""));
-
-  return (
-    <header
-      className={[
-        "fixed inset-x-0 top-0 z-50 bg-white transition-transform duration-300",
-        hidden ? "-translate-y-full" : "translate-y-0",
-        scrolled ? "border-b border-brand-dark/10" : "",
-      ].join(" ")}
-    >
-      <Container className="flex h-[72px] items-center justify-between gap-4">
-        <Link href={homeHref} aria-label={isRtl ? "الصفحة الرئيسية" : "Build homepage"}>
-          <Image
-            src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"}
-            alt={isRtl ? "شعار بيلد" : "Build logo"}
-            width={isRtl ? 2883 : 2846}
-            height={isRtl ? 1231 : 1287}
-            priority
-            className="h-10 w-auto sm:h-11"
-          />
-        </Link>
-
-        <nav aria-label={isRtl ? "التنقل الرئيسي" : "Main navigation"} className="hidden items-center gap-8 text-sm font-semibold text-brand-dark/75 md:flex">
-          <Link href={`${homeHref}#catalog`} className="transition-colors hover:text-brand-primary">{isRtl ? "المواد" : "Materials"}</Link>
-          <Link href={`${homeHref}#how-it-works`} className="transition-colors hover:text-brand-primary">{isRtl ? "كيف نعمل" : "How it works"}</Link>
-          <Link href={isRtl ? "/ar/track-request" : "/track-request"} className="transition-colors hover:text-brand-primary">{isRtl ? "تتبّع طلبك" : "Track your request"}</Link>
-        </nav>
-        <div className="flex items-center gap-3">
-          {!showWhatsApp && <Link href={isRtl ? "/ar/get-quote" : "/get-quote"} className="inline-flex min-h-11 items-center rounded-full bg-brand-dark px-5 text-xs font-bold text-white transition-colors hover:bg-brand-dark/90 sm:text-sm">{isRtl ? "اطلب عرض سعر" : "Request a quote"}</Link>}
-          {showWhatsApp && <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#25D366]/35 bg-white text-[#20b957] transition hover:border-[#25D366] hover:bg-[#25D366]/10"
-            aria-label={isRtl ? "تواصل معنا عبر واتساب" : "Contact us on WhatsApp"}
-            title={isRtl ? "واتساب" : "WhatsApp"}
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          </a>}
-          <Link
-            href={languageHref}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-dark/12 bg-white text-brand-dark/70 transition hover:border-brand-dark/25 hover:text-brand-dark"
-            aria-label={isRtl ? "English" : "العربية"}
-            title={isRtl ? "English" : "العربية"}
-          >
-            <Languages className="h-4 w-4" />
-          </Link>
-        </div>
-      </Container>
-    </header>
-  );
+  const t = getMarketing(isRtl);
+  const home = isRtl ? "/ar" : "/";
+  const base = isRtl ? "/ar" : "";
+  return <header className="build-header">
+    <a className="skip-link" href="#main-content">{t.skip}</a>
+    <div className="marketing-container header-inner">
+      <Link href={home} aria-label={t.home} className="header-logo"><Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t.name} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} priority sizes="100px" /></Link>
+      <nav aria-label={t.menu} className="header-nav"><MegaMenu isRtl={isRtl} /><Link className="header-desktop" href={`${home}#how-it-works`}>{t.how}</Link><Link className="header-desktop header-audience" href={`${home}#for-projects`}>{t.audience}</Link></nav>
+      <div className="header-actions"><Link className="header-desktop" href={`${base}/track-request`}>{t.track}</Link><Link className="language-switch" href={query ? `${altPath}?${query}` : altPath} lang={isRtl ? 'en' : 'ar'} aria-label={isRtl ? 'English' : 'العربية'}>{isRtl ? 'EN' : 'AR'}</Link><Link href={`${base}/get-quote`} className="build-button header-cta">{t.quote}</Link></div>
+    </div>
+  </header>;
 }
