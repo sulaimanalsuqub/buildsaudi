@@ -1,3 +1,5 @@
+
+import { interfaceCopy } from "@/lib/dictionaries/interface";
 import Image from "next/image";
 import Link from "next/link";
 import { Instagram, Linkedin, Mail, MessageCircle, X as XIcon } from "lucide-react";
@@ -42,16 +44,16 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   const year = new Date().getFullYear();
   const links = {
     main: [
-      { href: `${legalBase}/about`, label: isRtl ? "عن بيلد" : "About Build" },
-      { href: isRtl ? "/ar/get-quote" : "/get-quote", label: isRtl ? "أطلب المنتجات" : "Order Products" },
-      { href: isRtl ? "/ar/register" : "/register", label: isRtl ? "كُن موردًا" : "Become a Supplier" },
+      { href: `${legalBase}/about`, label: interfaceCopy(isRtl, "site_footer_001") },
+      { href: isRtl ? "/ar/get-quote" : "/get-quote", label: interfaceCopy(isRtl, "site_footer_002") },
+      { href: isRtl ? "/ar/register" : "/register", label: interfaceCopy(isRtl, "site_footer_003") },
     ],
     legal: [
-      { href: `${legalBase}/#how-it-works`, label: isRtl ? "كيف نعمل" : "How It Works" },
-      { href: `${legalBase}/warranty`, label: isRtl ? "سياسة الضمان" : "Warranty Policy" },
-      { href: `${legalBase}/privacy-policy`, label: isRtl ? "سياسة الخصوصية" : "Privacy Policy" },
-      { href: `${legalBase}/terms-conditions`, label: isRtl ? "الشروط والأحكام" : "Terms & Conditions" },
-      { href: `${legalBase}/cookies-policy`, label: isRtl ? "الكوكيز" : "Cookies" },
+      { href: `${legalBase}/#how-it-works`, label: interfaceCopy(isRtl, "site_footer_004") },
+      { href: `${legalBase}/warranty`, label: interfaceCopy(isRtl, "site_footer_005") },
+      { href: `${legalBase}/privacy-policy`, label: interfaceCopy(isRtl, "site_footer_006") },
+      { href: `${legalBase}/terms-conditions`, label: interfaceCopy(isRtl, "site_footer_007") },
+      { href: `${legalBase}/cookies-policy`, label: interfaceCopy(isRtl, "site_footer_008") },
     ],
   };
 
@@ -59,19 +61,19 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
     <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer bg-[#003932] pt-12 text-white md:pt-16">
       <Grid className="gap-y-10 md:gap-y-14">
         <div className="col-span-4 sm:col-span-8 lg:col-span-4">
-          <Link href={isRtl ? "/ar" : "/"} aria-label={isRtl ? "بيلد، الصفحة الرئيسية" : "Build homepage"} className="inline-block">
-            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={isRtl ? "بيلد" : "Build"} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 brightness-0 invert md:w-40" />
+          <Link prefetch={false} href={isRtl ? "/ar" : "/"} aria-label={interfaceCopy(isRtl, "site_footer_009")} className="inline-block">
+            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={interfaceCopy(isRtl, "site_footer_010")} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 brightness-0 invert md:w-40" />
           </Link>
-          <p className="mt-5 max-w-xs text-base leading-8 text-white/70">{isRtl ? "توريد مواد البناء والتشطيب للمقاولين والمطورين" : "Supply of building materials and finishes for contractors and developers"}</p>
-          <Link href={`${legalBase}/warranty`} className="mt-6 inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-white hover:underline">
+          <p className="mt-5 max-w-xs text-base leading-8 text-white/70">{interfaceCopy(isRtl, "site_footer_011")}</p>
+          <Link prefetch={false} href={`${legalBase}/warranty`} className="mt-6 inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-white hover:underline">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white"><WarrantySeal className="h-9 w-auto" /></span>
-            {isRtl ? "منتجات أصلية، ضمان موثّق" : "Authentic products, backed warranty"}
+            {interfaceCopy(isRtl, "site_footer_012")}
           </Link>
         </div>
-        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "بيلد" : "Build"} links={links.main} /></div>
-        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={isRtl ? "المساعدة والسياسات" : "Help & policies"} links={links.legal} /></div>
+        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={interfaceCopy(isRtl, "site_footer_013")} links={links.main} /></div>
+        <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={interfaceCopy(isRtl, "site_footer_014")} links={links.legal} /></div>
         <div className="col-span-4 sm:col-span-8 lg:col-span-4">
-          <h2 className="text-sm font-bold">{isRtl ? "نحن هنا لمساعدتك" : "We're here to help"}</h2>
+          <h2 className="text-sm font-bold">{interfaceCopy(isRtl, "site_footer_015")}</h2>
           <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-5 flex min-h-11 w-fit items-center gap-3 text-2xl font-bold text-white hover:underline"><MessageCircle className="h-5 w-5" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
           <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-base text-white/80 hover:text-white hover:underline"><Mail className="h-5 w-5" aria-hidden="true" />{SUPPORT_EMAIL}</a>
           <div className="mt-5 flex flex-wrap gap-1">
@@ -80,7 +82,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
         </div>
         <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 py-5 text-xs leading-6 text-white/70 sm:col-span-8 lg:col-span-12">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <Link href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-white hover:underline">{isRtl ? "كُن جزءًا من شبكة مورّدي بيلد" : "Join Build's supplier network"}</Link>
+          <Link prefetch={false} href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-white hover:underline">{interfaceCopy(isRtl, "site_footer_016")}</Link>
         </div>
       </Grid>
     </footer>
@@ -99,7 +101,7 @@ function FooterColumn({
       <h2 className="text-sm font-bold text-white">{title}</h2>
       <div className="mt-5 grid gap-1">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-white/70 transition hover:text-white hover:underline">
+          <Link prefetch={false} key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-white/70 transition hover:text-white hover:underline">
             {link.label}
           </Link>
         ))}

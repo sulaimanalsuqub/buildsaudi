@@ -8,3 +8,8 @@
 - CSS handles motion without adding animation dependencies. Keep existing dependencies for other pages.
 - The connected browser runtime reported no available browsers. Use the installed Playwright CLI for public-site research and local visual verification.
 - All API, env, analytics IDs and existing form behavior remain outside the change boundary.
+- Restore the complete shared footer on quote/tracking/registration pages, as requested. Preserve all existing footer destinations, support details, warranty badge and social URLs.
+- Extract existing form/footer copy into a bilingual interface dictionary without altering requests, validation, field names or submission logic.
+- Remove the incumbent form's unsupported “within 24 hours” marketing promise; use pricing/availability follow-up wording without a numerical SLA.
+- Baseline lint has three React Hook Form compiler warnings; build has middleware deprecation and stale Browserslist warnings. These predate the redesign and require unrelated maintenance.
+- Disable speculative Next.js link prefetch on marketing/navigation links. The first mobile audit showed form bundles downloading on the homepage; these routes now load when selected. Analytics behavior and IDs remain unchanged.

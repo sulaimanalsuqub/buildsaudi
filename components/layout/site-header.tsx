@@ -1,4 +1,5 @@
 "use client";
+import { MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -30,11 +31,11 @@ export function SiteHeader({ isRtl = false }: { isRtl?: boolean }) {
   const home = isRtl ? "/ar" : "/";
   const base = isRtl ? "/ar" : "";
   return <header className="build-header">
-    <a className="skip-link" href="#main-content">{t.skip}</a>
+    <a className="skip-link" href="#page-content">{t.skip}</a>
     <div className="marketing-container header-inner">
-      <Link href={home} aria-label={t.home} className="header-logo"><Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t.name} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} priority sizes="100px" /></Link>
-      <nav aria-label={t.menu} className="header-nav"><MegaMenu isRtl={isRtl} /><Link className="header-desktop" href={`${home}#how-it-works`}>{t.how}</Link><Link className="header-desktop header-audience" href={`${home}#for-projects`}>{t.audience}</Link></nav>
-      <div className="header-actions"><Link className="header-desktop" href={`${base}/track-request`}>{t.track}</Link><Link className="language-switch" href={query ? `${altPath}?${query}` : altPath} lang={isRtl ? 'en' : 'ar'} aria-label={isRtl ? 'English' : 'العربية'}>{isRtl ? 'EN' : 'AR'}</Link><Link href={`${base}/get-quote`} className="build-button header-cta">{t.quote}</Link></div>
+      <Link prefetch={false} href={home} aria-label={t.home} className="header-logo"><Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t.name} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} priority sizes="100px" /></Link>
+      <nav aria-label={t.menu} className="header-nav"><MegaMenu isRtl={isRtl} /><Link prefetch={false} className="header-desktop" href={`${home}#how-it-works`}>{t.how}</Link><Link prefetch={false} className="header-desktop header-audience" href={`${home}#for-projects`}>{t.audience}</Link></nav>
+      <div className="header-actions">{pathname.endsWith("/get-quote") && <a className="header-desktop" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer" aria-label={t.whatsapp}><MessageCircle size={19} /></a>}<Link prefetch={false} className="header-desktop" href={`${base}/track-request`}>{t.track}</Link><Link prefetch={false} className="language-switch" href={query ? `${altPath}?${query}` : altPath} lang={isRtl ? 'en' : 'ar'} aria-label={isRtl ? 'English' : 'العربية'}>{isRtl ? 'EN' : 'AR'}</Link><Link prefetch={false} href={`${base}/get-quote`} className="build-button header-cta">{t.quote}</Link></div>
     </div>
   </header>;
 }

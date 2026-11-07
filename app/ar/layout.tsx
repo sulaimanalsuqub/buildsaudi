@@ -52,7 +52,7 @@ export default function ArabicRootLayout({ children }: Readonly<{ children: Reac
         <Suspense fallback={<div className="h-[72px]" />}>
           <SiteHeader isRtl />
         </Suspense>
-        <div className="pt-[72px]">{children}</div>
+        <div id="page-content" tabIndex={-1} className="pt-[72px]">{children}</div>
         <ConditionalFooter isRtl />
         <Toaster position="top-center" richColors dir="rtl" />
         <GtmScript />

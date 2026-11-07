@@ -1,4 +1,6 @@
 "use client";
+import { interfaceCopy } from "@/lib/dictionaries/interface";
+
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
@@ -20,7 +22,6 @@ import {
   optionLabel,
   parseVendorPhone,
   supplierCountries,
-  textByLang,
 } from "@/lib/vendor-options";
 import { VendorErrorText, VendorField, VendorOptionCard, VendorOptionGrid, VendorPhoneInput, VendorTagInput } from "@/components/forms/vendor-form-shared";
 import { VendorRegistrationFiles, type SelectedVendorFile } from "@/components/forms/vendor-registration-files";
@@ -90,80 +91,48 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   // يبقى ثابتاً طوال محاولة التسجيل، لذلك إعادة إرسال الطلب بعد مهلة الشبكة لا تنشئ مورداً ثانياً.
   const [submissionId] = useState(() => crypto.randomUUID());
   const t = {
-    formEyebrow: textByLang(isRtl, "Supplier qualification", "تأهيل الموردين"),
-    formTitle: textByLang(isRtl, "Start your supplier application", "ابدأ طلب الانضمام"),
-    formBody: textByLang(
-      isRtl,
-      "Complete the Build supplier application form.",
-      "قم بتعبئة نموذج الانضمام إلى موردي بيلد"
-    ),
-    secureNote: textByLang(isRtl, "Reviewed by Build operations", "تتم المراجعة من فريق عمليات بيلد"),
-    submitStateTitle: textByLang(isRtl, "Application Received", "وصلنا طلب انضمامكم"),
-    submitStateBody: textByLang(
-      isRtl,
-      "Thank you for choosing Build. We're pleased to learn about your products and look forward to working with you.",
-      "شكرًا لثقتكم ببيلد. يسعدنا نتعرف على منتجاتكم ونتطلع للتعاون معكم."
-    ),
-    processingTitle: textByLang(isRtl, "Application Is Being Processed", "طلب الانضمام قيد المعالجة"),
-    processingBody: textByLang(
-      isRtl,
-      "Your earlier submission is still being processed securely. Please do not submit it again; check your email shortly.",
-      "طلبكم السابق ما زال يُعالج بشكل آمن. لا تعيدوا الإرسال؛ راقبوا البريد الإلكتروني خلال لحظات."
-    ),
-    needsReviewTitle: textByLang(isRtl, "Under Review", "قيد المراجعة"),
-    needsReviewBody: textByLang(
-      isRtl,
-      "Some of your details match an existing application. Our team will review it and reach out if needed.",
-      "بعض بياناتكم تتطابق مع طلب سابق لدينا. سيراجع فريقنا الطلب وسيتواصل معكم عند الحاجة."
-    ),
-    alreadyRegisteredTitle: textByLang(isRtl, "Already Registered", "مسجّل مسبقاً"),
-    alreadyRegisteredBody: textByLang(
-      isRtl,
-      "We found an existing application for this establishment. No need to submit again — our team is already reviewing it.",
-      "لدينا طلب مسجّل مسبقاً لهذه المنشأة. لا حاجة لإعادة الإرسال — فريقنا يراجعه حالياً."
-    ),
+    formEyebrow: interfaceCopy(isRtl, "vendor_registration_form_001"),
+    formTitle: interfaceCopy(isRtl, "vendor_registration_form_002"),
+    formBody: interfaceCopy(isRtl, "vendor_registration_form_003"),
+    secureNote: interfaceCopy(isRtl, "vendor_registration_form_004"),
+    submitStateTitle: interfaceCopy(isRtl, "vendor_registration_form_005"),
+    submitStateBody: interfaceCopy(isRtl, "vendor_registration_form_006"),
+    processingTitle: interfaceCopy(isRtl, "vendor_registration_form_007"),
+    processingBody: interfaceCopy(isRtl, "vendor_registration_form_008"),
+    needsReviewTitle: interfaceCopy(isRtl, "vendor_registration_form_009"),
+    needsReviewBody: interfaceCopy(isRtl, "vendor_registration_form_010"),
+    alreadyRegisteredTitle: interfaceCopy(isRtl, "vendor_registration_form_011"),
+    alreadyRegisteredBody: interfaceCopy(isRtl, "vendor_registration_form_012"),
     labels: {
-      establishmentName: textByLang(isRtl, "Establishment / Company Name", "اسم المنشأة أو الشركة"),
-      contactName: textByLang(isRtl, "Responsible Person", "المسؤول"),
-      jobTitle: textByLang(isRtl, "Job Title", "المسمى الوظيفي"),
-      contactNumber: textByLang(isRtl, "Mobile Number", "رقم الجوال"),
-      email: textByLang(isRtl, "Email", "البريد الإلكتروني"),
-      country: textByLang(isRtl, "Establishment Country", "بلد المنشأة"),
-      businessType: textByLang(isRtl, "Business Type", "نوع النشاط التجاري"),
-      categories: textByLang(isRtl, "Product Categories", "فئات المنتجات"),
-      other: textByLang(isRtl, "Other (describe)", "أخرى (صف الفئة)"),
-      brands: textByLang(isRtl, "Represented Brands in English", "العلامات التجارية بالإنجليزي"),
-      shortDescription: textByLang(isRtl, "Brief description of your products", "وصف مختصر لمنتجاتكم"),
-      website: textByLang(isRtl, "Website", "الموقع الإلكتروني"),
-      supplierCurrency: textByLang(isRtl, "Supplier Currency", "عملة المورد"),
-      paymentTerms: textByLang(isRtl, "Payment Terms", "شروط السداد"),
-      paymentMethod: textByLang(isRtl, "Payment Method", "طريقة الدفع"),
-      incoterm: textByLang(isRtl, "International Trade Terms", "شروط التجارة الدولية"),
-      incotermLocation: textByLang(isRtl, "Incoterm Location", "موقع شروط التجارة الدولية"),
+      establishmentName: interfaceCopy(isRtl, "vendor_registration_form_013"),
+      contactName: interfaceCopy(isRtl, "vendor_registration_form_014"),
+      jobTitle: interfaceCopy(isRtl, "vendor_registration_form_015"),
+      contactNumber: interfaceCopy(isRtl, "vendor_registration_form_016"),
+      email: interfaceCopy(isRtl, "vendor_registration_form_017"),
+      country: interfaceCopy(isRtl, "vendor_registration_form_018"),
+      businessType: interfaceCopy(isRtl, "vendor_registration_form_019"),
+      categories: interfaceCopy(isRtl, "vendor_registration_form_020"),
+      other: interfaceCopy(isRtl, "vendor_registration_form_021"),
+      brands: interfaceCopy(isRtl, "vendor_registration_form_022"),
+      shortDescription: interfaceCopy(isRtl, "vendor_registration_form_023"),
+      website: interfaceCopy(isRtl, "vendor_registration_form_024"),
+      supplierCurrency: interfaceCopy(isRtl, "vendor_registration_form_025"),
+      paymentTerms: interfaceCopy(isRtl, "vendor_registration_form_026"),
+      paymentMethod: interfaceCopy(isRtl, "vendor_registration_form_027"),
+      incoterm: interfaceCopy(isRtl, "vendor_registration_form_028"),
+      incotermLocation: interfaceCopy(isRtl, "vendor_registration_form_029"),
     },
     helpers: {
-      establishmentName: textByLang(
-        isRtl,
-        "Use the legal name on your commercial registration — not your personal name.",
-        "اكتب اسم النشاط التجاري من فضلك"
-      ),
-      establishmentNameMatchesContact: textByLang(
-        isRtl,
-        "This looks like a personal name. If you have a company/establishment name, use it here instead.",
-        "هذا يبدو اسماً شخصياً. إذا كان لديكم اسم شركة أو منشأة، استخدموه هنا بدلاً من اسمكم الشخصي."
-      ),
-      brands: textByLang(isRtl, "Type the brand in English and press Enter.", "اكتب اسم العلامة بالإنجليزي واضغط Enter."),
-      shortDescription: textByLang(isRtl, "You can leave this blank.", "يمكن ترك الحقل فارغًا"),
-      categoriesLoading: textByLang(isRtl, "Loading categories…", "جاري تحميل الفئات…"),
-      categoriesError: textByLang(
-        isRtl,
-        "Registration is temporarily down for maintenance. WhatsApp us at +966539927827 and we'll register you manually.",
-        "التسجيل متوقف مؤقتًا للصيانة. راسلونا على واتساب 966539927827+ وسنسجّلكم يدويًا."
-      ),
+      establishmentName: interfaceCopy(isRtl, "vendor_registration_form_030"),
+      establishmentNameMatchesContact: interfaceCopy(isRtl, "vendor_registration_form_031"),
+      brands: interfaceCopy(isRtl, "vendor_registration_form_032"),
+      shortDescription: interfaceCopy(isRtl, "vendor_registration_form_033"),
+      categoriesLoading: interfaceCopy(isRtl, "vendor_registration_form_034"),
+      categoriesError: interfaceCopy(isRtl, "vendor_registration_form_035"),
     },
-    privacyLabel: textByLang(isRtl, "I agree to the Privacy Policy", "أوافق على سياسة الخصوصية"),
-    termsLabel: textByLang(isRtl, "I agree to the Registration Terms", "أوافق على شروط التسجيل"),
-    submit: textByLang(isRtl, "Submit Application", "إرسال طلب الانضمام"),
+    privacyLabel: interfaceCopy(isRtl, "vendor_registration_form_036"),
+    termsLabel: interfaceCopy(isRtl, "vendor_registration_form_037"),
+    submit: interfaceCopy(isRtl, "vendor_registration_form_038"),
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -224,7 +193,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
   }, [isSaudi, isRtl]);
   const onSubmit = form.handleSubmit(async (data) => {
     if (!uploadToken && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
-      setSubmitError(isRtl ? "يرجى إكمال التحقق الأمني أدناه" : "Please complete the security check below");
+      setSubmitError(interfaceCopy(isRtl, "vendor_registration_form_039"));
       return;
     }
     setSubmitError("");
@@ -273,7 +242,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       setResultStatus((result?.status as typeof resultStatus) ?? "registered");
       token = result?.uploadToken || "";
       setUploadToken(token);
-      if (files.length && !token) throw new Error(isRtl ? "تم حفظ الطلب، وتعذر بدء رفع الملفات. أعد المحاولة." : "Application saved; could not start uploads. Please retry.");
+      if (files.length && !token) throw new Error(interfaceCopy(isRtl, "vendor_registration_form_040"));
       }
       let failed = false;
       for (const item of files.filter(f => f.status !== "uploaded")) {
@@ -290,12 +259,12 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           setFiles(current => current.map(f => f.id === item.id ? { ...f, status: "error", error: error instanceof Error ? error.message : "Upload failed" } : f));
         }
       }
-      if (failed) { setSubmitError(isRtl ? "تم حفظ طلب المورد، لكن تعذر رفع بعض الملفات. اضغط إرسال لإعادة محاولة الملفات المتبقية، أو احذفها وأكمل بدونها." : "Your application is saved, but some files failed. Submit again to retry remaining files, or remove them to finish without them."); return; }
+      if (failed) { setSubmitError(interfaceCopy(isRtl, "vendor_registration_form_041")); return; }
       setIsSubmitted(true);
     } catch (error) {
-      const base = error instanceof Error ? error.message : textByLang(isRtl, "Something went wrong.", "حدث خطأ.");
+      const base = error instanceof Error ? error.message : interfaceCopy(isRtl, "vendor_registration_form_042");
       setSubmitError(
-        `${base} ${textByLang(isRtl, "— WhatsApp us at +966539927827 and we'll register you manually.", "— راسلونا على واتساب 966539927827+ وسنسجّلكم يدويًا.")}`
+        `${base} ${interfaceCopy(isRtl, "vendor_registration_form_043")}`
       );
     } finally {
       setIsLoading(false);
@@ -313,7 +282,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
         <h2 className="type-section-title mx-auto mt-5 text-brand-dark">{title}</h2>
         <p className="type-body mx-auto mt-4 max-w-lg text-brand-dark/80">{body}</p>
         <a href={isRtl ? "/ar" : "/"} className="mt-8 inline-block rounded-2xl bg-brand-primary px-8 py-3 text-sm font-semibold text-white hover:bg-brand-dark">
-          {isRtl ? "العودة للرئيسية" : "Back to Home"}
+          {interfaceCopy(isRtl, "vendor_registration_form_044")}
         </a>
       </section>
     );
@@ -367,7 +336,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             autoComplete="organization"
             className="h-14 rounded-2xl text-base"
             autoFocus
-            placeholder={isRtl ? "اكتب الاسم المسجل في السجل التجاري" : "Legal name as shown on registration"}
+            placeholder={interfaceCopy(isRtl, "vendor_registration_form_045")}
           />
           <VendorErrorText text={form.formState.errors.establishmentName?.message} isRtl={isRtl} />
           {establishmentNameMatchesContact && (
@@ -416,7 +385,7 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                   onChange={(e) => form.setValue("businessType", e.target.value, { shouldValidate: true })}
                   className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
                 >
-                  <option value="">{isRtl ? "اختر نوع النشاط" : "Select business type"}</option>
+                  <option value="">{interfaceCopy(isRtl, "vendor_registration_form_046")}</option>
                   {businessTypes.map((b) => (
                     <option key={b.value} value={b.value}>
                       {optionLabel(isRtl, businessTypes, b.value)}
@@ -427,27 +396,27 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
               </VendorField>
 
               {!isSaudi && (
-                <section className="space-y-5 rounded-2xl border border-brand-dark/10 bg-brand-light/40 p-5" aria-label={isRtl ? "بيانات المورد الدولي" : "International supplier details"}>
+                <section className="space-y-5 rounded-2xl border border-brand-dark/10 bg-brand-light/40 p-5" aria-label={interfaceCopy(isRtl, "vendor_registration_form_047")}>
                   <div>
-                    <p className="text-base font-bold text-brand-dark">{isRtl ? "بيانات المورد الدولي" : "International supplier details"}</p>
-                    <p className="mt-1 text-sm leading-6 text-brand-dark/60">{isRtl ? "تظهر هذه الخيارات حسب البيانات المهيأة في أودو." : "These options are loaded from your Odoo setup."}</p>
+                    <p className="text-base font-bold text-brand-dark">{interfaceCopy(isRtl, "vendor_registration_form_048")}</p>
+                    <p className="mt-1 text-sm leading-6 text-brand-dark/60">{interfaceCopy(isRtl, "vendor_registration_form_049")}</p>
                   </div>
                   {commercialOptionsFailed ? (
-                    <p className="text-sm text-red-600">{isRtl ? "تعذر جلب خيارات المورد الدولي. أعد تحميل الصفحة." : "Could not load international supplier options. Please refresh."}</p>
+                    <p className="text-sm text-red-600">{interfaceCopy(isRtl, "vendor_registration_form_050")}</p>
                   ) : !commercialOptions ? (
-                    <p className="text-sm text-brand-dark/50">{isRtl ? "جاري تحميل خيارات المورد الدولي…" : "Loading international supplier options…"}</p>
+                    <p className="text-sm text-brand-dark/50">{interfaceCopy(isRtl, "vendor_registration_form_051")}</p>
                   ) : (
                     <>
                       <div className="grid gap-5 sm:grid-cols-2">
                         <VendorField label={t.labels.supplierCurrency}>
                           <select {...form.register("supplierCurrencyId")} className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20">
-                            <option value="">{isRtl ? "اختر العملة" : "Choose currency"}</option>
+                            <option value="">{interfaceCopy(isRtl, "vendor_registration_form_052")}</option>
                             {commercialOptions.currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.name} ({currency.symbol})</option>)}
                           </select>
                         </VendorField>
                         <VendorField label={t.labels.paymentTerms}>
                           <select {...form.register("supplierPaymentTermId")} className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20">
-                            <option value="">{isRtl ? "اختر شروط السداد" : "Choose payment terms"}</option>
+                            <option value="">{interfaceCopy(isRtl, "vendor_registration_form_053")}</option>
                             {commercialOptions.paymentTerms.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}
                           </select>
                         </VendorField>
@@ -455,19 +424,19 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                       <div className="grid gap-5 sm:grid-cols-2">
                         <VendorField label={t.labels.paymentMethod}>
                           <select {...form.register("supplierPaymentMethodLineId")} className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20">
-                            <option value="">{isRtl ? "اختر طريقة الدفع" : "Choose payment method"}</option>
+                            <option value="">{interfaceCopy(isRtl, "vendor_registration_form_054")}</option>
                             {commercialOptions.paymentMethods.map((method) => <option key={method.id} value={method.id}>{method.name}</option>)}
                           </select>
                         </VendorField>
                         <VendorField label={t.labels.incoterm}>
                           <select {...form.register("purchaseIncotermId")} className="h-14 w-full rounded-2xl border border-brand-dark/15 bg-white px-4 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20">
-                            <option value="">{isRtl ? "اختر شرط التجارة" : "Choose incoterm"}</option>
+                            <option value="">{interfaceCopy(isRtl, "vendor_registration_form_055")}</option>
                             {commercialOptions.incoterms.map((incoterm) => <option key={incoterm.id} value={incoterm.id}>{incoterm.code} — {incoterm.name}</option>)}
                           </select>
                         </VendorField>
                       </div>
                       <VendorField label={t.labels.incotermLocation}>
-                        <Input {...form.register("purchaseIncotermLocation")} className="h-14 rounded-2xl text-base" placeholder={isRtl ? "مثال: ميناء جدة الإسلامي" : "For example: Jeddah Islamic Port"} />
+                        <Input {...form.register("purchaseIncotermLocation")} className="h-14 rounded-2xl text-base" placeholder={interfaceCopy(isRtl, "vendor_registration_form_056")} />
                       </VendorField>
                     </>
                   )}
