@@ -1,6 +1,6 @@
 # Build Saudi marketing redesign
 
-Implemented on `redesign/hatif-style` in `/Users/sulaiman/buildsaudi`. No push or deployment performed.
+Implemented on `redesign/hatif-style` in `/Users/sulaiman/buildsaudi`. No push or deployment performed. After user review, the sample testimonial section was removed from both languages; the original implementation and audit record below describes the preceding full brief.
 
 ## What changed
 The homepage now explains the supply journey through a phone conversation, existing manufacturer logos, three numbered process demonstrations, eight material categories, four alternating feature demonstrations, a qualitative sourcing comparison, warranty explanation, clearly labelled sample testimonials, accessible FAQ and closing quote CTA.

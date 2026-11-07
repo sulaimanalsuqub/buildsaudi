@@ -2,7 +2,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { getMarketing } from '@/lib/dictionaries/marketing';
 import { BrandMarquee } from './brand-marquee';
-import { Hero, SectionHeading, StepCard, CategoryCard, categoryIcons, FeatureShowcase, Comparison, TrustSection, Testimonials, Faq, CtaBand } from '@/components/marketing/sections';
+import { Hero, SectionHeading, StepCard, CategoryCard, categoryIcons, FeatureShowcase, Comparison, TrustSection, Faq, CtaBand } from '@/components/marketing/sections';
 
 export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
   const t = getMarketing(isRtl);
@@ -16,7 +16,6 @@ export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
     <FeatureShowcase t={t} base={base} />
     <Comparison t={t} />
     <TrustSection t={t} base={base} />
-    <Testimonials t={t} />
     <Faq t={t} />
     <CtaBand t={t} base={base} />
   </main>;
