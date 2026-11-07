@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # Playwright CLI run artifacts
 .playwright-cli/
+
+# Local visual review captures (results are recorded in docs/visual-checks.json)
+.impeccable/review/

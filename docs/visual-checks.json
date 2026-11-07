@@ -1,0 +1,1042 @@
+[
+  {
+    "name": "ar-home-360",
+    "url": "http://localhost:3101/ar",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "مواد مشروعك، نرتّبها من هنا.",
+    "missingImages": []
+  },
+  {
+    "name": "ar-home-768",
+    "url": "http://localhost:3101/ar",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "مواد مشروعك، نرتّبها من هنا.",
+    "missingImages": []
+  },
+  {
+    "name": "ar-home-1024",
+    "url": "http://localhost:3101/ar",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "مواد مشروعك، نرتّبها من هنا.",
+    "missingImages": []
+  },
+  {
+    "name": "ar-home-1440",
+    "url": "http://localhost:3101/ar",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "مواد مشروعك، نرتّبها من هنا.",
+    "missingImages": []
+  },
+  {
+    "name": "ar-get-quote-360",
+    "url": "http://localhost:3101/ar/get-quote",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "طلب عرض سعر",
+    "missingImages": []
+  },
+  {
+    "name": "ar-get-quote-768",
+    "url": "http://localhost:3101/ar/get-quote",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "طلب عرض سعر",
+    "missingImages": []
+  },
+  {
+    "name": "ar-get-quote-1024",
+    "url": "http://localhost:3101/ar/get-quote",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "طلب عرض سعر",
+    "missingImages": []
+  },
+  {
+    "name": "ar-get-quote-1440",
+    "url": "http://localhost:3101/ar/get-quote",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "طلب عرض سعر",
+    "missingImages": []
+  },
+  {
+    "name": "ar-track-request-360",
+    "url": "http://localhost:3101/ar/track-request",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "تتبّع طلبك",
+    "missingImages": []
+  },
+  {
+    "name": "ar-track-request-768",
+    "url": "http://localhost:3101/ar/track-request",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "تتبّع طلبك",
+    "missingImages": []
+  },
+  {
+    "name": "ar-track-request-1024",
+    "url": "http://localhost:3101/ar/track-request",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "تتبّع طلبك",
+    "missingImages": []
+  },
+  {
+    "name": "ar-track-request-1440",
+    "url": "http://localhost:3101/ar/track-request",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "تتبّع طلبك",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-360",
+    "url": "http://localhost:3101/ar/register",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "ابدأ طلب الانضمام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-768",
+    "url": "http://localhost:3101/ar/register",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "ابدأ طلب الانضمام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-1024",
+    "url": "http://localhost:3101/ar/register",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "ابدأ طلب الانضمام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-1440",
+    "url": "http://localhost:3101/ar/register",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "ابدأ طلب الانضمام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-about-360",
+    "url": "http://localhost:3101/ar/about",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "عن بيلد",
+    "missingImages": []
+  },
+  {
+    "name": "ar-about-768",
+    "url": "http://localhost:3101/ar/about",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "عن بيلد",
+    "missingImages": []
+  },
+  {
+    "name": "ar-about-1024",
+    "url": "http://localhost:3101/ar/about",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "عن بيلد",
+    "missingImages": []
+  },
+  {
+    "name": "ar-about-1440",
+    "url": "http://localhost:3101/ar/about",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "عن بيلد",
+    "missingImages": []
+  },
+  {
+    "name": "ar-warranty-360",
+    "url": "http://localhost:3101/ar/warranty",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الضمان",
+    "missingImages": []
+  },
+  {
+    "name": "ar-warranty-768",
+    "url": "http://localhost:3101/ar/warranty",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الضمان",
+    "missingImages": []
+  },
+  {
+    "name": "ar-warranty-1024",
+    "url": "http://localhost:3101/ar/warranty",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الضمان",
+    "missingImages": []
+  },
+  {
+    "name": "ar-warranty-1440",
+    "url": "http://localhost:3101/ar/warranty",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الضمان",
+    "missingImages": []
+  },
+  {
+    "name": "ar-privacy-policy-360",
+    "url": "http://localhost:3101/ar/privacy-policy",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الخصوصية",
+    "missingImages": []
+  },
+  {
+    "name": "ar-privacy-policy-768",
+    "url": "http://localhost:3101/ar/privacy-policy",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الخصوصية",
+    "missingImages": []
+  },
+  {
+    "name": "ar-privacy-policy-1024",
+    "url": "http://localhost:3101/ar/privacy-policy",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الخصوصية",
+    "missingImages": []
+  },
+  {
+    "name": "ar-privacy-policy-1440",
+    "url": "http://localhost:3101/ar/privacy-policy",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة الخصوصية",
+    "missingImages": []
+  },
+  {
+    "name": "ar-terms-conditions-360",
+    "url": "http://localhost:3101/ar/terms-conditions",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "الشروط والأحكام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-terms-conditions-768",
+    "url": "http://localhost:3101/ar/terms-conditions",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "الشروط والأحكام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-terms-conditions-1024",
+    "url": "http://localhost:3101/ar/terms-conditions",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "الشروط والأحكام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-terms-conditions-1440",
+    "url": "http://localhost:3101/ar/terms-conditions",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "الشروط والأحكام",
+    "missingImages": []
+  },
+  {
+    "name": "ar-cookies-policy-360",
+    "url": "http://localhost:3101/ar/cookies-policy",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة ملفات الارتباط",
+    "missingImages": []
+  },
+  {
+    "name": "ar-cookies-policy-768",
+    "url": "http://localhost:3101/ar/cookies-policy",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة ملفات الارتباط",
+    "missingImages": []
+  },
+  {
+    "name": "ar-cookies-policy-1024",
+    "url": "http://localhost:3101/ar/cookies-policy",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة ملفات الارتباط",
+    "missingImages": []
+  },
+  {
+    "name": "ar-cookies-policy-1440",
+    "url": "http://localhost:3101/ar/cookies-policy",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "سياسة ملفات الارتباط",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-complete-360",
+    "url": "http://localhost:3101/ar/register/complete",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة توريد منتجاتك بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-complete-768",
+    "url": "http://localhost:3101/ar/register/complete",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة توريد منتجاتك بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-complete-1024",
+    "url": "http://localhost:3101/ar/register/complete",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة توريد منتجاتك بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-complete-1440",
+    "url": "http://localhost:3101/ar/register/complete",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة توريد منتجاتك بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-360",
+    "url": "http://localhost:3101/ar/carriers/register",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "التسجيل مغلق مؤقتاً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-768",
+    "url": "http://localhost:3101/ar/carriers/register",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "التسجيل مغلق مؤقتاً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-1024",
+    "url": "http://localhost:3101/ar/carriers/register",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "التسجيل مغلق مؤقتاً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-1440",
+    "url": "http://localhost:3101/ar/carriers/register",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "التسجيل مغلق مؤقتاً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-complete-360",
+    "url": "http://localhost:3101/ar/carriers/register/complete",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة انضمامكم كناقل بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-complete-768",
+    "url": "http://localhost:3101/ar/carriers/register/complete",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة انضمامكم كناقل بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-complete-1024",
+    "url": "http://localhost:3101/ar/carriers/register/complete",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة انضمامكم كناقل بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "ar-carriers-register-complete-1440",
+    "url": "http://localhost:3101/ar/carriers/register/complete",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "رحلة انضمامكم كناقل بدأت",
+    "missingImages": []
+  },
+  {
+    "name": "en-home-360",
+    "url": "http://localhost:3101/",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your materials. One clear plan.",
+    "missingImages": []
+  },
+  {
+    "name": "en-home-768",
+    "url": "http://localhost:3101/",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your materials. One clear plan.",
+    "missingImages": []
+  },
+  {
+    "name": "en-home-1024",
+    "url": "http://localhost:3101/",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your materials. One clear plan.",
+    "missingImages": []
+  },
+  {
+    "name": "en-home-1440",
+    "url": "http://localhost:3101/",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your materials. One clear plan.",
+    "missingImages": []
+  },
+  {
+    "name": "en-get-quote-360",
+    "url": "http://localhost:3101/get-quote",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Request a quote",
+    "missingImages": []
+  },
+  {
+    "name": "en-get-quote-768",
+    "url": "http://localhost:3101/get-quote",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Request a quote",
+    "missingImages": []
+  },
+  {
+    "name": "en-get-quote-1024",
+    "url": "http://localhost:3101/get-quote",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Request a quote",
+    "missingImages": []
+  },
+  {
+    "name": "en-get-quote-1440",
+    "url": "http://localhost:3101/get-quote",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Request a quote",
+    "missingImages": []
+  },
+  {
+    "name": "en-track-request-360",
+    "url": "http://localhost:3101/track-request",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Track your request",
+    "missingImages": []
+  },
+  {
+    "name": "en-track-request-768",
+    "url": "http://localhost:3101/track-request",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Track your request",
+    "missingImages": []
+  },
+  {
+    "name": "en-track-request-1024",
+    "url": "http://localhost:3101/track-request",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Track your request",
+    "missingImages": []
+  },
+  {
+    "name": "en-track-request-1440",
+    "url": "http://localhost:3101/track-request",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Track your request",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-360",
+    "url": "http://localhost:3101/register",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Start your supplier application",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-768",
+    "url": "http://localhost:3101/register",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Start your supplier application",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-1024",
+    "url": "http://localhost:3101/register",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Start your supplier application",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-1440",
+    "url": "http://localhost:3101/register",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Start your supplier application",
+    "missingImages": []
+  },
+  {
+    "name": "en-about-360",
+    "url": "http://localhost:3101/about",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "About Build",
+    "missingImages": []
+  },
+  {
+    "name": "en-about-768",
+    "url": "http://localhost:3101/about",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "About Build",
+    "missingImages": []
+  },
+  {
+    "name": "en-about-1024",
+    "url": "http://localhost:3101/about",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "About Build",
+    "missingImages": []
+  },
+  {
+    "name": "en-about-1440",
+    "url": "http://localhost:3101/about",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "About Build",
+    "missingImages": []
+  },
+  {
+    "name": "en-warranty-360",
+    "url": "http://localhost:3101/warranty",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Warranty Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-warranty-768",
+    "url": "http://localhost:3101/warranty",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Warranty Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-warranty-1024",
+    "url": "http://localhost:3101/warranty",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Warranty Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-warranty-1440",
+    "url": "http://localhost:3101/warranty",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Warranty Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-privacy-policy-360",
+    "url": "http://localhost:3101/privacy-policy",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Privacy Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-privacy-policy-768",
+    "url": "http://localhost:3101/privacy-policy",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Privacy Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-privacy-policy-1024",
+    "url": "http://localhost:3101/privacy-policy",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Privacy Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-privacy-policy-1440",
+    "url": "http://localhost:3101/privacy-policy",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Privacy Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-terms-conditions-360",
+    "url": "http://localhost:3101/terms-conditions",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Terms & Conditions",
+    "missingImages": []
+  },
+  {
+    "name": "en-terms-conditions-768",
+    "url": "http://localhost:3101/terms-conditions",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Terms & Conditions",
+    "missingImages": []
+  },
+  {
+    "name": "en-terms-conditions-1024",
+    "url": "http://localhost:3101/terms-conditions",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Terms & Conditions",
+    "missingImages": []
+  },
+  {
+    "name": "en-terms-conditions-1440",
+    "url": "http://localhost:3101/terms-conditions",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Terms & Conditions",
+    "missingImages": []
+  },
+  {
+    "name": "en-cookies-policy-360",
+    "url": "http://localhost:3101/cookies-policy",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Cookies Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-cookies-policy-768",
+    "url": "http://localhost:3101/cookies-policy",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Cookies Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-cookies-policy-1024",
+    "url": "http://localhost:3101/cookies-policy",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Cookies Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-cookies-policy-1440",
+    "url": "http://localhost:3101/cookies-policy",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Cookies Policy",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-complete-360",
+    "url": "http://localhost:3101/register/complete",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your supply journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-complete-768",
+    "url": "http://localhost:3101/register/complete",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your supply journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-complete-1024",
+    "url": "http://localhost:3101/register/complete",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your supply journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-register-complete-1440",
+    "url": "http://localhost:3101/register/complete",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your supply journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-360",
+    "url": "http://localhost:3101/carriers/register",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Registration is currently closed",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-768",
+    "url": "http://localhost:3101/carriers/register",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Registration is currently closed",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-1024",
+    "url": "http://localhost:3101/carriers/register",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Registration is currently closed",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-1440",
+    "url": "http://localhost:3101/carriers/register",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Registration is currently closed",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-complete-360",
+    "url": "http://localhost:3101/carriers/register/complete",
+    "width": 360,
+    "scroll": 360,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your carrier journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-complete-768",
+    "url": "http://localhost:3101/carriers/register/complete",
+    "width": 768,
+    "scroll": 768,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your carrier journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-complete-1024",
+    "url": "http://localhost:3101/carriers/register/complete",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your carrier journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "en-carriers-register-complete-1440",
+    "url": "http://localhost:3101/carriers/register/complete",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "en",
+    "dir": "ltr",
+    "h1": "Your carrier journey starts here",
+    "missingImages": []
+  },
+  {
+    "name": "maintenance-360",
+    "url": "http://localhost:3101/maintenance",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "نعمل على تجهيز تجربة بيلد الجديدة",
+    "missingImages": []
+  },
+  {
+    "name": "maintenance-768",
+    "url": "http://localhost:3101/maintenance",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "نعمل على تجهيز تجربة بيلد الجديدة",
+    "missingImages": []
+  },
+  {
+    "name": "maintenance-1024",
+    "url": "http://localhost:3101/maintenance",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "نعمل على تجهيز تجربة بيلد الجديدة",
+    "missingImages": []
+  },
+  {
+    "name": "maintenance-1440",
+    "url": "http://localhost:3101/maintenance",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "نعمل على تجهيز تجربة بيلد الجديدة",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-bani-360",
+    "url": "http://localhost:3101/ar/register/bani",
+    "width": 360,
+    "scroll": 360,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "قريباً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-bani-768",
+    "url": "http://localhost:3101/ar/register/bani",
+    "width": 768,
+    "scroll": 768,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "قريباً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-bani-1024",
+    "url": "http://localhost:3101/ar/register/bani",
+    "width": 1024,
+    "scroll": 1024,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "قريباً",
+    "missingImages": []
+  },
+  {
+    "name": "ar-register-bani-1440",
+    "url": "http://localhost:3101/ar/register/bani",
+    "width": 1440,
+    "scroll": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "h1": "قريباً",
+    "missingImages": []
+  }
+]

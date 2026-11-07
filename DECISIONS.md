@@ -17,3 +17,4 @@
 - Keep scroll-reveal text fully opaque while sliding. Opacity-based scroll timelines left offscreen text at reduced contrast during accessibility auditing; the slide retains motion without reducing readability.
 - Include the visible AR/EN abbreviation in the language switch's accessible name for voice-control parity.
 - The existing `/ar/register/bani` coming-soon page has no English route. Its language switch goes to `/register`, the corresponding English supplier application, instead of a 404. Other locale switches keep the exact route and query.
+- Disable unconditional Arabic-font preloading in the shared font module. The English page otherwise preloaded eight unused Arabic font subsets/weights; Arabic still loads the required self-hosted font faces through its CSS. Latin also loads on demand so the Arabic route does not download an unused Latin face. Arabic uses regular 400 and semibold 600, matching the body/display hierarchy and reducing subset downloads.

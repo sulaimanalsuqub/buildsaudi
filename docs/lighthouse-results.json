@@ -1,0 +1,40 @@
+{
+  "ar": {
+    "testedUrl": "http://localhost:3101/ar",
+    "fetchTime": "2026-11-07T15:29:46.534Z",
+    "lighthouseVersion": "13.6.0",
+    "formFactor": "mobile",
+    "throttlingMethod": "simulate",
+    "scores": {
+      "performance": 100,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "metrics": {
+      "first-contentful-paint": "0.9 s",
+      "largest-contentful-paint": "0.9 s",
+      "total-blocking-time": "40 ms",
+      "cumulative-layout-shift": "0.007"
+    }
+  },
+  "en": {
+    "testedUrl": "http://localhost:3101/",
+    "fetchTime": "2026-11-07T15:29:59.145Z",
+    "lighthouseVersion": "13.6.0",
+    "formFactor": "mobile",
+    "throttlingMethod": "simulate",
+    "scores": {
+      "performance": 100,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "metrics": {
+      "first-contentful-paint": "0.9 s",
+      "largest-contentful-paint": "0.9 s",
+      "total-blocking-time": "50 ms",
+      "cumulative-layout-shift": "0.002"
+    }
+  }
+}
