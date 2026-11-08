@@ -1,4 +1,5 @@
 # Redesign decisions
+- Final user-approved typography: restore the original self-hosted GT America Arabic font, including its original 300/400/500/700/900 faces, for both language layouts. This supersedes the earlier IBM font decisions.
 - Removed the sample testimonial section from both homepages after user review; warranty now leads directly into FAQ.
 - Work in `/Users/sulaiman/buildsaudi`, the clean main checkout of the marketing repository, on `redesign/hatif-style`. The separate storefront worktree is outside scope.
 - Keep existing `/ar` Arabic and `/` English routing, including locale-preserving page switches and Arabic x-default hreflang. Do not create duplicate /en URLs or change middleware/backend behavior.

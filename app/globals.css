@@ -310,8 +310,6 @@ body {
   --type-heading: clamp(2rem, 3.3vw, 3.2rem);
   --type-body: 1rem;
 }
-.build-font { font-family: var(--font-latin), sans-serif; }
-html[lang="ar"] .build-font { font-family: var(--font-arabic), var(--font-latin), sans-serif; }
 body { font-variant-numeric: lining-nums; }
 html { scroll-padding-top: 6rem; scrollbar-color: var(--color-muted) var(--color-paper); }
 ::selection { background: var(--color-accent); color: var(--color-ink); }

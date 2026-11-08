@@ -12,19 +12,19 @@ colors:
   accent-hover: "#d2e34f"
 typography:
   display:
-    fontFamily: "IBM Plex Sans, sans-serif"
+    fontFamily: "GT America Arabic, sans-serif"
     fontSize: "clamp(2.8rem, 4.7vw, 4.6rem)"
     fontWeight: 600
     lineHeight: 1.17
     letterSpacing: "-.035em"
   display-arabic:
-    fontFamily: "IBM Plex Sans Arabic, IBM Plex Sans, sans-serif"
+    fontFamily: "GT America Arabic, sans-serif"
     fontSize: "clamp(2.8rem, 4.7vw, 4.6rem)"
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: "0"
   headline:
-    fontFamily: "IBM Plex Sans, sans-serif"
+    fontFamily: "GT America Arabic, sans-serif"
     fontSize: "clamp(2rem, 3.3vw, 3.2rem)"
     fontWeight: 600
     lineHeight: 1.3
@@ -74,7 +74,7 @@ Build is a Saudi supplier of building materials and finishes. Preserve its estab
 
 This is a code-derived specification. Frontmatter tokens are normative; prose explains their application. Primary sources are [shared CSS](app/globals.css), [Tailwind configuration](tailwind.config.ts), [font loading](lib/fonts.ts), [marketing sections](components/marketing/sections.tsx), [demonstrations](components/marketing/mockups.tsx), and [navigation behavior](components/marketing/mega-menu.tsx). Product constraints come from [PRODUCT.md](PRODUCT.md), [DECISIONS.md](DECISIONS.md), and the [brand audit](docs/brand-audit.md). The later shared-token block in CSS takes precedence over earlier legacy declarations.
 
-Key characteristics: deep-green text, lime actions, warm light surfaces, IBM Plex Arabic/Latin, direction-aware spacing, and visibly labelled illustrative content.
+Key characteristics: deep-green text, lime actions, warm light surfaces, GT America Arabic, direction-aware spacing, and visibly labelled illustrative content.
 
 ## Colors
 
@@ -84,7 +84,7 @@ The frontmatter preserves the CSS RGB notation, resolving the three `--brand-*-r
 
 ## Typography
 
-`lib/fonts.ts` loads IBM Plex Sans Arabic and IBM Plex Sans with `display: swap`: Arabic uses weights 400 and 600; Latin supports 400, 500, 600 and 700. Font faces load on demand for the active language, avoiding unused cross-locale preload traffic. English uses `--font-latin`; Arabic uses `--font-arabic`, then Latin and sans-serif fallbacks. Existing local font assets and the `gtAmericaArabic` export contract remain intact.
+`lib/fonts.ts` restores the original self-hosted GT America Arabic family via next/font/local with weights 300, 400, 500, 700 and 900 and display: swap. Both Arabic and English layouts inherit this family.
 
 Use the display role for the marketing hero and headline for section titles. Arabic headings have zero letter spacing; Arabic hero line height is 1.4. English hero measure is 10ch, Arabic 12ch; mobile uses 13ch. Lead copy has a 36rem maximum in the hero, with 1.9 line height. Main headings balance text wrapping. Buttons are 600 weight. Demo labels are intentionally compact illustrative UI, not substitutes for readable page instructions. Earlier `.type-*` utility rules remain for other routes; do not confuse their sizes or heavier weights with marketing heading tokens.
 
