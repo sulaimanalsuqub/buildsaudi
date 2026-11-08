@@ -1,5 +1,7 @@
 # Build Saudi marketing redesign
 
+Production update: published with user authorization on 2026-11-08 from source commit `6543f12`, using the existing Vercel project. Live domain: https://www.build.sa. Deployment: https://buildsaudi-9n8dgc1io-sulaimans-projects-be250e4d.vercel.app. The Arabic/English homepages, quote, tracking and registration routes, OpenGraph image and health endpoint returned HTTP 200. Both homepages show the new hero and omit the removed testimonial section. No push to main was performed. The local-only status below records the original pre-publication handoff.
+
 Implemented on `redesign/hatif-style` in `/Users/sulaiman/buildsaudi`. No push or deployment performed. After user review, the sample testimonial section was removed from both languages; the original implementation and audit record below describes the preceding full brief.
 
 ## What changed
