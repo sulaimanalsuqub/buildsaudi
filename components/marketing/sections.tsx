@@ -17,8 +17,8 @@ export function StepCard({ step, index, t }: { step: MarketingCopy['steps'][numb
   const kinds = ['upload', 'quote', 'delivery'] as const;
   return <li className="step-card reveal"><div className="step-number" dir="ltr">{String(index + 1).padStart(2, '0')}</div><h3>{step.title}</h3><p>{step.body}</p><UiMockup kind={kinds[index]} t={t} /></li>;
 }
-export function CategoryCard({ category, Icon, t }: { category: MarketingCopy['categories'][number]; Icon: LucideIcon; t: MarketingCopy }) {
-  return <a href={`#category-${category.id}`} className="category-card"><Icon size={29} strokeWidth={1.4} aria-hidden="true" /><h3>{category.name}</h3><p>{category.products}</p><span>{t.catalogLink}<ArrowUpRight size={17} className="direction-icon" aria-hidden="true" /></span></a>;
+export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: LucideIcon }) {
+  return <a href={`#category-${category.id}`} className="category-card"><Icon size={29} strokeWidth={1.4} aria-hidden="true" /><h3>{category.name}</h3><p>{category.products}</p></a>;
 }
 export function FeatureShowcase({ t, base }: { t: MarketingCopy; base: string }) {
   const kinds = ['quote', 'warranty', 'delivery', 'network'] as const;
