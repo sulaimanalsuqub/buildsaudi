@@ -8,7 +8,7 @@ export function ActionLink({ href, children, secondary = false }: { href: string
   return <Link prefetch={false} href={href} className={secondary ? 'build-button build-button-outline' : 'build-button'}>{children}<ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></Link>;
 }
 export function Hero({ t, base }: { t: MarketingCopy; base: string }) {
-  return <section className="marketing-hero"><div className="marketing-container hero-layout"><div className="hero-copy"><h1>{t.headline}</h1><p className="marketing-lead">{t.lead}</p><div className="hero-actions"><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><a className="build-button build-button-outline" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} />{t.whatsapp}</a></div><p className="hero-note">{t.heroNote}</p></div><PhoneMockup t={t} /></div></section>;
+  return <section className="marketing-hero" id="for-projects"><div className="marketing-container hero-layout"><div className="hero-copy"><h1>{t.headline}</h1><p className="marketing-lead">{t.lead}</p><div className="hero-actions"><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><a className="build-button build-button-outline" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} />{t.whatsapp}</a></div></div><PhoneMockup t={t} /></div></section>;
 }
 export function SectionHeading({ title, body }: { title: string; body?: string }) {
   return <div className="marketing-heading"><h2>{title}</h2>{body && <p>{body}</p>}</div>;
@@ -35,7 +35,7 @@ export function Testimonials({ t }: { t: MarketingCopy }) {
   return <section className="marketing-section sample-section"><div className="marketing-container"><SectionHeading title={t.testimonialsTitle} body={t.sampleNotice} /><div className="sample-grid">{t.testimonials.map(sample => <figure key={sample.role}><blockquote>{sample.quote}</blockquote><figcaption>{sample.role}</figcaption></figure>)}</div></div></section>;
 }
 export function Faq({ t }: { t: MarketingCopy }) {
-  return <section className="marketing-section" id="faq"><div className="marketing-container faq-layout"><SectionHeading title={t.faqTitle} body={t.faqBody} /><div className="faq-list">{t.faqs.map(item => <details key={item.q}><summary>{item.q}<Plus size={19} aria-hidden="true" /></summary><p>{item.a}</p></details>)}</div></div></section>;
+  return <section className="marketing-section" id="faq"><div className="marketing-container faq-layout"><SectionHeading title={t.faqTitle} /><div className="faq-list">{t.faqs.map(item => <details key={item.q}><summary>{item.q}<Plus size={19} aria-hidden="true" /></summary><p>{item.a}</p></details>)}</div></div></section>;
 }
 export function CtaBand({ t, base }: { t: MarketingCopy; base: string }) {
   return <section className="cta-band"><div className="marketing-container"><div><h2>{t.ctaTitle}</h2><p>{t.ctaBody}</p></div><div><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><p className="cta-track">{t.existing} <Link prefetch={false} href={`${base}/track-request`}>{t.track}</Link></p></div></div></section>;

@@ -11,7 +11,7 @@ export function SupplyJourney({ t, base }: { t: MarketingCopy; base: string }) {
   const kinds = ['upload', 'quote', 'delivery'] as const;
   return <section className="marketing-section supply-process" id="how-it-works">
     <div className="marketing-container journey-layout">
-      <div><h2>{t.journeyTitle}</h2><p className="marketing-lead">{t.journeyBody}</p>
+      <div><h2>{t.journeyTitle}</h2>
         <ol className="journey-steps">{t.steps.map((step, index) => <li key={step.title} data-active={active === index}>
           <button type="button" onClick={() => setActive(index)} aria-pressed={active === index} aria-controls="journey-preview">
             <span className="journey-number" dir="ltr">{String(index + 1).padStart(2, '0')}</span>

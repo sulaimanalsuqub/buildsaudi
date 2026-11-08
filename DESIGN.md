@@ -70,6 +70,8 @@ components:
 
 ## Overview
 
+Latest user preference: concise, task-led marketing. The homepage now contains the quote hero, manufacturer brands, materials catalog, request steps, FAQ and closing quote action. Repeated feature showcases, comparison and separate assurance sections are omitted. Warranty, availability and privacy details remain available through FAQs, policy links and existing forms. This supersedes the earlier long-form homepage sequence documented below.
+
 Build is a Saudi supplier of building materials and finishes. Preserve its established logo and palette. The implementation uses a light, spacious page with original bilingual copy and concrete HTML/CSS product demonstrations. Hatif informs the storytelling sequence only; it does not supply a new brand identity or visual metaphor.
 
 This is a code-derived specification. Frontmatter tokens are normative; prose explains their application. Primary sources are [shared CSS](app/globals.css), [Tailwind configuration](tailwind.config.ts), [font loading](lib/fonts.ts), [marketing sections](components/marketing/sections.tsx), [demonstrations](components/marketing/mockups.tsx), and [navigation behavior](components/marketing/mega-menu.tsx). Product constraints come from [PRODUCT.md](PRODUCT.md), [DECISIONS.md](DECISIONS.md), and the [brand audit](docs/brand-audit.md). The later shared-token block in CSS takes precedence over earlier legacy declarations.
