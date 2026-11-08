@@ -16,14 +16,14 @@ import "../globals.css";
 export const metadata: Metadata = {
   ...commonMetadata,
   title: {
-    default: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    default: siteConfig.seoTitle,
     template: "%s | Build Saudi",
   },
   description: siteConfig.description,
   keywords: siteConfig.keywords,
   alternates: localeAlternates,
   openGraph: {
-    title: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    title: siteConfig.seoTitle,
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: "Build Saudi",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    title: siteConfig.seoTitle,
     description: siteConfig.description,
     site: "@buildsaudi",
   },
