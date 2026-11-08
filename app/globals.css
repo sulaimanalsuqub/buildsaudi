@@ -330,6 +330,57 @@ html[lang="ar"] .marketing-home :is(h1,h2,h3) { letter-spacing: 0; }
 [dir="rtl"] .direction-icon { transform: scaleX(-1); }
 .marketing-text-link { display: inline-flex; align-items: center; gap: .75rem; min-height: 44px; margin-top: 1.5rem; font-weight: 600; text-decoration: underline; text-decoration-color: var(--color-line); text-underline-offset: 7px; }
 .marketing-text-link:hover { text-decoration-color: currentColor; }
+/* Supply story: connected steps, readable comparisons, concrete assurances. */
+.supply-process { background: var(--color-soft); }
+.journey-layout { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 6rem; }
+.journey-steps { margin-top: 2rem; }
+.journey-steps li { border-bottom: 1px solid var(--color-line); }
+.journey-steps button { display: flex; gap: 1rem; align-items: start; width: 100%; padding: 1.3rem .5rem; text-align: start; border-radius: 12px; }
+.journey-steps button:hover { background: rgb(var(--brand-dark-rgb) / .04); }
+.journey-number { flex-shrink: 0; display: grid; place-items: center; height: 36px; width: 36px; border-radius: 50%; border: 1px solid #a5b6aa; font-size: .8rem; }
+.journey-steps li[data-active="true"] .journey-number { background: var(--color-ink); color: white; border-color: var(--color-ink); }
+.journey-steps strong { display: block; font-size: 1.2rem; font-weight: 700; padding-top: .2rem; }
+.journey-description { display: block; color: var(--color-muted); line-height: 1.85; font-size: .9rem; margin-top: .4rem; }
+.journey-steps button > svg { flex-shrink: 0; margin-inline-start: auto; margin-top: .5rem; }
+.journey-preview { background: var(--color-ink); padding: 2rem; border-radius: 16px; min-width: 0; }
+.journey-preview-heading { display: flex; justify-content: space-between; gap: 1rem; color: white; margin-bottom: 2rem; font-size: .85rem; }
+.journey-preview .ui-demo { min-height: 340px; box-shadow: none; padding: 2rem; }
+.journey-preview > p { color: #dce7df; font-size: .75rem; margin-top: 1.5rem; }
+.comparison-intro { display: flex; align-items: end; justify-content: space-between; gap: 4rem; margin-bottom: 3rem; }
+.comparison-intro h2 { max-width: 16ch; }
+.comparison-intro > p { max-width: 32rem; color: var(--color-muted); line-height: 1.9; }
+.comparison-index { display: inline-block; margin-inline: .6rem; unicode-bidi: isolate; color: var(--color-muted); font-size: .7rem; font-weight: 400; }
+.sourcing-comparison .comparison-wrap { border-radius: 16px; overflow: hidden; }
+.sourcing-comparison .comparison-wrap th { font-weight: 500; }
+.sourcing-comparison .comparison-wrap thead th { padding-block: 1.75rem; }
+.sourcing-comparison .comparison-wrap tbody th { background: transparent; }
+.supply-assurance { background: white; }
+.assurance-layout { display: grid; grid-template-columns: 1fr 1.1fr; align-items: center; gap: 6rem; }
+.assurance-intro > svg { margin-bottom: 1.5rem; }
+.assurance-list li { display: flex; align-items: start; gap: 1.2rem; border-top: 1px solid var(--color-line); padding-block: 1.75rem; }
+.assurance-list li:last-child { border-bottom: 1px solid var(--color-line); }
+.assurance-number { font-size: .75rem; color: var(--color-muted); padding-top: .4rem; }
+.assurance-list h3 { font-size: 1.25rem; font-weight: 700; }
+.assurance-list p { margin-top: .65rem; color: var(--color-muted); line-height: 1.9; font-size: .9375rem; }
+.assurance-list svg { flex-shrink: 0; margin-inline-start: auto; margin-top: .4rem; }
+@media (max-width: 1023px) {
+  .journey-layout, .assurance-layout { gap: 2.5rem; }
+  .journey-preview { padding: 1.5rem; }
+}
+@media (max-width: 767px) {
+  .journey-layout, .assurance-layout { grid-template-columns: 1fr; gap: 2.5rem; }
+  .journey-preview .ui-demo { padding: 1.25rem; min-height: 310px; }
+  .comparison-intro { display: block; }
+  .comparison-intro > p { margin-top: 1rem; }
+  .sourcing-comparison .comparison-wrap { overflow: visible; }
+  .sourcing-comparison table, .sourcing-comparison tbody { display: block; }
+  .sourcing-comparison thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .sourcing-comparison tr { display: grid; grid-template-columns: 1fr; padding-block: 1.5rem; border-top: 1px solid var(--color-line); }
+  .sourcing-comparison .comparison-wrap tbody th { padding: 0 0 1rem; border: 0; font-size: 1.125rem; }
+  .sourcing-comparison .comparison-wrap td { padding: 1rem; border: 0; font-size: .875rem; line-height: 1.8; }
+  .sourcing-comparison td::before { content: attr(data-label); display: block; font-size: .7rem; font-weight: 700; margin-bottom: .35rem; }
+  .sourcing-comparison .comparison-wrap td:last-child { background: var(--color-ink); color: white; border-radius: 12px; }
+}
 /* Shared navigation: fixed, never hidden on scroll. */
 .build-header { position: fixed; z-index: 50; inset: 0 0 auto; background: var(--color-white); border-bottom: 1px solid var(--color-line); }
 .header-inner { display: flex; align-items: center; gap: 2.5rem; height: 72px; }

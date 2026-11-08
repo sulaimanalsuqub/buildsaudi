@@ -1,4 +1,5 @@
 # Redesign decisions
+- User review refinement: replace the three static process cards with a selectable connected journey, make the comparison responsive with labelled stacked cells on mobile, and replace the decorative warranty circle with concrete specification/warranty/follow-up guidance. Retain the approved GT America font and brand palette. Preview this refinement locally before production publication.
 - Final user-approved typography: restore the original self-hosted GT America Arabic font, including its original 300/400/500/700/900 faces, for both language layouts. This supersedes the earlier IBM font decisions.
 - Removed the sample testimonial section from both homepages after user review; warranty now leads directly into FAQ.
 - Work in `/Users/sulaiman/buildsaudi`, the clean main checkout of the marketing repository, on `redesign/hatif-style`. The separate storefront worktree is outside scope.
