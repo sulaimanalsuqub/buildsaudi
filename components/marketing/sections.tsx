@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import { ArrowUpRight, MessageCircle, Bath, LampCeiling, Droplets, Fan, LayoutGrid, Layers, Paintbrush, Droplet, Check, ShieldCheck, Plus, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, MessageCircle, Bath, LampCeiling, Droplets, Fan, LayoutGrid, Layers, Paintbrush, Droplet, Check, ShieldCheck, Plus, FileUp, ArrowDown, type LucideIcon } from 'lucide-react';
 import type { MarketingCopy } from '@/lib/dictionaries/marketing';
-import { PhoneMockup, UiMockup } from './mockups';
+import { UiMockup } from './mockups';
 
 export const categoryIcons = [Bath, LampCeiling, Droplets, Fan, LayoutGrid, Layers, Paintbrush, Droplet];
 export function ActionLink({ href, children, secondary = false }: { href: string; children: React.ReactNode; secondary?: boolean }) {
   return <Link prefetch={false} href={href} className={secondary ? 'build-button build-button-outline' : 'build-button'}>{children}<ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></Link>;
 }
 export function Hero({ t, base }: { t: MarketingCopy; base: string }) {
-  return <section className="marketing-hero" id="for-projects"><div className="marketing-container hero-layout"><div className="hero-copy"><h1>{t.headline}</h1><p className="marketing-lead">{t.lead}</p><div className="hero-actions"><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><a className="build-button build-button-outline" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} />{t.whatsapp}</a></div></div><PhoneMockup t={t} /></div></section>;
+  return <section className="marketing-hero project-hero" id="for-projects"><div className="marketing-container hero-layout"><div className="hero-copy"><h1>{t.projectHeadline}</h1><p className="marketing-lead">{t.projectLead}</p><div className="hero-actions"><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><a className="project-material-link" href="#catalog">{t.materials}<ArrowDown size={17} aria-hidden="true" /></a></div><a className="project-whatsapp" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} aria-hidden="true" />{t.whatsapp}</a></div><aside className="project-request" aria-labelledby="boq-title"><div className="request-file-heading"><FileUp size={30} strokeWidth={1.3} aria-hidden="true" /><span>{t.boqFormats}</span></div><h2 id="boq-title">{t.boqTitle}</h2><p>{t.boqBody}</p><ul>{t.requestNeeds.map(item => <li key={item}><Check size={16} aria-hidden="true" />{item}</li>)}</ul><Link prefetch={false} className="project-upload-link" href={`${base}/get-quote#materials-heading`}>{t.boqAction}<ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></Link><div className="request-track">{t.requestHelp} <Link prefetch={false} href={`${base}/track-request`}>{t.track}</Link></div></aside></div></section>;
 }
 export function SectionHeading({ title, body }: { title: string; body?: string }) {
   return <div className="marketing-heading"><h2>{title}</h2>{body && <p>{body}</p>}</div>;
@@ -18,7 +18,7 @@ export function StepCard({ step, index, t }: { step: MarketingCopy['steps'][numb
   return <li className="step-card reveal"><div className="step-number" dir="ltr">{String(index + 1).padStart(2, '0')}</div><h3>{step.title}</h3><p>{step.body}</p><UiMockup kind={kinds[index]} t={t} /></li>;
 }
 export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: LucideIcon }) {
-  return <a href={`#category-${category.id}`} className="category-card"><Icon size={29} strokeWidth={1.4} aria-hidden="true" /><h3>{category.name}</h3><p>{category.products}</p></a>;
+  return <a href={`#category-${category.id}`} className="category-card"><Icon size={26} strokeWidth={1.4} aria-hidden="true" /><div><h3>{category.name}</h3><p>{category.products}</p></div><ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></a>;
 }
 export function FeatureShowcase({ t, base }: { t: MarketingCopy; base: string }) {
   const kinds = ['quote', 'warranty', 'delivery', 'network'] as const;

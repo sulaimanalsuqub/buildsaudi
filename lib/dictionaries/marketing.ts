@@ -1,6 +1,8 @@
 /** Original bilingual marketing copy. Demonstrations are synthetic, never customer evidence. */
 export const marketing = {
   ar: {
+    projectHeadline: 'توريد مواد البناء والتشطيب للمشاريع', projectLead: 'للمقاولين والمطورين في السعودية، حسب مواصفات المشروع والكميات المطلوبة.',
+    boqTitle: 'أرسل جدول الكميات', boqBody: 'أرفق ملف المشروع أو أدخل قائمة المواد في نموذج الطلب.', boqAction: 'إرفاق جدول الكميات', boqFormats: 'PDF أو CSV', requestNeeds: ['الأصناف والمواصفات', 'الكميات المطلوبة', 'موقع التسليم'], requestHelp: 'لديك طلب سابق؟',
     journeyTitle: 'طريقة الطلب', journeyBody: '',
     compareHeadline: 'خلّ وقتك للمشروع.', compareBody: 'بدل ما تتوزع تفاصيل الشراء بين قوائم وجهات مختلفة، اجمع طلب المواد ومراجعة العرض ومتابعة التوريد مع بيلد.',
     assuranceTitle: 'اعتمد طلبك وأنت عارف تفاصيله.', trustDetails: [ { title: 'المادة المطلوبة، بمواصفاتها', body: 'راجع العلامة والمواصفات والكميات في عرضك، ووضّح أي متطلبات خاصة قبل الاعتماد.' }, { title: 'ضمان حسب المنتج', body: 'اطلب تفاصيل المدة والتغطية وشروط المصنّع لكل صنف. سياسة الضمان متاحة لك قبل قرار الشراء.' }, { title: 'خطوة تالية واضحة', body: 'نتفق معك على تفاصيل التوريد حسب التوفر وموقع التسليم، وتتابع حالة طلبك من رابط التتبع.' } ],
@@ -49,6 +51,8 @@ export const marketing = {
     ctaTitle: 'اطلب عرض سعر لمشروعك', ctaBody: 'أرفق قائمة المواد والكميات المطلوبة.', existing: 'عندك طلب سابق؟',
   },
   en: {
+    projectHeadline: 'Building materials and finishes for projects', projectLead: 'For contractors and developers in Saudi Arabia, to your project specifications and quantities.',
+    boqTitle: 'Send your bill of quantities', boqBody: 'Attach your project file or enter a materials list in the request form.', boqAction: 'Attach your BOQ', boqFormats: 'PDF or CSV', requestNeeds: ['Items and specifications', 'Required quantities', 'Delivery location'], requestHelp: 'Already submitted a request?',
     journeyTitle: 'How to order', journeyBody: '',
     compareHeadline: 'Keep your time for the project.', compareBody: 'Bring your materials request, quote review and supply follow-up together with Build, instead of managing separate lists and contacts.',
     assuranceTitle: 'Approve with the details in hand.', trustDetails: [ { title: 'The materials you specified', body: 'Review brands, specifications and quantities in your quote. Clarify any special requirements before approval.' }, { title: 'Product-specific warranty', body: 'Ask for the duration, coverage and manufacturer terms for each item. Read the warranty policy before you decide.' }, { title: 'A clear next step', body: 'Agree supply details based on availability and delivery location, then follow your request through the tracking link.' } ],

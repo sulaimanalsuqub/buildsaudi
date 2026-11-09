@@ -13,20 +13,20 @@ colors:
 typography:
   display:
     fontFamily: "GT America Arabic, sans-serif"
-    fontSize: "clamp(2.8rem, 4.7vw, 4.6rem)"
-    fontWeight: 600
-    lineHeight: 1.17
-    letterSpacing: "-.035em"
+    fontSize: "clamp(2.3rem, 4.2vw, 4rem)"
+    fontWeight: 500
+    lineHeight: 1.35
+    letterSpacing: "-.02em"
   display-arabic:
     fontFamily: "GT America Arabic, sans-serif"
-    fontSize: "clamp(2.8rem, 4.7vw, 4.6rem)"
-    fontWeight: 600
-    lineHeight: 1.4
+    fontSize: "clamp(2.3rem, 4.2vw, 4rem)"
+    fontWeight: 500
+    lineHeight: 1.45
     letterSpacing: "0"
   headline:
     fontFamily: "GT America Arabic, sans-serif"
-    fontSize: "clamp(2rem, 3.3vw, 3.2rem)"
-    fontWeight: 600
+    fontSize: "clamp(1.65rem, 2.5vw, 2.5rem)"
+    fontWeight: 500
     lineHeight: 1.3
     letterSpacing: "-.025em"
   body:
@@ -69,6 +69,8 @@ components:
 # Design System: Build Saudi
 
 ## Overview
+
+Saudi B2B refinement (local review): the first screen now uses a deep-green brand surface, a direct project-supply headline and a white BOQ request panel linking to the existing form. No illustrative price, ETA or phone conversation appears on the homepage. Use medium-weight GT America headings, compact two-column material rows (one column on mobile), concise static order steps, and the existing FAQ/policy/support access. Preserve the approved concise page structure; earlier phone/mockup descriptions below are historical.
 
 Latest user preference: concise, task-led marketing. The homepage now contains the quote hero, manufacturer brands, materials catalog, request steps, FAQ and closing quote action. Repeated feature showcases, comparison and separate assurance sections are omitted. Warranty, availability and privacy details remain available through FAQs, policy links and existing forms. This supersedes the earlier long-form homepage sequence documented below.
 
