@@ -480,6 +480,8 @@ html[lang="ar"] .hero-copy h1 { max-width: 12ch; line-height: 1.4; }
 .category-card h3 { font-weight: 600; font-size: 1.125rem; margin-top: 1.5rem; }
 .category-card p { color: var(--color-muted); font-size: .8125rem; line-height: 1.8; margin-top: .5rem; min-height: 48px; }
 .category-card > span { display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; font-size: .75rem; font-weight: 500; }
+.category-card .category-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin: 0; flex-shrink: 0; background: var(--color-soft); color: var(--color-ink); border-radius: var(--radius-control); transition: background 180ms; }
+.category-card:hover .category-icon { background: var(--color-accent); }
 .category-details > section { display: none; }
 .category-details > section:target { display: block; padding: 2rem; margin-top: 1.5rem; background: var(--color-paper); border-radius: var(--radius-surface); scroll-margin-top: 6rem; }
 .category-details h3 { font-size: 1.5rem; font-weight: 600; }
