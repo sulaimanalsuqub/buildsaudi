@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowUpRight, MessageCircle, Check, ShieldCheck, Plus, FileUp, ArrowDown } from 'lucide-react';
 import type { MarketingCopy } from '@/lib/dictionaries/marketing';
 import { UiMockup } from './mockups';
-import { categoryIcons, type CategoryIconProps } from './category-icons';
+import { categoryIcons, type CategoryIcon } from './category-icons';
 
 export { categoryIcons };
 export function ActionLink({ href, children, secondary = false }: { href: string; children: React.ReactNode; secondary?: boolean }) {
@@ -18,7 +18,7 @@ export function StepCard({ step, index, t }: { step: MarketingCopy['steps'][numb
   const kinds = ['upload', 'quote', 'delivery'] as const;
   return <li className="step-card reveal"><div className="step-number" dir="ltr">{String(index + 1).padStart(2, '0')}</div><h3>{step.title}</h3><p>{step.body}</p><UiMockup kind={kinds[index]} t={t} /></li>;
 }
-export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: (props: CategoryIconProps) => React.JSX.Element }) {
+export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: CategoryIcon }) {
   return <a href={`#category-${category.id}`} className="category-card"><Icon size={26} strokeWidth={1.4} aria-hidden="true" /><div><h3>{category.name}</h3><p>{category.products}</p></div><ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></a>;
 }
 export function FeatureShowcase({ t, base }: { t: MarketingCopy; base: string }) {
