@@ -517,6 +517,9 @@ html[lang="ar"] .hero-copy h1 { max-width: 12ch; line-height: 1.4; }
 .sample-grid figcaption { margin-top: 1.5rem; color: var(--color-muted); font-size: .8125rem; }
 .faq-layout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 5rem; }
 .faq-layout .marketing-heading { text-align: start; margin: 0; }
+.faq-intro { position: sticky; top: 7rem; display: grid; gap: 1.75rem; align-self: start; align-content: start; }
+.faq-support { display: grid; gap: 1.25rem; justify-items: start; padding: 1.5rem; background: var(--color-paper); border-radius: var(--radius-surface); }
+.faq-support p { font-weight: 600; line-height: 1.8; }
 .faq-list { display: grid; gap: .75rem; }
 .faq-list details { display: grid; grid-template-rows: auto 0fr; border: 1px solid var(--color-line); border-radius: var(--radius-surface); background: var(--color-paper); padding-inline: 1.5rem; transition: grid-template-rows 280ms ease, background 180ms, border-color 180ms; }
 .faq-list details:hover { border-color: #91a99b; }
@@ -579,6 +582,7 @@ main:not(.marketing-home) { background-color: var(--color-paper); }
   .benefit-strip p { gap: .3rem; font-size: .7rem; }
   .benefit-strip svg { width: 15px; }
   .steps-grid, .feature-row, .trust-layout, .faq-layout, .sample-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .faq-intro { position: static; }
   .step-card > p { min-height: 0; }
   .step-card .ui-demo { min-height: 0; }
   .step-card + .step-card { margin-top: 1.5rem; }
@@ -645,8 +649,10 @@ html[lang="ar"] .project-home .hero-copy h1 { max-width: 16ch; letter-spacing: 0
 .project-home .category-card p { min-height: 0; margin-top: .4rem; font-size: .8125rem; }
 .project-process { background: var(--color-paper); }
 .project-process ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; margin-top: 2rem; }
-.project-process li { border-top: 1px solid #b7c7bb; padding-top: 1.25rem; }
-.project-process li > span { display: block; color: var(--color-muted); font-size: .8rem; margin-bottom: 1rem; }
+.project-process li { position: relative; padding-top: 1.5rem; }
+.project-process .journey-bar { position: absolute; top: 0; inset-inline: 0; height: 2px; background: var(--color-ink); transform-origin: left center; }
+[dir="rtl"] .project-process .journey-bar, html[lang="ar"] .project-process .journey-bar { transform-origin: right center; }
+.project-process .journey-num { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--color-ink); color: white; font-size: .8rem; font-weight: 600; margin-bottom: 1rem; }
 .project-process h3 { font-size: 1.125rem; font-weight: 500; }
 .project-process p { font-size: .875rem; line-height: 1.85; color: var(--color-muted); margin-top: .75rem; }
 .project-home .faq-layout { gap: 4rem; }
