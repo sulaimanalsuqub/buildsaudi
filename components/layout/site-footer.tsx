@@ -81,7 +81,7 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
             {interfaceCopy(isRtl, "site_footer_012")}
           </Link>
         </div>
-        <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] py-5 text-xs leading-6 text-[var(--color-muted)] sm:col-span-8 lg:col-span-12">
+        <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] py-5 pe-16 text-xs leading-6 text-[var(--color-muted)] sm:col-span-8 lg:col-span-12">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
           <Link prefetch={false} href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-[var(--color-ink)] hover:underline">{interfaceCopy(isRtl, "site_footer_016")}</Link>
         </div>
@@ -100,10 +100,10 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-bold text-white">{title}</h2>
+      <h2 className="text-sm font-bold text-[var(--color-ink)]">{title}</h2>
       <div className="mt-5 grid gap-1">
         {links.map((link) => (
-          <Link prefetch={false} key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-white/70 transition hover:text-white hover:underline">
+          <Link prefetch={false} key={link.href} href={link.href} className="flex min-h-11 items-center text-sm leading-6 text-[var(--color-muted)] transition hover:text-[var(--color-ink)] hover:underline">
             {link.label}
           </Link>
         ))}
