@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Instagram, Linkedin, Mail, MessageCircle, X as XIcon } from "lucide-react";
 
 import { Grid } from "@/components/ui/grid";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import { WarrantySeal } from "@/components/ui/warranty-seal";
 
 const SUPPORT_EMAIL = "cs@build.sa";
@@ -58,33 +59,34 @@ export function SiteFooter({ isRtl = false }: SiteFooterProps) {
   };
 
   return (
-    <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer bg-[#003932] pt-12 text-white md:pt-16">
+    <footer dir={isRtl ? "rtl" : "ltr"} className="site-footer relative bg-[var(--color-paper)] pt-14 text-[var(--color-ink)] md:pt-16">
       <Grid className="gap-y-10 md:gap-y-14">
         <div className="col-span-4 sm:col-span-8 lg:col-span-4">
           <Link prefetch={false} href={isRtl ? "/ar" : "/"} aria-label={interfaceCopy(isRtl, "site_footer_009")} className="inline-block">
-            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={interfaceCopy(isRtl, "site_footer_010")} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 brightness-0 invert md:w-40" />
+            <Image src={isRtl ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={interfaceCopy(isRtl, "site_footer_010")} width={isRtl ? 2883 : 2846} height={isRtl ? 1231 : 1287} className="h-auto w-36 md:w-40" />
           </Link>
-          <p className="mt-5 max-w-xs text-base leading-8 text-white/70">{interfaceCopy(isRtl, "site_footer_011")}</p>
-          <Link prefetch={false} href={`${legalBase}/warranty`} className="mt-6 inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-white hover:underline">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white"><WarrantySeal className="h-9 w-auto" /></span>
-            {interfaceCopy(isRtl, "site_footer_012")}
-          </Link>
+          <p className="mt-5 max-w-xs text-base leading-8 text-[var(--color-muted)]">{interfaceCopy(isRtl, "site_footer_011")}</p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-soft)]"><Icon className="h-4 w-4" aria-hidden="true" /></a>)}
+          </div>
         </div>
         <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={interfaceCopy(isRtl, "site_footer_013")} links={links.main} /></div>
         <div className="col-span-2 sm:col-span-4 lg:col-span-2"><FooterColumn title={interfaceCopy(isRtl, "site_footer_014")} links={links.legal} /></div>
         <div className="col-span-4 sm:col-span-8 lg:col-span-4">
           <h2 className="text-sm font-bold">{interfaceCopy(isRtl, "site_footer_015")}</h2>
-          <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-5 flex min-h-11 w-fit items-center gap-3 text-2xl font-bold text-white hover:underline"><MessageCircle className="h-5 w-5" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
-          <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-base text-white/80 hover:text-white hover:underline"><Mail className="h-5 w-5" aria-hidden="true" />{SUPPORT_EMAIL}</a>
-          <div className="mt-5 flex flex-wrap gap-1">
-            {SOCIAL_LINKS.map(({ href, label, Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/15 hover:text-white"><Icon className="h-5 w-5" aria-hidden="true" /></a>)}
-          </div>
+          <a href={SUPPORT_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" dir="ltr" className="mt-5 flex min-h-11 w-fit items-center gap-3 text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:underline"><MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />{SUPPORT_PHONE_DISPLAY}</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`} dir="ltr" className="mt-2 flex min-h-11 w-fit items-center gap-3 text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:underline"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{SUPPORT_EMAIL}</a>
+          <Link prefetch={false} href={`${legalBase}/warranty`} className="mt-5 inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-[var(--color-ink)] hover:underline">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)]"><WarrantySeal className="h-6 w-auto" /></span>
+            {interfaceCopy(isRtl, "site_footer_012")}
+          </Link>
         </div>
-        <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 py-5 text-xs leading-6 text-white/70 sm:col-span-8 lg:col-span-12">
+        <div className="col-span-4 mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--color-line)] py-5 text-xs leading-6 text-[var(--color-muted)] sm:col-span-8 lg:col-span-12">
           <p>{isRtl ? `© ${year} بيلد. جميع الحقوق محفوظة.` : `© ${year} Build. All rights reserved.`}</p>
-          <Link prefetch={false} href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-white hover:underline">{interfaceCopy(isRtl, "site_footer_016")}</Link>
+          <Link prefetch={false} href={isRtl ? "/ar/register" : "/register"} className="inline-flex min-h-11 items-center gap-3 font-semibold text-[var(--color-ink)] hover:underline">{interfaceCopy(isRtl, "site_footer_016")}</Link>
         </div>
       </Grid>
+      <ScrollToTopButton />
     </footer>
   );
 }

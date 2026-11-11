@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowUpRight, MessageCircle, Bath, LampCeiling, Droplets, Fan, LayoutGrid, Layers, Paintbrush, Droplet, Check, ShieldCheck, Plus, FileUp, ArrowDown, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, MessageCircle, Check, ShieldCheck, Plus, FileUp, ArrowDown } from 'lucide-react';
 import type { MarketingCopy } from '@/lib/dictionaries/marketing';
 import { UiMockup } from './mockups';
+import { categoryIcons, type CategoryIconProps } from './category-icons';
 
-export const categoryIcons = [Bath, LampCeiling, Droplets, Fan, LayoutGrid, Layers, Paintbrush, Droplet];
+export { categoryIcons };
 export function ActionLink({ href, children, secondary = false }: { href: string; children: React.ReactNode; secondary?: boolean }) {
   return <Link prefetch={false} href={href} className={secondary ? 'build-button build-button-outline' : 'build-button'}>{children}<ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></Link>;
 }
@@ -17,7 +18,7 @@ export function StepCard({ step, index, t }: { step: MarketingCopy['steps'][numb
   const kinds = ['upload', 'quote', 'delivery'] as const;
   return <li className="step-card reveal"><div className="step-number" dir="ltr">{String(index + 1).padStart(2, '0')}</div><h3>{step.title}</h3><p>{step.body}</p><UiMockup kind={kinds[index]} t={t} /></li>;
 }
-export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: LucideIcon }) {
+export function CategoryCard({ category, Icon }: { category: MarketingCopy['categories'][number]; Icon: (props: CategoryIconProps) => React.JSX.Element }) {
   return <a href={`#category-${category.id}`} className="category-card"><Icon size={26} strokeWidth={1.4} aria-hidden="true" /><div><h3>{category.name}</h3><p>{category.products}</p></div><ArrowUpRight size={18} className="direction-icon" aria-hidden="true" /></a>;
 }
 export function FeatureShowcase({ t, base }: { t: MarketingCopy; base: string }) {
@@ -35,7 +36,7 @@ export function Testimonials({ t }: { t: MarketingCopy }) {
   return <section className="marketing-section sample-section"><div className="marketing-container"><SectionHeading title={t.testimonialsTitle} body={t.sampleNotice} /><div className="sample-grid">{t.testimonials.map(sample => <figure key={sample.role}><blockquote>{sample.quote}</blockquote><figcaption>{sample.role}</figcaption></figure>)}</div></div></section>;
 }
 export function Faq({ t }: { t: MarketingCopy }) {
-  return <section className="marketing-section" id="faq"><div className="marketing-container faq-layout"><SectionHeading title={t.faqTitle} /><div className="faq-list">{t.faqs.map(item => <details key={item.q}><summary>{item.q}<Plus size={19} aria-hidden="true" /></summary><p>{item.a}</p></details>)}</div></div></section>;
+  return <section className="marketing-section" id="faq"><div className="marketing-container faq-layout"><SectionHeading title={t.faqTitle} /><div className="faq-list">{t.faqs.map(item => <details key={item.q}><summary>{item.q}<span><Plus size={16} aria-hidden="true" /></span></summary><p><span>{item.a}</span></p></details>)}</div></div></section>;
 }
 export function CtaBand({ t, base }: { t: MarketingCopy; base: string }) {
   return <section className="cta-band"><div className="marketing-container"><div><h2>{t.ctaTitle}</h2><p>{t.ctaBody}</p></div><div><ActionLink href={`${base}/get-quote`}>{t.quote}</ActionLink><p className="cta-track">{t.existing} <Link prefetch={false} href={`${base}/track-request`}>{t.track}</Link></p></div></div></section>;

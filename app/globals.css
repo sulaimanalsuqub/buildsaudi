@@ -515,12 +515,16 @@ html[lang="ar"] .hero-copy h1 { max-width: 12ch; line-height: 1.4; }
 .sample-grid figcaption { margin-top: 1.5rem; color: var(--color-muted); font-size: .8125rem; }
 .faq-layout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 5rem; }
 .faq-layout .marketing-heading { text-align: start; margin: 0; }
-.faq-list details { border-bottom: 1px solid var(--color-line); }
-.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; list-style: none; font-size: 1rem; font-weight: 500; padding-block: 1.5rem; }
+.faq-list { display: grid; gap: .75rem; }
+.faq-list details { display: grid; grid-template-rows: auto 0fr; border: 1px solid var(--color-line); border-radius: var(--radius-surface); background: var(--color-paper); padding-inline: 1.5rem; transition: grid-template-rows 280ms ease, background 180ms, border-color 180ms; }
+.faq-list details:hover { border-color: #91a99b; }
+.faq-list details[open] { grid-template-rows: auto 1fr; background: white; border-color: var(--color-ink); }
+.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; list-style: none; font-size: 1rem; font-weight: 500; padding-block: 1.35rem; }
 .faq-list summary::-webkit-details-marker { display: none; }
-.faq-list summary svg { flex-shrink: 0; transition: transform 180ms; }
-.faq-list details[open] summary svg { transform: rotate(45deg); }
-.faq-list details p { color: var(--color-muted); line-height: 1.9; padding-bottom: 1.5rem; }
+.faq-list summary span { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--color-line); transition: transform 220ms, background 180ms, border-color 180ms; }
+.faq-list details[open] summary span { transform: rotate(45deg); background: var(--color-ink); border-color: var(--color-ink); color: white; }
+.faq-list details > p { overflow: hidden; color: var(--color-muted); line-height: 1.9; }
+.faq-list details > p > span { display: block; padding-bottom: 1.5rem; }
 .cta-band { background: var(--color-ink); color: white; padding-block: 4rem; border-bottom: 1px solid #35635b; }
 .cta-band > div { display: flex; align-items: center; justify-content: space-between; gap: 3rem; }
 .cta-band h2 { max-width: 700px; }

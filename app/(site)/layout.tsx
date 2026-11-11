@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 
 import { siteConfig } from "@/lib/site";
 import { commonMetadata, localeAlternates } from "@/lib/metadata";
-import { gtAmericaArabic } from "@/lib/fonts";
+import { siteFont } from "@/lib/fonts";
 import { OrganizationSchema, WebsiteSchema } from "@/components/seo/schema-org";
 import { GoogleTag } from "@/components/analytics/google-tag";
 import { GtmNoscript, GtmScript } from "@/components/analytics/gtm";
@@ -47,7 +47,7 @@ export default function EnglishRootLayout({ children }: Readonly<{ children: Rea
         <OrganizationSchema />
         <WebsiteSchema />
       </head>
-      <body className={gtAmericaArabic.className}>
+      <body className={siteFont.className}>
         <GtmNoscript />
         <Suspense fallback={<div className="fixed inset-x-0 top-0 h-[72px] bg-white" aria-hidden="true" />}>
           <SiteHeader />
