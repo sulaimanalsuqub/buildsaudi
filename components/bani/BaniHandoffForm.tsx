@@ -268,7 +268,7 @@ export function BaniHandoffForm({ extraction, language }: BaniHandoffFormProps) 
           </div>
         )}
 
-        <Button onClick={handleSubmit} disabled={isLoading} className="w-full rounded-full bg-brand-primary hover:bg-brand-dark">
+        <Button onClick={handleSubmit} disabled={isLoading} className="w-full rounded-full ">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.submit}
         </Button>
         {submitError && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>}

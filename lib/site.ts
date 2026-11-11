@@ -5,6 +5,8 @@ const appUrl = (
 ).replace(/\/$/, "");
 
 export const siteConfig = {
+  seoTitleAr: "بيلد | مورد مواد البناء للمشاريع",
+  seoTitle: "Build | Building Materials Supplier for Projects",
   name: "Build",
   nameAr: "بيلد",
   /** Positioning: supplier of materials & finishes — not a marketplace/platform */

@@ -1,0 +1,50 @@
+[
+  {
+    "check": "mobile menu opens",
+    "pass": true
+  },
+  {
+    "check": "escape closes and restores focus",
+    "pass": true
+  },
+  {
+    "check": "FAQ expands",
+    "pass": true
+  },
+  {
+    "check": "category reveals catalog detail",
+    "pass": true
+  },
+  {
+    "check": "reduced motion stops marquee",
+    "pass": true
+  },
+  {
+    "check": "marquee pause control",
+    "pass": true
+  },
+  {
+    "check": "locale switch preserves route and query",
+    "pass": true
+  },
+  {
+    "check": "English document direction",
+    "pass": true
+  },
+  {
+    "check": "quote text input mode",
+    "pass": true
+  },
+  {
+    "check": "empty form validates locally",
+    "pass": true
+  },
+  {
+    "check": "hreflang and canonical preserved",
+    "pass": true
+  },
+  {
+    "check": "original analytics IDs retained",
+    "pass": true
+  }
+]

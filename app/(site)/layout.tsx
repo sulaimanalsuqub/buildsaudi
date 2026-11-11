@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 
 import { siteConfig } from "@/lib/site";
 import { commonMetadata, localeAlternates } from "@/lib/metadata";
-import { gtAmericaArabic } from "@/lib/fonts";
+import { siteFont } from "@/lib/fonts";
 import { OrganizationSchema, WebsiteSchema } from "@/components/seo/schema-org";
 import { GoogleTag } from "@/components/analytics/google-tag";
 import { GtmNoscript, GtmScript } from "@/components/analytics/gtm";
@@ -16,14 +16,14 @@ import "../globals.css";
 export const metadata: Metadata = {
   ...commonMetadata,
   title: {
-    default: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    default: siteConfig.seoTitle,
     template: "%s | Build Saudi",
   },
   description: siteConfig.description,
   keywords: siteConfig.keywords,
   alternates: localeAlternates,
   openGraph: {
-    title: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    title: siteConfig.seoTitle,
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: "Build Saudi",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Building Materials & Finishes Supply in Saudi Arabia | Build",
+    title: siteConfig.seoTitle,
     description: siteConfig.description,
     site: "@buildsaudi",
   },
@@ -47,12 +47,12 @@ export default function EnglishRootLayout({ children }: Readonly<{ children: Rea
         <OrganizationSchema />
         <WebsiteSchema />
       </head>
-      <body className={gtAmericaArabic.className}>
+      <body className={siteFont.className}>
         <GtmNoscript />
-        <Suspense fallback={<div className="h-[72px]" />}>
+        <Suspense fallback={<div className="fixed inset-x-0 top-0 h-[72px] bg-white" aria-hidden="true" />}>
           <SiteHeader />
         </Suspense>
-        <div className="pt-[72px]">{children}</div>
+        <div id="page-content" tabIndex={-1} className="pt-[72px]">{children}</div>
         <ConditionalFooter />
         <Toaster position="top-center" richColors dir="rtl" />
         <GtmScript />

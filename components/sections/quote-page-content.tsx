@@ -1,3 +1,5 @@
+
+import { interfaceCopy } from "@/lib/dictionaries/interface";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui/container";
@@ -6,16 +8,16 @@ import { ProcurementRequestForm } from "@/components/forms/procurement-request-f
 export function QuotePageContent({ isRtl = false }: { isRtl?: boolean }) {
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   return (
-    <main dir={isRtl ? "rtl" : "ltr"} className="quote-page min-h-screen pb-16 pt-6 md:pb-24 md:pt-10">
+    <main id="main-content" dir={isRtl ? "rtl" : "ltr"} className="quote-page min-h-screen pb-16 pt-6 md:pb-24 md:pt-10">
       <Container>
         <div className="quote-page-shell mx-auto">
-          <Link href={isRtl ? "/ar" : "/"} className="quote-back-link inline-flex min-h-11 items-center gap-2 text-sm hover:underline"><BackArrow className="h-4 w-4" aria-hidden="true" />{isRtl ? "العودة إلى بيلد" : "Back to Build"}</Link>
+          <Link href={isRtl ? "/ar" : "/"} className="quote-back-link inline-flex min-h-11 items-center gap-2 text-sm hover:underline"><BackArrow className="h-4 w-4" aria-hidden="true" />{interfaceCopy(isRtl, "quote_page_content_001")}</Link>
           <div className="quote-page-intro">
-            <h1>{isRtl ? "طلب عرض سعر" : "Request a quote"}</h1>
-            <p>{isRtl ? "أضف قائمة المواد وتفاصيل مشروعك، وخلّ ترتيب التوريد علينا." : "Share your materials list and project details. We’ll take care of coordinating the supply."}</p>
+            <h1>{interfaceCopy(isRtl, "quote_page_content_002")}</h1>
+            <p>{interfaceCopy(isRtl, "quote_page_content_003")}</p>
           </div>
           <div className="quote-form-surface">
-            <p className="quote-required-note">{isRtl ? "* حقول مطلوبة" : "* Required fields"}</p>
+            <p className="quote-required-note">{interfaceCopy(isRtl, "quote_page_content_004")}</p>
             <ProcurementRequestForm isRtl={isRtl} />
           </div>
         </div>

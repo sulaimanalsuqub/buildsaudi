@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { siteConfig } from "@/lib/site";
-import { gtAmericaArabic } from "@/lib/fonts";
+import { siteFont } from "@/lib/fonts";
 import { GoogleTag } from "@/components/analytics/google-tag";
 import "../globals.css";
 
@@ -34,7 +34,7 @@ export default function MaintenanceLayout({
       <head>
         <GoogleTag />
       </head>
-      <body className={gtAmericaArabic.className}>{children}</body>
+      <body className={siteFont.className}>{children}</body>
     </html>
   );
 }

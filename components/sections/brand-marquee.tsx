@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Pause, Play } from "lucide-react";
+import { getMarketing } from "@/lib/dictionaries/marketing";
 import { Grid } from "@/components/ui/grid";
 
 const brands = [
@@ -17,6 +18,7 @@ const brands = [
 ];
 
 export function BrandMarquee({ isRtl = false }: { isRtl?: boolean }) {
+  const t = getMarketing(isRtl);
   const [paused, setPaused] = useState(false);
 
   return (
@@ -25,17 +27,17 @@ export function BrandMarquee({ isRtl = false }: { isRtl?: boolean }) {
         <div className="col-span-4 flex items-end justify-between gap-6 sm:col-span-8 lg:col-span-12">
           <div>
             <h2 id="brands-title" className="type-editorial">
-              {isRtl ? "علامات تجارية نوفّرها لك" : "Brands we source for you"}
+              {t.brandsTitle}
             </h2>
             <p className="type-body mt-3 text-brand-dark/70">
-              {isRtl ? "احتياجات مشروعك، من العلامات اللي تثق فيها." : "Your project essentials, from brands you trust."}
+              {t.brandsBody}
             </p>
           </div>
           <button
             type="button"
             className="brand-motion-toggle flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-brand-dark/20 transition-colors hover:bg-brand-dark/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
             onClick={() => setPaused(!paused)}
-            aria-label={isRtl ? (paused ? "تشغيل حركة الشعارات" : "إيقاف حركة الشعارات") : (paused ? "Play logo animation" : "Pause logo animation")}
+            aria-label={paused ? t.play : t.pause}
             aria-pressed={paused}
           >
             {paused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
