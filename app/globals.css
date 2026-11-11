@@ -649,10 +649,16 @@ html[lang="ar"] .project-home .hero-copy h1 { max-width: 16ch; letter-spacing: 0
 .project-home .category-card p { min-height: 0; margin-top: .4rem; font-size: .8125rem; }
 .project-process { background: var(--color-paper); }
 .project-process ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; margin-top: 2rem; }
-.project-process li { position: relative; padding-top: 1.5rem; }
-.project-process .journey-bar { position: absolute; top: 0; inset-inline: 0; height: 2px; background: var(--color-ink); transform-origin: left center; }
-[dir="rtl"] .project-process .journey-bar, html[lang="ar"] .project-process .journey-bar { transform-origin: right center; }
-.project-process .journey-num { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--color-ink); color: white; font-size: .8rem; font-weight: 600; margin-bottom: 1rem; }
+.project-process li { position: relative; padding-top: .5rem; }
+.journey-route { display: block; width: 100%; height: 120px; margin-top: 2.5rem; overflow: visible; }
+[dir="rtl"] .journey-route { transform: scaleX(-1); }
+.route-base { stroke: var(--color-line); stroke-width: 2; stroke-dasharray: 2 8; stroke-linecap: round; }
+.route-draw { stroke: var(--color-ink); stroke-width: 2.5; stroke-linecap: round; }
+.route-stop { fill: var(--color-paper); stroke: var(--color-muted); stroke-width: 2; transition: fill 220ms, stroke 220ms; }
+.route-stop[data-active="true"] { fill: var(--color-accent); stroke: var(--color-ink); }
+.route-dot { fill: var(--color-accent); stroke: var(--color-ink); stroke-width: 2.5; filter: drop-shadow(0 2px 6px rgb(0 57 50 / .35)); }
+.project-process .journey-num { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: white; border: 1px solid var(--color-line); color: var(--color-ink); font-size: .8rem; font-weight: 600; margin-bottom: 1rem; transition: background 220ms, color 220ms, transform 220ms; }
+.project-process li[data-active="true"] .journey-num { background: var(--color-ink); border-color: var(--color-ink); color: white; transform: scale(1.08); }
 .project-process h3 { font-size: 1.125rem; font-weight: 500; }
 .project-process p { font-size: .875rem; line-height: 1.85; color: var(--color-muted); margin-top: .75rem; }
 .project-home .faq-layout { gap: 4rem; }
@@ -675,8 +681,9 @@ html[lang="ar"] .project-home .hero-copy h1 { max-width: 16ch; letter-spacing: 0
   .project-home .hero-actions { gap: 1.25rem; margin-top: 1.5rem; }
   .project-home .category-grid, .project-process ol { grid-template-columns: 1fr; gap: 0; }
   .project-home .category-card { padding-block: 1.25rem; }
-  .project-process li { padding-block: 1.25rem; }
+  .project-process li { padding-block: 1.25rem; border-top: 1px solid #b7c7bb; }
   .project-process li > span { margin-bottom: .75rem; }
+  .journey-route { display: none; }
   .project-home .faq-layout { gap: 1.5rem; }
 }
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
