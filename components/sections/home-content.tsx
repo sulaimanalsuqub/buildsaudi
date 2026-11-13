@@ -13,7 +13,7 @@ export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
       <section className="materials-hero" id="for-projects">
         <div className="marketing-container">
           <div className="materials-intro">
-            <h1>{isRtl ? 'احتياجات مشروعك،' : 'Your project materials,'}<br /><span>{isRtl ? 'من هنا لموقعك.' : 'from here to your site.'}</span></h1>
+            <h1>{isRtl ? 'احتياجات مشروعك،' : 'Your project materials,'}<br /><span>{isRtl ? 'من هنا لموقعك.' : 'from here to your job site.'}</span></h1>
             <p>{t.projectLead}</p>
           </div>
           <div id="catalog" className="materials-catalog" aria-labelledby="materials-title">
