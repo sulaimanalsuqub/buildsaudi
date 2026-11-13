@@ -99,7 +99,7 @@ export function TrackRequestContent({ isRtl = false }: { isRtl?: boolean }) {
   const showSearch = !loading && !data;
 
   return (
-    <main id="main-content" dir={isRtl ? "rtl" : "ltr"}>
+    <main className="build-tracking-page" id="main-content" dir={isRtl ? "rtl" : "ltr"}>
       <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#f2f6f4] py-12 md:py-20" aria-labelledby="track-request-title">
         <Container>
           <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-16">

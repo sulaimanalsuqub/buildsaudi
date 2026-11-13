@@ -9,7 +9,7 @@ type LegalPageContentProps = {
 
 export function LegalPageContent({ title, badge, isRtl = false, children }: LegalPageContentProps) {
   return (
-    <main dir={isRtl ? "rtl" : "ltr"}>
+    <main id="main-content" className="build-information-page" dir={isRtl ? "rtl" : "ltr"}>
 
       {/* Page hero */}
       <section className="bg-white py-12 md:py-16">
