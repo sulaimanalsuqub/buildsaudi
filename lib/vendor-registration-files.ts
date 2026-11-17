@@ -26,6 +26,29 @@ export function readVendorFilesToken(token: string): { vendorId: number; files: 
   } catch { throw new VendorRegistrationError("Invalid upload authorization", 403, "انتهت صلاحية رفع الملفات. أعد إرسال النموذج لاستكمال الرفع."); }
 }
 
+// ⚠️ مؤقت (2026-11-17): رمز منفصل لا يعتمد على رقم مورد في Odoo/ERPNext (كلاهما معطّل) —
+// الملف يُرسل كمرفق بريد احتياطي بدل حفظه في نظام عمليات. مرجع (reference) من
+// app/api/vendors/register/route.ts بدل vendorId الرقمي.
+const TEMP_TOKEN_PREFIX = "temp.";
+export function isTempVendorFilesToken(token: string): boolean {
+  return token.startsWith(TEMP_TOKEN_PREFIX);
+}
+export function createTempVendorFilesToken(reference: string, files: VendorFileManifest[]) {
+  const body = Buffer.from(JSON.stringify({ reference, files, expires: Date.now() + 60 * 60_000 })).toString("base64url");
+  return `${TEMP_TOKEN_PREFIX}${body}.${createHmac("sha256", secret()).update(`vendor-files-temp:${body}`).digest("base64url")}`;
+}
+export function readTempVendorFilesToken(token: string): { reference: string; files: VendorFileManifest[] } {
+  try {
+    const [body, signature, extra] = token.slice(TEMP_TOKEN_PREFIX.length).split(".");
+    const expected = createHmac("sha256", secret()).update(`vendor-files-temp:${body}`).digest();
+    const received = Buffer.from(signature || "", "base64url");
+    if (extra || received.length !== expected.length || !timingSafeEqual(received, expected)) throw Error();
+    const data = JSON.parse(Buffer.from(body, "base64url").toString());
+    if (data.expires < Date.now() || typeof data.reference !== "string" || !data.reference || !Array.isArray(data.files) || data.files.length > MAX_VENDOR_FILES) throw Error();
+    return data;
+  } catch { throw new VendorRegistrationError("Invalid upload authorization", 403, "انتهت صلاحية رفع الملفات. أعد إرسال النموذج لاستكمال الرفع."); }
+}
+
 export async function validateVendorFileContent(file: VendorFileManifest, buffer: Buffer) {
   if (validateVendorFileMetadata(file) || buffer.length !== file.size || createHash("sha256").update(buffer).digest("hex") !== file.sha256) throw new VendorRegistrationError("Invalid file", 400, "الملف غير صالح أو يتجاوز الحد المسموح (3MB).");
   const ext = file.name.split(".").pop()!.toLowerCase();

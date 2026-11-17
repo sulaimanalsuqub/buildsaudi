@@ -7,6 +7,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 import { sendVendorRegistrationBackupEmail, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { MAX_VENDOR_FILES, validateVendorFileMetadata } from "@/lib/vendor-file-policy";
 import { createWafeqSupplierContact, isWafeqConfigured } from "@/lib/wafeq";
+import { createTempVendorFilesToken } from "@/lib/vendor-registration-files";
 
 export const maxDuration = 120;
 
@@ -98,7 +99,8 @@ export async function POST(req: NextRequest) {
   // كلياً — كلا الـERPs اللذين كانا يستقبلان هذا النموذج ميتان الآن (307/303 لصفحات حالة الخدمة،
   // لا API حقيقي). بدل رفض كل تسجيل، نحفظ الطلب بمكانين لا يعتمدان على أي ERP: Contact مبدئي في
   // وافق (best-effort) + بريد احتياطي كامل لفريق Build (مصدر الحقيقة الوحيد مؤقتاً). لا كشف تكرار
-  // ولا فئات/ملفات تُحفظ آلياً بأي نظام — الفريق يُدخلها يدوياً عند رجوع ERPNext أو Odoo.
+  // ولا فئات تُحفظ آلياً بأي نظام — الفريق يُدخلها يدوياً عند رجوع ERPNext أو Odoo. الملفات (لو
+  // وُجدت) تُرسَل كمرفقات بريد منفصلة عبر uploadToken مؤقت (readTempVendorFilesToken).
   // أعد ربط هذا بـregisterVendorInErpnext/registerVendor (lib/erpnext-vendor-registration.ts،
   // lib/vendor-registration.ts) فور رجوع أحدهما.
   const reference = createHash("sha256")
@@ -142,5 +144,9 @@ export async function POST(req: NextRequest) {
     console.error("[vendors/register] confirmation email failed (non-blocking):", emailError instanceof Error ? emailError.message : emailError);
   }
 
-  return NextResponse.json({ ok: true, status: "registered" });
+  return NextResponse.json({
+    ok: true,
+    status: "registered",
+    ...(vendor.files.length ? { uploadToken: createTempVendorFilesToken(reference, vendor.files) } : {}),
+  });
 }

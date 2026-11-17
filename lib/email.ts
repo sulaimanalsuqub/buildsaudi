@@ -1146,6 +1146,34 @@ export async function sendVendorRegistrationBackupEmail(vendor: {
   });
 }
 
+/** مرفق منفرد لطلب تسجيل مورد — بديل مؤقت لرفعه بنظام العمليات (معطّل) */
+export async function sendVendorRegistrationFileBackupEmail(params: {
+  reference: string;
+  fileName: string;
+  fileBuffer: Buffer;
+  contentType: string;
+}) {
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `[مرفق مورد — نسخة احتياطية] ${params.reference} — ${params.fileName}`,
+    html: emailShell({
+      previewText: `مرفق من طلب تسجيل مورد (مرجع ${params.reference}) — ERP معطّل، أرفقناه هنا مباشرة`,
+      accentColor: "#ef4444",
+      badgeIcon: "📎",
+      badgeLabel: "مرفق — نسخة احتياطية",
+      content: `
+        ${greeting("فريق Build", "مرفق من نموذج تسجيل مورد (نظام العمليات معطّل)")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          هذا المرفق يخص طلب تسجيل مورد بالمرجع <strong dir="ltr">${esc(params.reference)}</strong> —
+          راجع البريد الاحتياطي الآخر بنفس المرجع لبيانات الطلب الكاملة.
+        </p>
+      `,
+    }),
+    attachments: [{ filename: params.fileName, content: params.fileBuffer, contentType: params.contentType }],
+  });
+}
+
 // ─────────────────────────────────────────────
 //  طلبات التوريد (Procurement Requests) — استقبال فقط بهذي المرحلة
 // ─────────────────────────────────────────────
