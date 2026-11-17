@@ -1,15 +1,12 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, rateLimitError, getClientIdentifier } from "@/lib/rate-limit";
 import { isEnglishBrandName, isValidVendorPhone, normalizeVendorPhone, optionLabel, supplierCountries } from "@/lib/vendor-options";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { registerVendor, VendorRegistrationError } from "@/lib/vendor-registration";
-import { isErpnextConfigured } from "@/lib/erpnext";
-import { registerVendorInErpnext, ErpnextVendorError } from "@/lib/erpnext-vendor-registration";
-import { createErpnextVendorFilesToken } from "@/lib/erpnext-vendor-files";
-import { createVendorFilesToken } from "@/lib/vendor-registration-files";
-import { sendVendorRegistrationConfirmation } from "@/lib/email";
+import { sendVendorRegistrationBackupEmail, sendVendorRegistrationConfirmation } from "@/lib/email";
 import { MAX_VENDOR_FILES, validateVendorFileMetadata } from "@/lib/vendor-file-policy";
+import { createWafeqSupplierContact, isWafeqConfigured } from "@/lib/wafeq";
 
 export const maxDuration = 120;
 
@@ -66,6 +63,16 @@ const registerSchema = z.object({
   purchase_incoterm_location: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
+/** مزامنة best-effort لمورد جديد كـContact في وافق — لا تُفشّل التسجيل */
+async function syncVendorToWafeq(externalId: string, name: string, email: string, phone: string) {
+  if (!isWafeqConfigured()) return;
+  try {
+    await createWafeqSupplierContact({ externalId, name, email, phone });
+  } catch (error) {
+    console.error("[vendors/register] Wafeq contact sync failed (non-blocking):", error instanceof Error ? error.message : error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const clientId = getClientIdentifier(req);
   const { ok, resetAt } = checkRateLimit(clientId, "forms");
@@ -87,54 +94,53 @@ export async function POST(req: NextRequest) {
   const countryDisplay = resolveCountryDisplayName(vendor.country);
   const countryCode = resolveCountryCode(countryDisplay);
 
-  // ERPNext (مصدر الحقيقة) عند تهيئته، وإلا fallback لـOdoo (rollback آمن).
-  // ملاحظة: في وضع ERPNext لا يُصدَر uploadToken (تدفّق رفع الملفات متعدد المراحل لا يزال على Odoo
-  // ويعتمد على معرّف مورد رقمي) — تُسجَّل أسماء الملفات على المورد، ويُستكمل التدفّق لاحقاً.
-  if (isErpnextConfigured()) {
-    try {
-      const result = await registerVendorInErpnext({
-        ...vendor,
-        country: countryDisplay,
-        country_code: countryCode,
-        fileNames: vendor.files.map((f) => f.name),
-      });
-      // تأكيد للمورد (best-effort — لا يفشّل التسجيل)
-      if (result.status === "registered") {
-        try {
-          await sendVendorRegistrationConfirmation({
-            establishment_name: vendor.establishment_name,
-            manager_name: vendor.contact_name,
-            email: vendor.email,
-            lang: vendor.preferred_language,
-          });
-        } catch (emailError) {
-          console.error("[vendors/register] confirmation email failed (non-blocking):", emailError instanceof Error ? emailError.message : emailError);
-        }
-      }
-      return NextResponse.json({
-        ok: true,
-        status: result.status,
-        ...(vendor.files.length ? { uploadToken: createErpnextVendorFilesToken(result.supplier, vendor.files) } : {}),
-      });
-    } catch (error) {
-      console.error("[vendors/register] ERPNext registration failed:", error instanceof ErpnextVendorError ? error.message : "internal error");
-      return NextResponse.json(
-        { error: error instanceof ErpnextVendorError ? error.publicMessage : "تعذر حفظ الطلب حالياً. حاول مرة أخرى بعد قليل." },
-        { status: error instanceof ErpnextVendorError ? error.status : 503 }
-      );
-    }
+  // ⚠️ مؤقت (2026-11-17): ERPNext (Frappe Cloud) معلّق وOdoo (buildsaudi.odoo.com) معطّلة
+  // كلياً — كلا الـERPs اللذين كانا يستقبلان هذا النموذج ميتان الآن (307/303 لصفحات حالة الخدمة،
+  // لا API حقيقي). بدل رفض كل تسجيل، نحفظ الطلب بمكانين لا يعتمدان على أي ERP: Contact مبدئي في
+  // وافق (best-effort) + بريد احتياطي كامل لفريق Build (مصدر الحقيقة الوحيد مؤقتاً). لا كشف تكرار
+  // ولا فئات/ملفات تُحفظ آلياً بأي نظام — الفريق يُدخلها يدوياً عند رجوع ERPNext أو Odoo.
+  // أعد ربط هذا بـregisterVendorInErpnext/registerVendor (lib/erpnext-vendor-registration.ts،
+  // lib/vendor-registration.ts) فور رجوع أحدهما.
+  const reference = createHash("sha256")
+    .update(JSON.stringify([vendor.establishment_name.trim().toLowerCase(), countryCode || countryDisplay, vendor.email]))
+    .digest("hex")
+    .slice(0, 16);
+
+  await syncVendorToWafeq(reference, vendor.establishment_name, vendor.email, vendor.phone);
+
+  try {
+    await sendVendorRegistrationBackupEmail({
+      reference,
+      establishment_name: vendor.establishment_name,
+      country: countryDisplay,
+      supplier_type: vendor.supplier_type,
+      business_type: vendor.business_type,
+      contact_name: vendor.contact_name,
+      job_title: vendor.job_title,
+      email: vendor.email,
+      phone: vendor.phone,
+      category_names: vendor.category_names,
+      other_category_suggestion: vendor.other_category_suggestion,
+      brands: vendor.brands,
+      website: vendor.website,
+      fileNames: vendor.files.map((f) => f.name),
+    });
+  } catch (error) {
+    // هذا البريد هو السجل الوحيد للطلب الآن — فشله يعني فشل التسجيل فعلياً، لازم يُعاد المحاولة.
+    console.error("[vendors/register] backup email failed:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: "تعذر حفظ الطلب حالياً. حاول مرة أخرى بعد قليل." }, { status: 503 });
   }
 
   try {
-    const result = await registerVendor({
-      ...vendor, country: countryDisplay, country_code: countryCode,
+    await sendVendorRegistrationConfirmation({
+      establishment_name: vendor.establishment_name,
+      manager_name: vendor.contact_name,
+      email: vendor.email,
+      lang: vendor.preferred_language,
     });
-    return NextResponse.json({ ok: true, status: result.status, ...(vendor.files.length ? { uploadToken: createVendorFilesToken(result.vendorId, vendor.files) } : {}) });
-  } catch (error) {
-    console.error("[vendors/register] registration failed:", error instanceof VendorRegistrationError ? error.message : "internal error");
-    return NextResponse.json(
-      { error: error instanceof VendorRegistrationError ? error.publicMessage : "تعذر حفظ الطلب حالياً. حاول مرة أخرى بعد قليل." },
-      { status: error instanceof VendorRegistrationError ? error.status : 503 },
-    );
+  } catch (emailError) {
+    console.error("[vendors/register] confirmation email failed (non-blocking):", emailError instanceof Error ? emailError.message : emailError);
   }
+
+  return NextResponse.json({ ok: true, status: "registered" });
 }

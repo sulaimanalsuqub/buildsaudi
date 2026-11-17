@@ -1089,6 +1089,64 @@ export async function sendVendorRegistrationConfirmation(vendor: {
 
 
 // ─────────────────────────────────────────────
+//  10b. نسخة احتياطية كاملة لتسجيل مورد — بينما ERPNext/Odoo معطّلان (مؤقت)
+//  مصدر الحقيقة الوحيد لبيانات التسجيل الكاملة طالما لا ERP حي يستقبلها.
+// ─────────────────────────────────────────────
+export async function sendVendorRegistrationBackupEmail(vendor: {
+  reference: string;
+  establishment_name: string;
+  country: string;
+  supplier_type: string;
+  business_type: string;
+  contact_name: string;
+  job_title?: string;
+  email: string;
+  phone: string;
+  category_names: string[];
+  other_category_suggestion?: string;
+  brands: string[];
+  website?: string;
+  fileNames: string[];
+}) {
+  const rows =
+    infoRow("المرجع", esc(vendor.reference), "ltr") +
+    infoRow("المنشأة", esc(vendor.establishment_name)) +
+    infoRow("الدولة", esc(vendor.country)) +
+    infoRow("نوع المورد", esc(vendor.supplier_type)) +
+    infoRow("النوع التجاري", esc(vendor.business_type)) +
+    infoRow("اسم المسؤول", esc(vendor.contact_name)) +
+    (vendor.job_title ? infoRow("المسمى الوظيفي", esc(vendor.job_title)) : "") +
+    infoRow("البريد", esc(vendor.email), "ltr") +
+    infoRow("الجوال", esc(vendor.phone), "ltr") +
+    infoRow("الفئات", esc(vendor.category_names.join("، "))) +
+    (vendor.other_category_suggestion ? infoRow("فئة أخرى مقترحة", esc(vendor.other_category_suggestion)) : "") +
+    (vendor.brands.length ? infoRow("العلامات التجارية", esc(vendor.brands.join(", ")), "ltr") : "") +
+    (vendor.website ? infoRow("الموقع الإلكتروني", esc(vendor.website), "ltr") : "") +
+    infoRow("الملفات المرفقة", vendor.fileNames.length ? esc(vendor.fileNames.join("، ")) : "بلا ملفات");
+
+  return sendEmail({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `[نسخة احتياطية — ERP معطّل] تسجيل مورد جديد — ${vendor.establishment_name}`,
+    html: emailShell({
+      previewText: `نظام العمليات معطّل حالياً — هذا السجل الوحيد لطلب ${vendor.establishment_name}. راجعوه وأدخلوه يدوياً عند رجوع ERPNext/Odoo.`,
+      accentColor: "#ef4444",
+      badgeIcon: "⚠️",
+      badgeLabel: "نسخة احتياطية — يحتاج إدخال يدوي",
+      content: `
+        ${greeting("فريق Build", "ERPNext وOdoo معطّلان حالياً — هذا الطلب لم يُحفظ في أي نظام عمليات")}
+        <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.8;">
+          تم إنشاء جهة اتصال مبدئية في وافق فقط (اسم/بريد/جوال). كل البيانات أدناه موجودة هنا فقط —
+          احفظوها يدوياً في ERPNext أو Odoo فور رجوع أحدهما، ولو أرفق المورد ملفات اطلبوها منه مباشرة
+          (لم تُرفع، النظام معطّل).
+        </p>
+        ${infoTable(rows)}
+      `,
+    }),
+  });
+}
+
+// ─────────────────────────────────────────────
 //  طلبات التوريد (Procurement Requests) — استقبال فقط بهذي المرحلة
 // ─────────────────────────────────────────────
 

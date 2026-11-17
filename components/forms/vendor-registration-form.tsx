@@ -236,7 +236,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       setResultStatus((result?.status as typeof resultStatus) ?? "registered");
       token = result?.uploadToken || "";
       setUploadToken(token);
-      if (files.length && !token) throw new Error(interfaceCopy(isRtl, "vendor_registration_form_040"));
+      // لا رفع ملفات متاح الآن (نظام العمليات معطّل مؤقتاً) — الطلب محفوظ بالفعل، فقط نتخطى الرفع.
+      if (files.length && !token) { setIsSubmitted(true); return; }
       }
       let failed = false;
       for (const item of files.filter(f => f.status !== "uploaded")) {
