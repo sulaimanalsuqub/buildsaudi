@@ -31,12 +31,11 @@ export function HomeContent({ isRtl = false }: { isRtl?: boolean }) {
                   <div className="material-tile-heading"><h3>{category.name}</h3><ArrowUpRight size={20} className="direction-icon" aria-hidden="true" /></div>
                   <p>{category.products}</p>
                   <Icon className="material-tile-icon" size={64} strokeWidth={1.2} aria-hidden="true" />
-                  <span className="material-tile-action">{t.categoryQuote}</span>
                 </Link>;
               })}
             </div>
           </div>
-          <div className="materials-help"><span>{t.existing} <Link href={`${base}/track-request`}>{t.track}</Link></span><a href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true" />{t.whatsapp}</a></div>
+          <div className="materials-help"><a href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} aria-hidden="true" />{t.whatsapp}</a></div>
         </div>
       </section>
       <BrandMarquee isRtl={isRtl} />

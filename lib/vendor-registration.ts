@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { claimSubmission, saveSubmissionState } from "./shared-store.ts";
+import { createWafeqSupplierContact, isWafeqConfigured } from "./wafeq.ts";
 
 // This flow uses only native Odoo models; the former x_build_* models and
 // Build-OPT server are not dependencies of public supplier registration.
@@ -195,6 +196,15 @@ export async function registerVendor(input: VendorRegistrationInput): Promise<{ 
       id = saved[0].id;
     }
     await complete(id);
+    if (isWafeqConfigured()) {
+      try {
+        await createWafeqSupplierContact({ externalId: String(id), name, email, phone: input.phone });
+      } catch (error) {
+        // Best-effort: the supplier is already registered in Odoo (source of truth); Wafeq sync
+        // can be retried later from the finance side, it must never fail the registration itself.
+        console.error("[vendor-registration] Wafeq contact sync failed (non-blocking):", error instanceof Error ? error.message : error);
+      }
+    }
     return { status: "registered", vendorId: id };
   } catch (error) {
     await saveSubmissionState(reference, {

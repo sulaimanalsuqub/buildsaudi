@@ -1,12 +1,13 @@
 
 import { interfaceCopy } from "@/lib/dictionaries/interface";
+import { getMarketing } from "@/lib/dictionaries/marketing";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
 import { Container } from "@/components/ui/container";
-import { ProcurementRequestForm } from "@/components/forms/procurement-request-form";
 
 export function QuotePageContent({ isRtl = false }: { isRtl?: boolean }) {
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
+  const t = getMarketing(isRtl);
   return (
     <main id="main-content" dir={isRtl ? "rtl" : "ltr"} className="quote-page min-h-screen pb-16 pt-6 md:pb-24 md:pt-10">
       <Container>
@@ -17,8 +18,7 @@ export function QuotePageContent({ isRtl = false }: { isRtl?: boolean }) {
             <p>{interfaceCopy(isRtl, "quote_page_content_003")}</p>
           </div>
           <div className="quote-form-surface">
-            <p className="quote-required-note">{interfaceCopy(isRtl, "quote_page_content_004")}</p>
-            <ProcurementRequestForm isRtl={isRtl} />
+            <a className="build-button" href={`https://wa.me/966553771777?text=${encodeURIComponent(t.waMessage)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} aria-hidden="true" />{t.whatsapp}</a>
           </div>
         </div>
       </Container>
