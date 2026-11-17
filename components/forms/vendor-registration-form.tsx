@@ -18,6 +18,7 @@ import {
   isEnglishBrandName,
   isSaudiSupplierCountry,
   isValidVendorPhone,
+  jobTitles,
   normalizeVendorPhone,
   optionLabel,
   parseVendorPhone,
@@ -50,7 +51,6 @@ const formSchema = z.object({
   categoryIds: z.array(z.string()).min(1, "required"),
   otherCategorySuggestion: z.string().optional(),
   brands: z.array(z.string()).refine((values) => values.every(isEnglishBrandName), "invalidEnglishBrand").optional(),
-  shortDescription: z.string(),
   website: z.string().optional(),
   supplierCurrencyId: z.string().optional(),
   supplierPaymentTermId: z.string().optional(),
@@ -58,7 +58,6 @@ const formSchema = z.object({
   purchaseIncotermId: z.string().optional(),
   purchaseIncotermLocation: z.string().max(200).optional(),
   privacyAccepted: z.literal(true, { message: "required" }),
-  termsAccepted: z.literal(true, { message: "required" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -74,7 +73,6 @@ const defaultValues: FormValues = {
   categoryIds: [],
   otherCategorySuggestion: "",
   brands: [],
-  shortDescription: "",
   website: "",
   supplierCurrencyId: "",
   supplierPaymentTermId: "",
@@ -82,7 +80,6 @@ const defaultValues: FormValues = {
   purchaseIncotermId: "",
   purchaseIncotermLocation: "",
   privacyAccepted: false as unknown as true,
-  termsAccepted: false as unknown as true,
 };
 
 export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationFormProps) {
@@ -114,7 +111,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       categories: interfaceCopy(isRtl, "vendor_registration_form_020"),
       other: interfaceCopy(isRtl, "vendor_registration_form_021"),
       brands: interfaceCopy(isRtl, "vendor_registration_form_022"),
-      shortDescription: interfaceCopy(isRtl, "vendor_registration_form_023"),
       website: interfaceCopy(isRtl, "vendor_registration_form_024"),
       supplierCurrency: interfaceCopy(isRtl, "vendor_registration_form_025"),
       paymentTerms: interfaceCopy(isRtl, "vendor_registration_form_026"),
@@ -126,12 +122,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
       establishmentName: interfaceCopy(isRtl, "vendor_registration_form_030"),
       establishmentNameMatchesContact: interfaceCopy(isRtl, "vendor_registration_form_031"),
       brands: interfaceCopy(isRtl, "vendor_registration_form_032"),
-      shortDescription: interfaceCopy(isRtl, "vendor_registration_form_033"),
       categoriesLoading: interfaceCopy(isRtl, "vendor_registration_form_034"),
       categoriesError: interfaceCopy(isRtl, "vendor_registration_form_035"),
     },
     privacyLabel: interfaceCopy(isRtl, "vendor_registration_form_036"),
-    termsLabel: interfaceCopy(isRtl, "vendor_registration_form_037"),
     submit: interfaceCopy(isRtl, "vendor_registration_form_038"),
   };
 
@@ -222,7 +216,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
             .filter((name): name is string => !!name),
           other_category_suggestion: showOther ? data.otherCategorySuggestion?.trim() || undefined : undefined,
           brands: data.brands ?? [],
-          short_description: data.shortDescription.trim(),
           website: data.website?.trim() || undefined,
           files: manifest,
           supplier_currency_id: !isSaudi && data.supplierCurrencyId ? Number(data.supplierCurrencyId) : undefined,
@@ -233,7 +226,8 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
           preferred_language: isRtl ? "ar" : "en",
           submission_id: submissionId,
           privacy_accepted: data.privacyAccepted,
-          terms_accepted: data.termsAccepted,
+          // لا يوجد checkbox منفصل لشروط التسجيل بالواجهة بعد — تقديم النموذج نفسه يُعتبر موافقة.
+          terms_accepted: true,
           turnstile_token: turnstileToken,
         }),
       });
@@ -354,7 +348,10 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 <VendorErrorText text={form.formState.errors.contactName?.message} isRtl={isRtl} />
               </VendorField>
               <VendorField label={t.labels.jobTitle}>
-                <Input {...form.register("jobTitle")} className="h-14 rounded-2xl text-base" />
+                <Input {...form.register("jobTitle")} list="job-title-options" className="h-14 rounded-2xl text-base" />
+                <datalist id="job-title-options">
+                  {jobTitles.map((option) => <option key={option.value} value={isRtl ? option.ar : option.en} />)}
+                </datalist>
               </VendorField>
             </motion.div>
           )}
@@ -493,14 +490,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                 <VendorErrorText text={form.formState.errors.brands?.message} isRtl={isRtl} />
               </VendorField>
 
-              <VendorField label={t.labels.shortDescription} helper={t.helpers.shortDescription}>
-                <textarea
-                  {...form.register("shortDescription")}
-                  className="min-h-[110px] w-full rounded-2xl border border-brand-dark/15 bg-white px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                />
-                <VendorErrorText text={form.formState.errors.shortDescription?.message} isRtl={isRtl} />
-              </VendorField>
-
               <div className="space-y-5">
                 <VendorField label={t.labels.website}>
                   <Input {...form.register("website")} dir="ltr" className="h-14 rounded-2xl text-base" />
@@ -522,13 +511,6 @@ export function VendorRegistrationForm({ isRtl = false }: VendorRegistrationForm
                     onCheckedChange={(v) => form.setValue("privacyAccepted", (v === true) as true, { shouldValidate: true })}
                   />
                   {t.privacyLabel}
-                </label>
-                <label className="flex items-start gap-3 text-sm text-brand-dark/85">
-                  <Checkbox
-                    checked={values.termsAccepted}
-                    onCheckedChange={(v) => form.setValue("termsAccepted", (v === true) as true, { shouldValidate: true })}
-                  />
-                  {t.termsLabel}
                 </label>
               </div>
             </motion.div>

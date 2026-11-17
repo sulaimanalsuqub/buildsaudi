@@ -129,6 +129,11 @@ export const businessTypes: VendorOption[] = [
   { value: "service_provider", en: "Service Provider", ar: "مقدم خدمة" },
 ];
 
+export const jobTitles: VendorOption[] = [
+  { value: "owner", en: "Owner", ar: "المالك" },
+  { value: "administrative", en: "Administrator", ar: "إداري" },
+];
+
 export const brandRelationshipTypes: VendorOption[] = [
   { value: "manufacturer", en: "Manufacturer", ar: "مصنع" },
   { value: "authorized_distributor", en: "Authorized Distributor", ar: "موزع معتمد" },

@@ -272,10 +272,6 @@ const copy = {
     "en": "Represented Brands in English",
     "ar": "العلامات التجارية بالإنجليزي"
   },
-  "vendor_registration_form_023": {
-    "en": "Brief description of your products",
-    "ar": "وصف مختصر لمنتجاتكم"
-  },
   "vendor_registration_form_024": {
     "en": "Website",
     "ar": "الموقع الإلكتروني"
@@ -312,10 +308,6 @@ const copy = {
     "en": "Type the brand in English and press Enter.",
     "ar": "اكتب اسم العلامة بالإنجليزي واضغط Enter."
   },
-  "vendor_registration_form_033": {
-    "en": "You can leave this blank.",
-    "ar": "يمكن ترك الحقل فارغًا"
-  },
   "vendor_registration_form_034": {
     "en": "Loading categories…",
     "ar": "جاري تحميل الفئات…"
@@ -327,10 +319,6 @@ const copy = {
   "vendor_registration_form_036": {
     "en": "I agree to the Privacy Policy",
     "ar": "أوافق على سياسة الخصوصية"
-  },
-  "vendor_registration_form_037": {
-    "en": "I agree to the Registration Terms",
-    "ar": "أوافق على شروط التسجيل"
   },
   "vendor_registration_form_038": {
     "en": "Submit Application",
